@@ -1,0 +1,1766 @@
+// ============================================================================
+// prisma/schema.prisma
+// Consolidated schema from all feature module reference schemas.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+// ============================================================================
+// AUTH MODULE
+// ============================================================================
+
+enum UserRole {
+  SUBSCRIBER
+  CONTRIBUTOR
+  AUTHOR
+  EDITOR
+  ADMINISTRATOR
+  SUPER_ADMIN
+}
+
+model User {
+  id                   String                  @id @default(cuid())
+  username             String                  @unique
+  email                String                  @unique
+  password             String
+  firstName            String?
+  lastName             String?
+  nickname             String?
+  displayName          String?
+  isEmailVerified      Boolean                 @default(false)
+  emailVerifiedAt      DateTime?
+  language             String?
+
+  // Contact
+  website              String?
+  phoneNumber          String?
+  countryCode          String?
+  alternateEmail       String?
+  whatsapp             String?
+  fax                  String?
+
+  // Social
+  facebook             String?
+  twitter              String?
+  instagram            String?
+  linkedin             String?
+  youtube              String?
+  tiktok               String?
+  telegram             String?
+  github               String?
+  pinterest            String?
+  snapchat             String?
+
+  // Professional
+  bio                  String?                 @db.Text
+  company              String?
+  jobTitle             String?
+
+  // Location
+  address              String?
+  city                 String?
+  state                String?
+  zipCode              String?
+  country              String?
+
+  role                 UserRole                @default(SUBSCRIBER)
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  // Relations
+  sessions             UserSession[]
+  emailVerifications   EmailVerificationToken[]
+  emailChangeRequests  EmailChangeRequest[]
+  posts                Post[]
+  comments             Comment[]
+  pages                Page[]
+  mediaItems           Media[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model UserSession {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  lastUsedAt       DateTime?
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshTokenHash])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("email_verification_tokens")
+}
+
+model EmailChangeRequest {
+  id               String    @id @default(cuid())
+  userId           String
+  oldEmail         String
+  newEmail         String
+  oldEmailCode     String
+  newEmailCode     String
+  oldEmailVerified Boolean   @default(false)
+  newEmailVerified Boolean   @default(false)
+  adminApproved    Boolean   @default(false)
+  completedAt      DateTime?
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_change_requests")
+}
+
+model UserSettings {
+  id                              String   @id @default(cuid())
+
+  registrationEnabled             Boolean  @default(true)
+  loginEnabled                    Boolean  @default(true)
+  defaultRole                     UserRole @default(SUBSCRIBER)
+
+  requireCaptchaOnLogin           Boolean  @default(false)
+  requireCaptchaOnRegister        Boolean  @default(false)
+  requireCaptchaOnPasswordReset   Boolean  @default(false)
+
+  passwordMinLength               Int      @default(12)
+  passwordMaxLength               Int      @default(128)
+  passwordRequireUppercase        Boolean  @default(true)
+  passwordRequireLowercase        Boolean  @default(true)
+  passwordRequireDigit            Boolean  @default(true)
+  passwordRequireSpecialChar      Boolean  @default(true)
+
+  maxLoginAttempts                Int      @default(5)
+  lockoutDurationMs               Int      @default(900000)
+
+  accessTokenExpiryMs             Int      @default(900000)
+  refreshTokenExpiryMs            Int      @default(604800000)
+  maxActiveSessions               Int      @default(10)
+
+  requireEmailVerification        Boolean  @default(true)
+  emailVerificationExpiryMs       Int      @default(86400000)
+  emailVerificationCodeLength     Int      @default(6)
+
+  passwordResetExpiryMs           Int      @default(3600000)
+
+  emailChangeExpiryMs             Int      @default(86400000)
+  emailChangeRequiresAdminApproval Boolean @default(true)
+
+  bcryptRounds                    Int      @default(12)
+  csrfEnabled                     Boolean  @default(true)
+  cookieSecure                    Boolean  @default(true)
+  cookieSameSite                  String   @default("lax")
+  cookieDomain                    String   @default("")
+
+  enableSocialLinks               Boolean  @default(true)
+  enablePhoneNumber               Boolean  @default(true)
+  enableContactInfo               Boolean  @default(true)
+  enableNickname                  Boolean  @default(true)
+  enableDisplayNameChoice         Boolean  @default(true)
+  allowSelfDeletion               Boolean  @default(false)
+  allowPasswordChange             Boolean  @default(true)
+  allowUsernameChange             Boolean  @default(false)
+
+  updatedBy                       String?
+  updatedAt                       DateTime @updatedAt
+
+  @@map("user_settings")
+}
+
+// ============================================================================
+// BLOG MODULE
+// ============================================================================
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+enum SeriesStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+model Post {
+  id               String     @id @default(cuid())
+  title            String
+  slug             String     @unique
+  content          String     @db.Text
+  excerpt          String?    @db.Text
+  status           PostStatus @default(DRAFT)
+  authorId         String
+
+  // Media / Social
+  featuredImage        String?
+  featuredImageAlt     String?
+  ogTitle              String?
+  ogDescription        String?
+  ogImage              String?
+  twitterTitle         String?
+  twitterDescription   String?
+  twitterImage         String?
+
+  // SEO (from SEO module integration)
+  seoTitle         String?
+  seoDescription   String?    @db.Text
+  seoKeywords      String[]   @default([])
+  twitterCard      String?
+  autoTags         String[]   @default([])
+  noIndex          Boolean    @default(false)
+  noFollow         Boolean    @default(false)
+  structuredData   Json?
+
+  // Metrics
+  viewCount   Int @default(0)
+  readingTime Int @default(1)
+  wordCount   Int @default(0)
+
+  // Featured / Pinned
+  isFeatured Boolean @default(false)
+  isPinned   Boolean @default(false)
+  pinOrder   Int     @default(0)
+
+  // Access control
+  password      String?
+  allowComments Boolean @default(true)
+
+  // Locking
+  isLocked Boolean   @default(false)
+  lockedBy String?
+  lockedAt DateTime?
+
+  // Guest posting
+  isGuestPost       Boolean @default(false)
+  guestAuthorName   String?
+  guestAuthorEmail  String?
+  guestAuthorBio    String? @db.Text
+  guestAuthorAvatar String?
+  guestAuthorUrl    String?
+
+  // Versioning
+  revision     Int     @default(1)
+  canonicalUrl String?
+
+  // Localization
+  language String?
+  region   String?
+
+  // Timestamps
+  publishedAt  DateTime?
+  scheduledFor DateTime?
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  author     User           @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  categories Category[]     @relation("PostCategories")
+  tags       Tag[]          @relation("PostTags")
+  series     Series?        @relation(fields: [seriesId], references: [id])
+  seriesId   String?
+  seriesOrder Int           @default(0)
+  revisions  PostRevision[]
+  quotes     PostQuote[]
+  comments      Comment[]
+  distributions DistributionRecord[]
+
+  @@index([status, deletedAt])
+  @@index([status, noIndex])
+  @@index([authorId])
+  @@index([seriesId])
+  @@index([isFeatured, status])
+  @@index([isPinned, status])
+  @@index([publishedAt])
+  @@index([viewCount])
+  @@index([isGuestPost])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("posts")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  color       String?
+  icon        String?
+  image       String?
+  featured    Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  postCount   Int      @default(0)
+
+  parentId String?
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+
+  posts Post[] @relation("PostCategories")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([featured])
+  @@index([sortOrder])
+  @@map("categories")
+}
+
+model Series {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  description String?      @db.Text
+  coverImage  String?
+  status      SeriesStatus @default(ACTIVE)
+  sortOrder   Int          @default(0)
+  postCount   Int          @default(0)
+
+  posts Post[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@map("series")
+}
+
+model PostRevision {
+  id             String   @id @default(cuid())
+  postId         String
+  title          String
+  content        String   @db.Text
+  excerpt        String?  @db.Text
+  revisionNumber Int
+  changeNote     String?
+  createdBy      String
+  createdAt      DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, revisionNumber])
+  @@map("post_revisions")
+}
+
+model PostQuote {
+  id          String   @id @default(cuid())
+  postId      String
+  text        String   @db.Text
+  attribution String?
+  source      String?
+  sourceUrl   String?
+  sortOrder   Int      @default(0)
+  isPullQuote Boolean  @default(false)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId, sortOrder])
+  @@map("post_quotes")
+}
+
+// ============================================================================
+// COMMENTS MODULE
+// ============================================================================
+
+model Comment {
+  id             String    @id @default(cuid())
+  postId         String
+  parentId       String?
+  userId         String?
+
+  content        String
+  authorName     String?
+  authorEmail    String?
+  authorWebsite  String?
+
+  status         String    @default("PENDING")
+  spamScore      Float     @default(0)
+  spamSignals    String[]
+
+  upvotes        Int       @default(0)
+  downvotes      Int       @default(0)
+
+  isPinned       Boolean   @default(false)
+  isResolved     Boolean   @default(false)
+
+  flagCount      Int       @default(0)
+  flagReasons    String[]
+
+  ipAddress      String?
+  userAgent      String?
+
+  editedAt       DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  post           Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user           User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  parent         Comment?         @relation("CommentThread", fields: [parentId], references: [id], onDelete: SetNull)
+  replies        Comment[]        @relation("CommentThread")
+  votes          CommentVote[]
+  learningSignals LearningSignal[]
+
+  @@index([postId, status, deletedAt])
+  @@index([userId])
+  @@index([parentId])
+  @@index([status, createdAt])
+  @@index([postId, isPinned])
+  @@map("comments")
+}
+
+model CommentVote {
+  id         String   @id @default(cuid())
+  commentId  String
+  visitorId  String
+  type       String
+
+  createdAt  DateTime @default(now())
+
+  comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, visitorId])
+  @@map("comment_votes")
+}
+
+model LearningSignal {
+  id         String   @id @default(cuid())
+  commentId  String
+  action     String
+  metadata   Json?
+
+  createdAt  DateTime @default(now())
+
+  comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([commentId])
+  @@map("learning_signals")
+}
+
+model CommentSettings {
+  id                        String   @id @default(cuid())
+
+  maxContentLength          Int      @default(5000)
+  maxAuthorNameLength       Int      @default(120)
+  maxWebsiteLength          Int      @default(300)
+  maxReplyDepth             Int      @default(5)
+
+  commentsEnabled           Boolean  @default(true)
+  requireModeration         Boolean  @default(false)
+  allowGuestComments        Boolean  @default(true)
+  autoApproveThreshold      Int      @default(3)
+  editWindowMinutes         Int      @default(30)
+  closeCommentsAfterDays    Int      @default(0)
+
+  maxCommentsPerPostPerUser Int      @default(0)
+  maxCommentsPerHour        Int      @default(0)
+
+  maxLinksBeforeSpam        Int      @default(3)
+  capsSpamRatio             Float    @default(0.5)
+  capsCheckMinLength        Int      @default(20)
+  spamScoreThreshold        Int      @default(50)
+  customSpamKeywords        String[]
+  blockedEmails             String[]
+  blockedDomains            String[]
+  blockedIps                String[]
+
+  enableVoting              Boolean  @default(true)
+  enableReactions           Boolean  @default(true)
+  enableThreading           Boolean  @default(true)
+  enableProfanityFilter     Boolean  @default(false)
+  enableLearningSignals     Boolean  @default(true)
+  trackMetadata             Boolean  @default(true)
+  profanityWords            String[]
+
+  autoFlagThreshold         Int      @default(3)
+  pinnedCommentLimit        Int      @default(3)
+
+  spamRetentionDays         Int      @default(30)
+  deletedRetentionDays      Int      @default(90)
+
+  notifyOnFlag              Boolean  @default(true)
+  notifyOnSpam              Boolean  @default(false)
+
+  updatedBy                 String?
+  updatedAt                 DateTime @updatedAt
+
+  @@map("comment_settings")
+}
+
+// ============================================================================
+// TAGS MODULE
+// ============================================================================
+
+model Tag {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  name        String   @unique
+  slug        String   @unique
+  description String?
+
+  color       String?
+  icon        String?
+
+  metaTitle       String?
+  metaDescription String?
+  ogImage         String?
+
+  parentId    String?
+  parent      Tag?     @relation("TagHierarchy", fields: [parentId], references: [id])
+  children    Tag[]    @relation("TagHierarchy")
+
+  path        String?
+  label       String?
+  level       Int      @default(1)
+
+  synonyms    String[] @default([])
+  synonymHits Int      @default(0)
+  linkedTagIds String[] @default([])
+  linkedTags  Tag[]    @relation("LinkedTags")
+  linkedBy    Tag[]    @relation("LinkedTags")
+
+  usageCount  Int      @default(0)
+  mergeCount  Int      @default(0)
+
+  featured    Boolean  @default(false)
+  trending    Boolean  @default(false)
+  locked      Boolean  @default(false)
+  protected   Boolean  @default(false)
+
+  posts       Post[]   @relation("PostTags")
+  followers   TagFollow[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@index([usageCount])
+  @@index([featured])
+  @@index([trending])
+  @@index([locked])
+  @@index([name])
+  @@index([path])
+  @@index([level])
+  @@index([protected])
+  @@map("tags")
+}
+
+model TagFollow {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  tagId     String
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  userId    String
+
+  weight    Float    @default(1.0)
+
+  @@unique([tagId, userId])
+  @@index([userId])
+  @@index([tagId])
+  @@map("tag_follows")
+}
+
+model TagSettings {
+  id                   String   @id @default(cuid())
+  updatedAt            DateTime @updatedAt
+
+  caseSensitive        Boolean  @default(false)
+  forceLowercase       Boolean  @default(false)
+  spaceDelimiter       Boolean  @default(true)
+  maxTagsPerPost       Int      @default(0)
+
+  autocompleteLimit    Int      @default(20)
+  autocompleteMode     String   @default("startsWith")
+  autocompleteMinChars Int      @default(1)
+
+  protectAll           Boolean  @default(false)
+  protectInitial       Boolean  @default(true)
+
+  initialTags          String[] @default([])
+
+  tagCloudMin          Int      @default(1)
+  tagCloudMax          Int      @default(6)
+
+  enableTree           Boolean  @default(true)
+  treeSeparator        String   @default("/")
+
+  enableFollowing      Boolean  @default(true)
+
+  autoTagMaxTags       Int      @default(8)
+  autoTagMinConfidence Float    @default(0.3)
+  enableLlmAutoTag     Boolean  @default(false)
+
+  autoCleanupDays      Int      @default(0)
+
+  maxNameLength        Int      @default(100)
+  maxDescriptionLength Int      @default(500)
+  maxSynonyms          Int      @default(20)
+  maxLinkedTags        Int      @default(10)
+  maxBulkIds           Int      @default(100)
+
+  updatedBy            String?
+
+  @@map("tag_settings")
+}
+
+// ============================================================================
+// CAPTCHA MODULE
+// ============================================================================
+
+model CaptchaSettings {
+  id                          String   @id @default(cuid())
+
+  captchaEnabled              Boolean  @default(true)
+  captchaMode                 String   @default("always")
+  defaultProvider             String   @default("turnstile")
+  enableFallbackChain         Boolean  @default(true)
+  fallbackOrder               String[] @default(["turnstile", "recaptcha-v3", "recaptcha-v2", "hcaptcha", "custom"])
+
+  enableTurnstile             Boolean  @default(true)
+  enableRecaptchaV3           Boolean  @default(true)
+  enableRecaptchaV2           Boolean  @default(true)
+  enableHcaptcha              Boolean  @default(true)
+  enableInhouse               Boolean  @default(true)
+
+  turnstileSiteKey            String?
+  recaptchaV2SiteKey          String?
+  recaptchaV3SiteKey          String?
+  hcaptchaSiteKey             String?
+
+  inhouseCodeLength           Int      @default(6)
+  inhouseChallengeTtlMs       Int      @default(300000)
+  inhouseMaxRetries           Int      @default(3)
+  inhouseChallengeEndpoint    String   @default("/api/captcha/challenge")
+
+  scriptLoadTimeoutMs         Int      @default(10000)
+
+  requireCaptchaForLogin          Boolean @default(true)
+  requireCaptchaForRegistration   Boolean @default(true)
+  requireCaptchaForComments       Boolean @default(true)
+  requireCaptchaForContact        Boolean @default(true)
+  requireCaptchaForPasswordReset  Boolean @default(true)
+  requireCaptchaForNewsletter     Boolean @default(false)
+
+  recaptchaV3ScoreThreshold   Float    @default(0.5)
+  maxFailedAttempts           Int      @default(5)
+  lockoutDurationMinutes      Int      @default(15)
+
+  exemptAuthenticatedUsers    Boolean  @default(false)
+  exemptAdmins                Boolean  @default(true)
+  exemptedIps                 String[] @default([])
+
+  theme                       String   @default("auto")
+  size                        String   @default("normal")
+
+  updatedBy                   String?
+  updatedAt                   DateTime @updatedAt
+
+  @@map("captcha_settings")
+}
+
+model CaptchaAttempt {
+  id         String   @id @default(cuid())
+  clientIp   String
+  provider   String
+  success    Boolean
+  score      Float?
+  service    String?
+
+  createdAt  DateTime @default(now())
+
+  @@index([clientIp, success, createdAt])
+  @@index([provider, createdAt])
+  @@index([createdAt])
+  @@map("captcha_attempts")
+}
+
+model CaptchaChallenge {
+  id          String   @id @default(cuid())
+  answer      String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3)
+  clientIp    String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([clientIp, createdAt])
+  @@map("captcha_challenges")
+}
+
+// ============================================================================
+// EDITOR MODULE
+// ============================================================================
+
+model EditorSettings {
+  id String @id @default(cuid())
+
+  editorEnabled Boolean @default(true)
+
+  enableBold             Boolean @default(true)
+  enableItalic           Boolean @default(true)
+  enableUnderline        Boolean @default(true)
+  enableStrikethrough    Boolean @default(true)
+  enableHeadings         Boolean @default(true)
+  allowedHeadingLevels   Int[]   @default([1, 2, 3, 4, 5, 6])
+  enableLists            Boolean @default(true)
+  enableTaskLists        Boolean @default(true)
+  enableBlockquotes      Boolean @default(true)
+  enableCodeBlocks       Boolean @default(true)
+  enableInlineCode       Boolean @default(true)
+  enableLinks            Boolean @default(true)
+  enableImages           Boolean @default(true)
+  enableVideoEmbeds      Boolean @default(true)
+  enableTables           Boolean @default(true)
+  enableHorizontalRule   Boolean @default(true)
+  enableTextColor        Boolean @default(true)
+  enableBackgroundColor  Boolean @default(true)
+  enableAlignment        Boolean @default(true)
+  enableFullscreen       Boolean @default(true)
+  enableUndoRedo         Boolean @default(true)
+  enableMarkdownShortcuts Boolean @default(true)
+  enableDragDropUpload   Boolean @default(true)
+
+  maxWordCount Int @default(0)
+  maxCharCount Int @default(0)
+
+  maxImageSizeBytes  Int      @default(10485760)
+  allowedImageTypes  String[] @default(["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"])
+  defaultImageWidth  Int      @default(1200)
+  defaultImageHeight Int      @default(675)
+
+  allowedVideoProviders String[] @default(["youtube", "vimeo"])
+
+  maxTableRows Int @default(20)
+  maxTableCols Int @default(10)
+
+  colorPalette     String[] @default(["#000000", "#333333", "#666666", "#999999", "#cccccc", "#ffffff", "#e74c3c", "#e67e22", "#f1c40f", "#2ecc71", "#3498db", "#9b59b6", "#c0392b", "#d35400", "#f39c12", "#27ae60", "#2980b9", "#8e44ad", "#fadbd8", "#fdebd0", "#fef9e7", "#d5f5e3", "#d6eaf8", "#ebdef0"])
+  defaultTextColor String @default("#000000")
+
+  maxHistorySize     Int    @default(50)
+  autoSaveDebounceMs Int    @default(2000)
+  readingWpm         Int    @default(200)
+  defaultPlaceholder String @default("Start writing your content here...")
+  defaultMinHeight   String @default("300px")
+  defaultMaxHeight   String @default("600px")
+
+  updatedBy String?
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("editor_settings")
+}
+
+// ============================================================================
+// SEO MODULE
+// ============================================================================
+
+enum SeoSuggestionCategory {
+  META
+  CONTENT
+  TECHNICAL
+  IMAGE
+  LINKING
+  STRUCTURED_DATA
+  SOCIAL
+  PERFORMANCE
+}
+
+enum SeoSuggestionSource {
+  AUDIT
+  AI
+  MANUAL
+  RULE_ENGINE
+}
+
+enum SeoSuggestionStatus {
+  NEW
+  APPROVED
+  REJECTED
+  SCHEDULED
+  APPLIED
+  EXPIRED
+}
+
+enum SeoTargetType {
+  POST
+  PAGE
+  CATEGORY
+  TAG
+  SITE
+}
+
+enum SeoKeywordIntent {
+  INFORMATIONAL
+  COMMERCIAL
+  TRANSACTIONAL
+  LOCAL
+  NAVIGATIONAL
+  OTHER
+}
+
+enum SeoEntityType {
+  CATEGORY
+  TAG
+  AUTO_TAG
+  TOPIC
+  BRAND
+  PERSON
+  LOCATION
+}
+
+enum SeoEntityRelation {
+  CO_OCCURRENCE
+  HIERARCHY
+  SYNONYM
+  RELATED
+  PARENT_CHILD
+}
+
+enum BatchOperationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model SeoSuggestion {
+  id           String                  @id @default(cuid())
+  targetType   SeoTargetType
+  targetId     String
+  category     SeoSuggestionCategory
+  title        String
+  description  String                  @db.Text
+  severity     String
+  status       SeoSuggestionStatus     @default(NEW)
+  source       SeoSuggestionSource     @default(AUDIT)
+  proposed     Json?
+  autoApply    Boolean                 @default(false)
+
+  createdById  String?
+  decidedById  String?
+  decisionNote String?                 @db.Text
+  appliedAt    DateTime?
+
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+  @@map("seo_suggestions")
+}
+
+model SeoKeyword {
+  id          String            @id @default(cuid())
+  slug        String            @unique
+  term        String
+  intent      SeoKeywordIntent  @default(OTHER)
+  source      String            @default("system")
+  volume      Int?
+  competition Float?
+  cpc         Float?
+  lastSeenAt  DateTime          @default(now())
+
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([intent])
+  @@index([source])
+  @@index([lastSeenAt])
+  @@map("seo_keywords")
+}
+
+model SeoEntity {
+  id        String          @id @default(cuid())
+  slug      String
+  type      SeoEntityType
+  name      String
+  source    String          @default("system")
+
+  fromEdges SeoEntityEdge[] @relation("FromEntity")
+  toEdges   SeoEntityEdge[] @relation("ToEntity")
+
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([slug, type])
+  @@index([type])
+  @@index([source])
+  @@map("seo_entities")
+}
+
+model SeoEntityEdge {
+  id        String            @id @default(cuid())
+  fromId    String
+  toId      String
+  relation  SeoEntityRelation @default(CO_OCCURRENCE)
+  weight    Float             @default(1)
+
+  from      SeoEntity         @relation("FromEntity", fields: [fromId], references: [id], onDelete: Cascade)
+  to        SeoEntity         @relation("ToEntity", fields: [toId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([fromId, toId, relation])
+  @@index([fromId])
+  @@index([toId])
+  @@index([relation])
+  @@map("seo_entity_edges")
+}
+
+model SeoKeywordHistory {
+  id          String   @id @default(cuid())
+  keyword     String
+  volume      Int
+  timestamp   DateTime @default(now())
+  source      String   @default("manual")
+  competition Float?
+
+  @@index([keyword, timestamp])
+  @@index([timestamp])
+  @@map("seo_keyword_history")
+}
+
+model BatchOperation {
+  id          String                @id @default(cuid())
+  name        String
+  status      BatchOperationStatus  @default(PENDING)
+  suggestions Json
+  results     Json?
+  appliedAt   DateTime?
+
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("batch_operations")
+}
+
+// ============================================================================
+// PAGES MODULE
+// ============================================================================
+
+// ============================================================================
+// SEO REDIRECTS
+// ============================================================================
+
+model SeoRedirect {
+  id          String   @id @default(cuid())
+  fromPath    String   @unique
+  toPath      String
+  statusCode  Int      @default(301)         // 301 = permanent, 302 = temporary
+  isActive    Boolean  @default(true)
+  hitCount    Int      @default(0)
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([fromPath])
+  @@index([isActive])
+  @@map("seo_redirects")
+}
+
+model Page {
+  id        String   @id @default(cuid())
+
+  title     String
+  slug      String   @unique
+  content   String   @db.Text
+  excerpt   String?  @db.Text
+  status    String   @default("DRAFT")
+  template  String   @default("DEFAULT")
+  visibility String  @default("PUBLIC")
+
+  isSystem   Boolean  @default(false)
+  systemKey  String?  @unique
+
+  isHomePage Boolean  @default(false)
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  ogTitle         String?
+  ogDescription   String?
+  ogImage         String?
+  canonicalUrl    String?
+  noIndex         Boolean @default(false)
+  noFollow        Boolean @default(false)
+  structuredData  Json?
+
+  // Hierarchy
+  parentId   String?
+  parent     Page?   @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children   Page[]  @relation("PageHierarchy")
+  sortOrder  Int     @default(0)
+  path       String  @default("/")
+  level      Int     @default(0)
+
+  // Content metrics
+  wordCount   Int @default(0)
+  readingTime Int @default(1)
+
+  // Media
+  featuredImage    String?
+  featuredImageAlt String?
+
+  // Visibility guards
+  password String?
+
+  // Custom code injection
+  customCss  String? @db.Text
+  customJs   String? @db.Text
+  customHead String? @db.Text
+
+  // Locking
+  isLocked Boolean  @default(false)
+  lockedBy String?
+  lockedAt DateTime?
+
+  // Versioning
+  revision Int @default(1)
+
+  // Author
+  authorId String
+  author   User @relation(fields: [authorId], references: [id])
+
+  // Timestamps
+  publishedAt  DateTime?
+  scheduledFor DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  revisions PageRevision[]
+
+  @@index([status])
+  @@index([slug])
+  @@index([systemKey])
+  @@index([parentId])
+  @@index([authorId])
+  @@index([status, deletedAt])
+  @@index([isSystem])
+  @@index([scheduledFor])
+  @@index([deletedAt])
+  @@index([isHomePage])
+  @@map("pages")
+}
+
+model PageRevision {
+  id             String   @id @default(cuid())
+  pageId         String
+  page           Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  title          String
+  content        String   @db.Text
+  excerpt        String?  @db.Text
+  template       String
+  revisionNumber Int
+  changeNote     String?
+  createdBy      String
+  createdAt      DateTime @default(now())
+
+  @@index([pageId])
+  @@index([pageId, revisionNumber])
+  @@map("page_revisions")
+}
+
+model PageSettings {
+  id String @id @default(cuid())
+
+  pagesPerPage    Int    @default(20)
+  minWordCount    Int    @default(0)
+  readingSpeedWpm Int    @default(200)
+  pagesBaseUrl    String @default("")
+  excerptLength   Int    @default(200)
+
+  lockTimeoutMinutes Int @default(30)
+
+  maxRevisionsPerPage Int @default(50)
+
+  maxDepth Int @default(6)
+
+  allowCodeInjection       Boolean @default(false)
+  enableRevisions          Boolean @default(true)
+  enableLocking            Boolean @default(true)
+  enableScheduling         Boolean @default(true)
+  enableHierarchy          Boolean @default(true)
+  enablePasswordProtection Boolean @default(true)
+  autoRegisterSystemPages  Boolean @default(true)
+
+  defaultTemplate   String @default("DEFAULT")
+  defaultVisibility String @default("PUBLIC")
+  defaultStatus     String @default("DRAFT")
+
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+
+  @@map("page_settings")
+}
+
+// ============================================================================
+// SETTINGS MODULE (Site Settings — singleton)
+// ============================================================================
+
+model SiteSettings {
+  id                              String   @id @default(cuid())
+
+  // Identity
+  siteName                        String   @default("My Website")
+  siteTagline                     String?
+  siteDescription                 String?  @db.Text
+  siteUrl                         String?
+  logoUrl                         String?
+  logoDarkUrl                     String?
+  faviconUrl                      String   @default("/favicon.ico")
+  language                        String   @default("en")
+  timezone                        String   @default("UTC")
+
+  // Appearance / Theme
+  primaryColor                    String   @default("#3b82f6")
+  secondaryColor                  String   @default("#64748b")
+  accentColor                     String   @default("#f59e0b")
+  fontFamily                      String   @default("system-ui, sans-serif")
+  headingFontFamily               String?
+  darkModeEnabled                 Boolean  @default(true)
+  darkModeDefault                 Boolean  @default(false)
+  customCss                       String?  @db.Text
+  themeColor                      String?
+
+  // Date & Locale
+  dateFormat                      String   @default("YYYY-MM-DD")
+  timeFormat                      String   @default("HH:mm")
+  currencyCode                    String   @default("USD")
+  currencySymbol                  String   @default("$")
+
+  // Top Bar
+  topBarEnabled                   Boolean  @default(false)
+  topBarPhone                     String?
+  topBarEmail                     String?
+  topBarAddress                   String?
+  topBarText                      String?
+  topBarShowSocialLinks           Boolean  @default(false)
+  topBarBusinessHours             String?
+  topBarBackgroundColor           String   @default("#1a1a2e")
+  topBarTextColor                 String   @default("#ffffff")
+  topBarCtaText                   String?
+  topBarCtaUrl                    String?
+  topBarDismissible               Boolean  @default(true)
+
+  // Announcement Banner
+  announcementEnabled             Boolean  @default(false)
+  announcementText                String?  @db.Text
+  announcementType                String   @default("info")
+  announcementUrl                 String?
+  announcementDismissible         Boolean  @default(true)
+  announcementBackgroundColor     String?
+
+  // Navigation / Header
+  headerStyle                     String   @default("sticky")
+  navShowSearch                   Boolean  @default(true)
+  navShowLanguageSwitcher         Boolean  @default(false)
+  navShowDarkModeToggle           Boolean  @default(true)
+
+  // Menu & Theme JSON blobs
+  menuStructure                   Json?
+  themeConfig                     Json?
+
+  // Footer
+  footerText                      String?  @db.Text
+  footerShowSocialLinks           Boolean  @default(true)
+  footerShowContactInfo           Boolean  @default(false)
+  footerSecondaryText             String?  @db.Text
+
+  // Social Links
+  socialFacebook                  String?
+  socialTwitter                   String?
+  socialInstagram                 String?
+  socialLinkedin                  String?
+  socialYoutube                   String?
+  socialWhatsapp                  String?
+  socialTiktok                    String?
+  socialTelegram                  String?
+  socialGithub                    String?
+  socialPinterest                 String?
+
+  // Contact
+  contactEmail                    String?
+  contactPhone                    String?
+  contactAddress                  String?
+
+  // SEO Defaults
+  seoTitleTemplate                String?
+  seoDefaultImage                 String?
+  seoGoogleVerification           String?
+  seoGoogleAnalyticsId            String?
+  seoBingVerification             String?
+  seoYandexVerification           String?
+  seoPinterestVerification        String?
+  seoBaiduVerification            String?
+
+  // CAPTCHA
+  captchaEnabled                  Boolean  @default(true)
+  captchaType                     String   @default("turnstile")
+  captchaProvider                 String   @default("none")
+  captchaSiteKey                  String?
+  captchaSecretKey                String?
+  captchaThreshold                Float    @default(0.5)
+  captchaOnContactForm            Boolean  @default(false)
+  captchaOnComments               Boolean  @default(false)
+  enableTurnstile                 Boolean  @default(true)
+  enableRecaptchaV3               Boolean  @default(false)
+  enableRecaptchaV2               Boolean  @default(false)
+  enableHcaptcha                  Boolean  @default(false)
+  enableInhouse                   Boolean  @default(true)
+  turnstileSiteKey                String?
+  recaptchaV3SiteKey              String?
+  recaptchaV2SiteKey              String?
+  hcaptchaSiteKey                 String?
+  inhouseCodeLength               Int      @default(6)
+  requireCaptchaLogin             Boolean  @default(false)
+  requireCaptchaRegister          Boolean  @default(false)
+  requireCaptchaComment           Boolean  @default(false)
+  requireCaptchaContact           Boolean  @default(false)
+
+  // Reading / Content
+  postsPerPage                    Int      @default(10)
+  excerptLength                   Int      @default(300)
+  showFullContentInListing        Boolean  @default(false)
+  enableRss                       Boolean  @default(true)
+  rssFeedTitle                    String?
+  enableComments                  Boolean  @default(true)
+  enableSearch                    Boolean  @default(true)
+  enableRegistration              Boolean  @default(true)
+  defaultPostStatus               String   @default("DRAFT")
+
+  // Blog Layout & Display
+  blogLayout                      String   @default("grid")       // grid, list, masonry
+  blogColumns                     Int      @default(2)             // 1, 2, 3, 4
+  showAuthor                      Boolean  @default(true)
+  showDate                        Boolean  @default(true)
+  showReadTime                    Boolean  @default(true)
+  showTags                        Boolean  @default(true)
+  showFeaturedImage               Boolean  @default(true)
+  showExcerpt                     Boolean  @default(true)
+  showViewCount                   Boolean  @default(false)
+
+  // Sidebar
+  sidebarEnabled                  Boolean  @default(true)
+  sidebarPosition                 String   @default("right")      // left, right
+  sidebarShowSearch               Boolean  @default(true)
+  sidebarShowRecentPosts          Boolean  @default(true)
+  sidebarShowCategories           Boolean  @default(true)
+  sidebarShowTags                 Boolean  @default(true)
+  sidebarShowArchive              Boolean  @default(false)
+  sidebarRecentPostsCount         Int      @default(5)
+
+  // Single Post Display
+  relatedPostsEnabled             Boolean  @default(true)
+  relatedPostsCount               Int      @default(3)
+  socialSharingEnabled            Boolean  @default(true)
+  tableOfContentsEnabled          Boolean  @default(false)
+  showPostNavigation              Boolean  @default(true)
+  enableCommentModeration         Boolean  @default(true)
+  autoApproveComments             Boolean  @default(false)
+  enableCommentVoting             Boolean  @default(false)
+  enableCommentThreading          Boolean  @default(true)
+  allowGuestComments              Boolean  @default(true)
+  maxReplyDepth                   Int      @default(5)
+  closeCommentsAfterDays          Int      @default(0)
+  editWindowMinutes               Int      @default(30)
+
+  // Privacy & Legal
+  cookieConsentEnabled            Boolean  @default(false)
+  cookieConsentMessage            String   @default("This website uses cookies to ensure you get the best experience.") @db.Text
+  privacyPolicyUrl                String?
+  termsOfServiceUrl               String?
+  gdprEnabled                     Boolean  @default(false)
+
+  // Email / SMTP Configuration
+  emailFromName                   String?
+  emailFromAddress                String?
+  emailReplyTo                    String?
+  smtpHost                        String?
+  smtpPort                        Int      @default(587)
+  smtpUser                        String?
+  smtpPassword                    String?
+  smtpSecure                      Boolean  @default(true)
+  emailNotifyOnComment            Boolean  @default(true)
+  emailNotifyOnUser               Boolean  @default(true)
+  emailNotifyOnContact            Boolean  @default(true)
+  emailWelcomeEnabled             Boolean  @default(true)
+  emailDigestEnabled              Boolean  @default(false)
+  emailDigestFrequency            String   @default("weekly")
+
+  // Third-Party Integrations
+  googleTagManagerId              String?
+  facebookPixelId                 String?
+  hotjarId                        String?
+  clarityId                       String?
+
+  // Media
+  maxUploadSizeMb                 Int      @default(10)
+  allowedFileTypes                String   @default("jpg,jpeg,png,gif,webp,svg,pdf,doc,docx")
+  imageOptimizationEnabled        Boolean  @default(true)
+
+  // PWA
+  pwaEnabled                      Boolean  @default(false)
+  pwaName                         String?
+  pwaShortName                    String?
+  pwaThemeColor                   String?
+  pwaBackgroundColor              String   @default("#ffffff")
+
+  // Robots / Crawling
+  robotsTxtCustom                 String?  @db.Text
+  sitemapEnabled                  Boolean  @default(true)
+  sitemapChangeFreq               String   @default("weekly")
+
+  // Maintenance Mode
+  maintenanceMode                 Boolean  @default(false)
+  maintenanceMessage              String   @default("We are currently performing maintenance. Please check back soon.") @db.Text
+  maintenanceAllowedIps           String?  @db.Text
+
+  // Custom Code Injection
+  customHeadCode                  String?  @db.Text
+  customFooterCode                String?  @db.Text
+
+  // Kill Switches — Ads & Distribution
+  adsEnabled                      Boolean  @default(false)
+  distributionEnabled             Boolean  @default(false)
+
+  // Audit
+  updatedBy                       String?
+  updatedAt                       DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+// ============================================================================
+// JOBS MODULE
+// ============================================================================
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model Job {
+  id        String    @id @default(cuid())
+  type      String
+  step      String
+  status    JobStatus @default(PENDING)
+  payload   Json
+  result    Json?
+  error     String?
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@map("jobs")
+}
+
+// ============================================================================
+// CRON MODULE
+// ============================================================================
+
+/// Stores the result of each cron run for auditing & the admin UI.
+model CronLog {
+  id          String   @id @default(cuid())
+  status      String   @default("ok")          // ok | partial | error
+  summary     Json                              // { ok, skipped, errors }
+  results     Json                              // TaskResult[]
+  durationMs  Int      @default(0)
+  triggeredBy String   @default("scheduler")    // scheduler | manual
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("cron_logs")
+}
+
+/// Simple distributed lock to prevent concurrent cron execution.
+model CronLock {
+  id        String   @id @default("cron-global")
+  lockedAt  DateTime @default(now())
+  expiresAt DateTime
+  holder    String                              // random nonce per invocation
+
+  @@map("cron_locks")
+}
+
+// ============================================================================
+// MEDIA MODULE
+// ============================================================================
+
+model Media {
+  id            String    @id @default(cuid())
+  filename      String    /// Sanitised storage filename (unique within folder).
+  originalName  String    /// Name as uploaded by the user.
+  mimeType      String    /// e.g. "image/jpeg", "application/pdf".
+  size          Int       /// File size in bytes.
+  url           String    /// Public URL (or CDN path) to the original file.
+  path          String    /// Storage key / relative path inside the provider.
+  width         Int?      /// Image/video width in pixels.
+  height        Int?      /// Image/video height in pixels.
+  altText       String?   /// Accessibility / SEO alt text (max 125 chars).
+  title         String?   /// Optional human-readable title (max 200 chars).
+  description   String?   /// Optional longer description (max 1 000 chars).
+  tags          String[]  /// Freeform tags for filtering / categorisation.
+  folder        String    @default("uploads") /// Logical folder path.
+  isOptimized   Boolean   @default(false) /// Whether image variants have been generated.
+  variants      Json?     /// JSON map of VariantPreset -> MediaVariant.
+  uploadedById  String?   /// FK to the uploading user.
+  contentHash   String?   /// SHA-256 (or other) hash for deduplication.
+  hashAlgorithm String?   /// Algorithm used for contentHash.
+  status        String    @default("ACTIVE") /// ACTIVE | ARCHIVED | DELETED
+  deletedAt     DateTime? /// Soft-delete timestamp (null = active).
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  uploadedBy    User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  // Indexes
+  @@index([folder])
+  @@index([mimeType])
+  @@index([status])
+  @@index([contentHash])
+  @@index([uploadedById])
+  @@index([createdAt])
+  @@index([folder, status, createdAt])
+
+  @@map("media")
+}
+
+model MediaFolder {
+  id        String   @id @default(cuid())
+  name      String   /// Display name of the folder.
+  parentId  String?  /// Self-referencing FK for nested folders.
+  path      String   @unique /// Materialised path ("photos/2024/vacation").
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Self-relation
+  parent    MediaFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  MediaFolder[] @relation("FolderTree")
+
+  // Indexes
+  @@index([parentId])
+  @@index([path])
+
+  @@map("media_folders")
+}
+
+model MediaSetting {
+  id        String   @id @default("default")
+  settings  Json     /// Serialised MediaAdminSettings object.
+  updatedBy String?  /// Who last changed the settings.
+  updatedAt DateTime @updatedAt
+
+  @@map("media_settings")
+}
+
+// ============================================================================
+// ADS MODULE
+// ============================================================================
+
+model AdProvider {
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  type             String
+  isActive         Boolean  @default(true)
+  priority         Int      @default(0)
+
+  clientId         String?
+  publisherId      String?
+  apiKey           String?
+  scriptUrl        String?
+
+  dataAttributes   Json     @default("{}")
+  config           Json?
+
+  killSwitch       Boolean  @default(false)
+
+  supportedFormats String[] @default([])
+
+  allowConcurrent  Boolean  @default(true)
+  exclusiveWith    String[] @default([])
+  maxPerPage       Int      @default(5)
+
+  loadStrategy     String   @default("lazy")
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  placements       AdPlacement[]
+
+  @@index([type])
+  @@index([isActive, killSwitch])
+  @@map("ad_providers")
+}
+
+model AdSlot {
+  id                String   @id @default(cuid())
+  name              String
+  slug              String   @unique
+  position          String
+  format            String   @default("DISPLAY")
+
+  description       String?
+
+  responsiveSizes   Json     @default("{}")
+  maxWidth          Int?
+  maxHeight         Int?
+  responsive        Boolean  @default(true)
+
+  containerSelector String?
+  excludeSelectors  String[] @default([])
+
+  pageTypes         String[] @default([])
+  categories        String[] @default([])
+  excludePages      String[] @default([])
+
+  isActive          Boolean  @default(true)
+
+  multiProvider     Boolean  @default(false)
+
+  renderPriority    Int      @default(0)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  placements        AdPlacement[]
+
+  @@index([position])
+  @@index([isActive])
+  @@map("ad_slots")
+}
+
+model AdPlacement {
+  id                 String   @id @default(cuid())
+
+  providerId         String
+  provider           AdProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  slotId             String
+  slot               AdSlot   @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  adUnitId           String?
+
+  adCode             String?  @db.Text
+  customHtml         String?  @db.Text
+
+  autoResize         Boolean  @default(true)
+  minContainerWidth  Int      @default(0)
+  maxContainerWidth  Int      @default(0)
+  visibleBreakpoints String[] @default([])
+
+  autoPlace          Boolean  @default(false)
+  autoStrategy       String   @default("PARAGRAPH_COUNT")
+  minParagraphs      Int      @default(3)
+  paragraphGap       Int      @default(4)
+  maxAdsPerPage      Int      @default(5)
+
+  lazyOffset         Int      @default(200)
+
+  refreshIntervalSec Int      @default(0)
+
+  closeable          Boolean  @default(false)
+
+  startDate          DateTime?
+  endDate            DateTime?
+
+  isActive           Boolean  @default(true)
+
+  impressions        Int      @default(0)
+  clicks             Int      @default(0)
+  revenue            Float    @default(0)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  logs               AdLog[]
+
+  @@index([providerId])
+  @@index([slotId])
+  @@index([isActive, startDate, endDate])
+  @@map("ad_placements")
+}
+
+model AdLog {
+  id           String   @id @default(cuid())
+
+  placementId  String
+  placement    AdPlacement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+
+  eventType    String
+  metadata     Json?
+
+  createdAt    DateTime @default(now())
+
+  @@index([placementId, eventType])
+  @@index([createdAt])
+  @@map("ad_logs")
+}
+
+model AdSettings {
+  id                       String   @id @default(cuid())
+
+  adsEnabled               Boolean  @default(false)
+  sanitizeAdCode           Boolean  @default(true)
+  allowedProviderTypes     String[] @default([])
+
+  lazyLoadAds              Boolean  @default(true)
+  defaultLazyOffset        Int      @default(200)
+  globalMaxAdsPerPage      Int      @default(5)
+
+  defaultMinParagraphs     Int      @default(3)
+  defaultParagraphGap      Int      @default(4)
+  skipCodeBlocks           Boolean  @default(true)
+  respectSectionBreaks     Boolean  @default(true)
+
+  enableAutoPlacement      Boolean  @default(false)
+  autoAdStrategy           String   @default("PARAGRAPH_COUNT")
+
+  enableAnalytics          Boolean  @default(true)
+  enableComplianceScanning Boolean  @default(false)
+
+  cacheTtlSeconds          Int      @default(300)
+  eventRateLimitMax        Int      @default(50)
+  eventRateLimitWindowMs   Int      @default(60000)
+  minContentLength         Int      @default(500)
+
+  positionKillSwitches     Json     @default("{}")
+
+  enableWidgetAds          Boolean  @default(false)
+  widgetAdConfig           Json     @default("{}")
+
+  enableResponsive         Boolean  @default(true)
+  breakpoints              Json     @default("{}")
+
+  concurrencyPolicy        Json     @default("{}")
+
+  maxViewportAdCoverage    Int      @default(30)
+  minAdSpacingPx           Int      @default(250)
+  deferUntilLcp            Boolean  @default(true)
+
+  enableAdsTxt             Boolean  @default(false)
+  adsTxtCustomEntries      String[] @default([])
+
+  requireConsent           Boolean  @default(false)
+  consentModes             String[] @default([])
+
+  enableAdRefresh          Boolean  @default(false)
+  minRefreshInterval       Int      @default(30)
+
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@map("ad_settings")
+}
+
+// ============================================================================
+// DISTRIBUTION MODULE
+// ============================================================================
+
+model DistributionRecord {
+  id            String    @id @default(cuid())
+  postId        String
+  channelId     String?
+  platform      String
+  status        String    @default("PENDING")
+  content       String    @db.Text
+  scheduledFor  DateTime?
+  publishedAt   DateTime?
+  externalId    String?
+  externalUrl   String?
+  error         String?   @db.Text
+  retryCount    Int       @default(0)
+  maxRetries    Int       @default(3)
+  metadata      Json?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  post          Post                 @relation(fields: [postId], references: [id], onDelete: Cascade)
+  channel       DistributionChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+
+  @@index([postId, status])
+  @@index([channelId])
+  @@index([platform, status])
+  @@index([status, scheduledFor])
+  @@index([createdAt])
+  @@map("distribution_records")
+}
+
+model DistributionChannel {
+  id                String    @id @default(cuid())
+  name              String
+  platform          String
+  url               String?
+  enabled           Boolean   @default(true)
+  isCustom          Boolean   @default(false)
+  autoPublish       Boolean   @default(false)
+  credentials       Json      @default("{}")
+  platformRules     Json?
+  renewIntervalDays Int       @default(0)
+  lastPublishedAt   DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  records           DistributionRecord[]
+
+  @@index([platform, enabled])
+  @@index([enabled])
+  @@map("distribution_channels")
+}
