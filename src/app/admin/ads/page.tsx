@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Shield,
   ScanSearch,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/FormFields";
@@ -62,6 +63,18 @@ interface Placement {
   id: string;
   providerId: string;
   slotId: string;
+  adUnitId?: string | null;
+  adCode?: string | null;
+  customHtml?: string | null;
+  autoPlace?: boolean;
+  autoStrategy?: string;
+  minParagraphs?: number;
+  paragraphGap?: number;
+  maxAdsPerPage?: number;
+  lazyOffset?: number;
+  refreshIntervalSec?: number;
+  closeable?: boolean;
+  visibleBreakpoints?: string[];
   isActive: boolean;
   startDate: string | null;
   endDate: string | null;
@@ -79,7 +92,7 @@ interface Overview {
   activePlacements: number;
 }
 
-type Tab = "overview" | "providers" | "slots" | "placements" | "compliance";
+type Tab = "overview" | "providers" | "slots" | "placements" | "settings" | "compliance";
 
 /* ─── Page ─── */
 
@@ -112,6 +125,17 @@ export default function AdsAdminPage() {
     name: "", position: "SIDEBAR", format: "DISPLAY",
     isActive: true, responsive: true, pageTypes: "",
     maxWidth: "", maxHeight: "",
+  });
+
+  // Placement modal state
+  const [placementModal, setPlacementModal] = useState(false);
+  const [editingPlacement, setEditingPlacement] = useState<Placement | null>(null);
+  const [placeForm, setPlaceForm] = useState({
+    providerId: "", slotId: "", adUnitId: "", adCode: "", customHtml: "",
+    isActive: true, autoPlace: false, autoStrategy: "PARAGRAPH_COUNT",
+    minParagraphs: 3, paragraphGap: 4, maxAdsPerPage: 5,
+    lazyOffset: 200, refreshIntervalSec: 0, closeable: false,
+    startDate: "", endDate: "",
   });
 
   /* ─── Fetching ─── */
@@ -315,11 +339,13 @@ export default function AdsAdminPage() {
     try {
       const url = deleteTarget.type === "provider"
         ? `/api/ads/providers/${deleteTarget.id}`
-        : `/api/ads/slots/${deleteTarget.id}`;
+        : deleteTarget.type === "slot"
+          ? `/api/ads/slots/${deleteTarget.id}`
+          : `/api/ads/placements/${deleteTarget.id}`;
       const res = await fetch(url, { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
-        toast(`${deleteTarget.type === "provider" ? "Provider" : "Slot"} deleted`, "success");
+        toast(`${deleteTarget.type.charAt(0).toUpperCase() + deleteTarget.type.slice(1)} deleted`, "success");
         fetchAll();
       } else {
         toast(data.error || "Delete failed", "error");
@@ -328,6 +354,80 @@ export default function AdsAdminPage() {
       toast("Failed to delete", "error");
     } finally {
       setDeleteTarget(null);
+    }
+  }
+
+  /* ─── Placement CRUD ─── */
+
+  function openPlacementCreate() {
+    setEditingPlacement(null);
+    setPlaceForm({
+      providerId: providers[0]?.id || "", slotId: slots[0]?.id || "",
+      adUnitId: "", adCode: "", customHtml: "",
+      isActive: true, autoPlace: false, autoStrategy: "PARAGRAPH_COUNT",
+      minParagraphs: 3, paragraphGap: 4, maxAdsPerPage: 5,
+      lazyOffset: 200, refreshIntervalSec: 0, closeable: false,
+      startDate: "", endDate: "",
+    });
+    setPlacementModal(true);
+  }
+
+  function openPlacementEdit(pl: Placement) {
+    setEditingPlacement(pl);
+    setPlaceForm({
+      providerId: pl.providerId, slotId: pl.slotId,
+      adUnitId: pl.adUnitId || "", adCode: pl.adCode || "", customHtml: pl.customHtml || "",
+      isActive: pl.isActive, autoPlace: pl.autoPlace ?? false,
+      autoStrategy: pl.autoStrategy || "PARAGRAPH_COUNT",
+      minParagraphs: pl.minParagraphs ?? 3, paragraphGap: pl.paragraphGap ?? 4,
+      maxAdsPerPage: pl.maxAdsPerPage ?? 5, lazyOffset: pl.lazyOffset ?? 200,
+      refreshIntervalSec: pl.refreshIntervalSec ?? 0, closeable: pl.closeable ?? false,
+      startDate: pl.startDate ? pl.startDate.split("T")[0] : "",
+      endDate: pl.endDate ? pl.endDate.split("T")[0] : "",
+    });
+    setPlacementModal(true);
+  }
+
+  async function savePlacement() {
+    if (!placeForm.providerId || !placeForm.slotId) {
+      toast("Provider and Slot are required", "error"); return;
+    }
+    setSaving(true);
+    try {
+      const body: Record<string, unknown> = {
+        providerId: placeForm.providerId,
+        slotId: placeForm.slotId,
+        isActive: placeForm.isActive,
+        autoPlace: placeForm.autoPlace,
+        autoStrategy: placeForm.autoStrategy,
+        minParagraphs: placeForm.minParagraphs,
+        paragraphGap: placeForm.paragraphGap,
+        maxAdsPerPage: placeForm.maxAdsPerPage,
+        lazyOffset: placeForm.lazyOffset,
+        refreshIntervalSec: placeForm.refreshIntervalSec,
+        closeable: placeForm.closeable,
+      };
+      if (placeForm.adUnitId) body.adUnitId = placeForm.adUnitId;
+      if (placeForm.adCode) body.adCode = placeForm.adCode;
+      if (placeForm.customHtml) body.customHtml = placeForm.customHtml;
+      if (placeForm.startDate) body.startDate = new Date(placeForm.startDate).toISOString();
+      if (placeForm.endDate) body.endDate = new Date(placeForm.endDate).toISOString();
+
+      const url = editingPlacement ? `/api/ads/placements/${editingPlacement.id}` : "/api/ads/placements";
+      const method = editingPlacement ? "PATCH" : "POST";
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (data.success) {
+        toast(editingPlacement ? "Placement updated" : "Placement created", "success");
+        setPlacementModal(false);
+        fetchAll();
+      } else {
+        toast(data.error || "Failed", "error");
+      }
+    } catch {
+      toast("Failed to save placement", "error");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -357,6 +457,7 @@ export default function AdsAdminPage() {
     { key: "providers", label: "Providers", icon: <Layers className="h-4 w-4" /> },
     { key: "slots", label: "Slots", icon: <MonitorSmartphone className="h-4 w-4" /> },
     { key: "placements", label: "Placements", icon: <Megaphone className="h-4 w-4" /> },
+    { key: "settings", label: "Settings", icon: <Settings className="h-4 w-4" /> },
     { key: "compliance", label: "Compliance", icon: <Shield className="h-4 w-4" /> },
   ];
 
@@ -601,6 +702,11 @@ export default function AdsAdminPage() {
 
       {tab === "placements" && (
         <div className="space-y-4">
+          {/* Header with New button */}
+          <div className="mb-4 flex justify-end">
+            <Button onClick={openPlacementCreate} icon={<Plus className="h-4 w-4" />}>New Placement</Button>
+          </div>
+
           {/* Unoccupied Slots Banner */}
           {(() => {
             const occupiedSlotIds = new Set(placements.filter((p) => p.isActive).map((p) => p.slotId));
@@ -636,8 +742,11 @@ export default function AdsAdminPage() {
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Provider</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Slot</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Ad Unit</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Status</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Dates</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Auto</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -647,7 +756,13 @@ export default function AdsAdminPage() {
                   return (
                     <tr key={pl.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                       <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{prov?.name ?? pl.providerId}</td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{slot?.name ?? pl.slotId}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                        <div>
+                          <span className="font-medium text-gray-900 dark:text-white">{slot?.name ?? pl.slotId}</span>
+                          {slot && <span className="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{slot.position}</span>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{pl.adUnitId || "—"}</td>
                       <td className="px-4 py-3">
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           pl.isActive
@@ -660,16 +775,37 @@ export default function AdsAdminPage() {
                       <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
                         {pl.startDate ? new Date(pl.startDate).toLocaleDateString() : "—"} → {pl.endDate ? new Date(pl.endDate).toLocaleDateString() : "∞"}
                       </td>
+                      <td className="px-4 py-3">
+                        {pl.autoPlace ? (
+                          <span className="rounded bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">Auto</span>
+                        ) : (
+                          <span className="text-xs text-gray-400">Manual</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-1">
+                          <button onClick={() => openPlacementEdit(pl)} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300">
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => setDeleteTarget({ type: "placement", id: pl.id, name: `${prov?.name || "?"} → ${slot?.name || "?"}` })} className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
                 {placements.length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No placements configured</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No placements configured — click &ldquo;New Placement&rdquo; to create one</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+
+      {tab === "settings" && (
+        <AdsSettingsPanel />
       )}
 
       {tab === "compliance" && (
@@ -758,6 +894,83 @@ export default function AdsAdminPage() {
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setSlotModal(false)}>Cancel</Button>
             <Button onClick={saveSlot} loading={saving}>{editingSlot ? "Update" : "Create"}</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ─── Placement Modal ─── */}
+      <Modal open={placementModal} onClose={() => setPlacementModal(false)} title={editingPlacement ? "Edit Placement" : "New Placement"} size="lg">
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+          {/* Row 1: Provider + Slot */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Select label="Provider" value={placeForm.providerId} onChange={(e) => setPlaceForm({ ...placeForm, providerId: e.target.value })}>
+              <option value="">Select provider...</option>
+              {providers.filter((p) => p.isActive).map((p) => (
+                <option key={p.id} value={p.id}>{p.name} ({p.type})</option>
+              ))}
+            </Select>
+            <Select label="Slot" value={placeForm.slotId} onChange={(e) => setPlaceForm({ ...placeForm, slotId: e.target.value })}>
+              <option value="">Select slot...</option>
+              {slots.filter((s) => s.isActive).map((s) => (
+                <option key={s.id} value={s.id}>{s.name} ({s.position})</option>
+              ))}
+            </Select>
+          </div>
+
+          {/* Row 2: Ad Unit ID + Active + Closeable */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Input label="Ad Unit ID" value={placeForm.adUnitId} onChange={(e) => setPlaceForm({ ...placeForm, adUnitId: e.target.value })} placeholder="e.g. ca-pub-xxx/123" />
+            <Input label="Lazy Offset (px)" type="number" value={String(placeForm.lazyOffset)} onChange={(e) => setPlaceForm({ ...placeForm, lazyOffset: parseInt(e.target.value) || 200 })} />
+            <div className="flex items-end pb-1">
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input type="checkbox" checked={placeForm.isActive} onChange={(e) => setPlaceForm({ ...placeForm, isActive: e.target.checked })} className="rounded" />
+                Active
+              </label>
+            </div>
+            <div className="flex items-end pb-1">
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input type="checkbox" checked={placeForm.closeable} onChange={(e) => setPlaceForm({ ...placeForm, closeable: e.target.checked })} className="rounded" />
+                Closeable
+              </label>
+            </div>
+          </div>
+
+          {/* Row 3: Ad Code */}
+          <Textarea label="Ad Code" rows={4} value={placeForm.adCode} onChange={(e) => setPlaceForm({ ...placeForm, adCode: e.target.value })} placeholder="Provider embed code (e.g. AdSense <ins> tag)" />
+
+          {/* Row 4: Custom HTML */}
+          <Textarea label="Custom HTML" rows={4} value={placeForm.customHtml} onChange={(e) => setPlaceForm({ ...placeForm, customHtml: e.target.value })} placeholder="Custom HTML for direct-sold ads" />
+
+          {/* Row 5: Auto-Placement Settings */}
+          <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <input type="checkbox" checked={placeForm.autoPlace} onChange={(e) => setPlaceForm({ ...placeForm, autoPlace: e.target.checked })} className="rounded" />
+              Auto-Place (inject between paragraphs)
+            </label>
+            {placeForm.autoPlace && (
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Select label="Strategy" value={placeForm.autoStrategy} onChange={(e) => setPlaceForm({ ...placeForm, autoStrategy: e.target.value })}>
+                  {["DENSITY_BASED","PARAGRAPH_COUNT","CONTENT_AWARE","VIEWPORT_BASED","ENGAGEMENT_BASED"].map((s) => (
+                    <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+                  ))}
+                </Select>
+                <Input label="Min Paragraphs" type="number" value={String(placeForm.minParagraphs)} onChange={(e) => setPlaceForm({ ...placeForm, minParagraphs: parseInt(e.target.value) || 3 })} />
+                <Input label="Paragraph Gap" type="number" value={String(placeForm.paragraphGap)} onChange={(e) => setPlaceForm({ ...placeForm, paragraphGap: parseInt(e.target.value) || 4 })} />
+                <Input label="Max Ads/Page" type="number" value={String(placeForm.maxAdsPerPage)} onChange={(e) => setPlaceForm({ ...placeForm, maxAdsPerPage: parseInt(e.target.value) || 5 })} />
+              </div>
+            )}
+          </div>
+
+          {/* Row 6: Refresh + Dates */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Input label="Refresh Interval (sec)" type="number" value={String(placeForm.refreshIntervalSec)} onChange={(e) => setPlaceForm({ ...placeForm, refreshIntervalSec: parseInt(e.target.value) || 0 })} hint="0 = no refresh" />
+            <Input label="Start Date" type="date" value={placeForm.startDate} onChange={(e) => setPlaceForm({ ...placeForm, startDate: e.target.value })} />
+            <Input label="End Date" type="date" value={placeForm.endDate} onChange={(e) => setPlaceForm({ ...placeForm, endDate: e.target.value })} />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setPlacementModal(false)}>Cancel</Button>
+            <Button onClick={savePlacement} loading={saving}>{editingPlacement ? "Update" : "Create"}</Button>
           </div>
         </div>
       </Modal>
@@ -879,6 +1092,146 @@ export default function AdsAdminPage() {
           </div>
         )}
       </Modal>
+    </div>
+  );
+}
+
+/* ─── Ads Settings Panel ─── */
+
+function AdsSettingsPanel() {
+  const [config, setConfig] = useState<Record<string, any> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/ads/settings")
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setConfig(d.data); })
+      .catch(() => toast("Failed to load ad settings", "error"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function save() {
+    if (!config) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/ads/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast("Ad settings saved", "success");
+        setConfig(data.data);
+      } else {
+        toast(data.error || "Failed to save", "error");
+      }
+    } catch {
+      toast("Failed to save settings", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading || !config) {
+    return <div className="flex h-32 items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" /></div>;
+  }
+
+  const Toggle = ({ label, field, hint }: { label: string; field: string; hint?: string }) => (
+    <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+      <input
+        type="checkbox"
+        checked={!!config[field]}
+        onChange={(e) => setConfig({ ...config, [field]: e.target.checked })}
+        className="mt-0.5 rounded"
+      />
+      <div>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
+        {hint && <p className="text-xs text-gray-400">{hint}</p>}
+      </div>
+    </label>
+  );
+
+  const NumberField = ({ label, field, hint }: { label: string; field: string; hint?: string }) => (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+      <input
+        type="number"
+        value={config[field] ?? 0}
+        onChange={(e) => setConfig({ ...config, [field]: parseInt(e.target.value) || 0 })}
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+      />
+      {hint && <p className="mt-0.5 text-xs text-gray-400">{hint}</p>}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Auto-Placement */}
+      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Auto-Placement</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Toggle label="Enable Auto-Placement" field="enableAutoPlacement" hint="Automatically inject ads between paragraphs" />
+          <Toggle label="Skip Code Blocks" field="skipCodeBlocks" hint="Don't place ads inside code blocks" />
+          <Toggle label="Respect Section Breaks" field="respectSectionBreaks" hint="Use headings as natural break points" />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <NumberField label="Min Paragraphs Before First Ad" field="defaultMinParagraphs" hint="Paragraphs before the first in-article ad" />
+          <NumberField label="Paragraph Gap" field="defaultParagraphGap" hint="Paragraphs between consecutive ads" />
+          <NumberField label="Global Max Ads/Page" field="globalMaxAdsPerPage" hint="Hard cap on total ads per page" />
+        </div>
+      </section>
+
+      {/* Performance & Loading */}
+      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Performance &amp; Loading</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Toggle label="Lazy Load Ads" field="lazyLoadAds" hint="Only load ads when they enter the viewport" />
+          <Toggle label="Defer Until LCP" field="deferUntilLcp" hint="Wait for Largest Contentful Paint before loading ads" />
+          <Toggle label="Enable Ad Refresh" field="enableAdRefresh" hint="Allow ads to refresh after an interval" />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <NumberField label="Default Lazy Offset (px)" field="defaultLazyOffset" hint="Distance from viewport to start loading" />
+          <NumberField label="Min Refresh Interval (sec)" field="minRefreshInterval" hint="Minimum seconds between refreshes" />
+          <NumberField label="Cache TTL (sec)" field="cacheTtlSeconds" hint="How long to cache placement data" />
+        </div>
+      </section>
+
+      {/* Responsive & Layout */}
+      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Responsive &amp; Layout</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Toggle label="Enable Responsive Ads" field="enableResponsive" hint="Size ads based on viewport breakpoints" />
+          <Toggle label="Enable Widget Ads" field="enableWidgetAds" hint="Allow ads in widget positions" />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <NumberField label="Max Viewport Ad Coverage (%)" field="maxViewportAdCoverage" hint="Maximum % of viewport filled by ads" />
+          <NumberField label="Min Ad Spacing (px)" field="minAdSpacingPx" hint="Minimum pixels between ads" />
+          <NumberField label="Min Content Length" field="minContentLength" hint="Don't show ads on pages shorter than this" />
+        </div>
+      </section>
+
+      {/* Compliance & Privacy */}
+      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-white">Compliance &amp; Privacy</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Toggle label="Sanitize Ad Code" field="sanitizeAdCode" hint="Strip dangerous script patterns from ad code" />
+          <Toggle label="Require Cookie Consent" field="requireConsent" hint="Only load ads after user consents to cookies" />
+          <Toggle label="Enable Analytics" field="enableAnalytics" hint="Track impressions, clicks, and viewability" />
+          <Toggle label="Enable Compliance Scanning" field="enableComplianceScanning" hint="Run periodic compliance checks" />
+          <Toggle label="Enable ads.txt" field="enableAdsTxt" hint="Serve an ads.txt file for authorized sellers" />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <NumberField label="Event Rate Limit (max)" field="eventRateLimitMax" hint="Max tracking events per window" />
+          <NumberField label="Event Rate Window (ms)" field="eventRateLimitWindowMs" hint="Rate limit window in milliseconds" />
+        </div>
+      </section>
+
+      {/* Save button */}
+      <div className="flex justify-end">
+        <Button onClick={save} loading={saving}>Save Settings</Button>
+      </div>
     </div>
   );
 }

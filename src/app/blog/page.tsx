@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/server/db/prisma";
@@ -6,6 +7,7 @@ import { Badge } from "@/components/ui/Card";
 import { BlogSidebar } from "@/components/blog/BlogSidebar";
 import { PostCardShareOverlay } from "@/components/blog/PostCardShareOverlay";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
+import { InFeedAdCard } from "@/features/ads/ui/InFeedAdCard";
 import type { Metadata } from "next";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
@@ -195,13 +197,14 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
           ) : layout === "list" ? (
             /* ── List Layout ── */
             <div className={gridClass}>
-              {posts.map((post) => (
-                <div key={post.id} className="group relative">
-                  {showSocialShare && <PostCardShareOverlay slug={post.slug} title={post.title} />}
-                  <Link
-                    href={`/blog/${post.slug}`}
-                    className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800 sm:flex-row"
-                >
+              {posts.map((post, idx) => (
+                <div key={post.id}>
+                  <div className="group relative">
+                    {showSocialShare && <PostCardShareOverlay slug={post.slug} title={post.title} />}
+                    <Link
+                      href={`/blog/${post.slug}`}
+                      className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800 sm:flex-row"
+                  >
                   {showFeaturedImage && post.featuredImage ? (
                     <div className="relative h-48 w-full overflow-hidden bg-gray-100 sm:h-auto sm:w-56 shrink-0 dark:bg-gray-700">
                       <Image
@@ -264,13 +267,19 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                   </div>
                   </Link>
                 </div>
+                  {/* In-feed ad every 4 posts */}
+                  {(idx + 1) % 4 === 0 && idx < posts.length - 1 && (
+                    <InFeedAdCard layout="list" pageType="blog-index" index={idx} />
+                  )}
+                </div>
               ))}
             </div>
           ) : (
             /* ── Grid / Masonry Layout ── */
             <div className={gridClass}>
-              {posts.map((post) => (
-                <div key={post.id} className={`group relative ${layout === "masonry" ? "break-inside-avoid" : ""}`}>
+              {posts.map((post, idx) => (
+                <Fragment key={post.id}>
+                <div className={`group relative ${layout === "masonry" ? "break-inside-avoid" : ""}`}>
                   {showSocialShare && <PostCardShareOverlay slug={post.slug} title={post.title} />}
                   <Link
                     href={`/blog/${post.slug}`}
@@ -338,6 +347,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                   </div>
                 </Link>
                 </div>
+                {/* In-feed ad every 4 posts in grid/masonry */}
+                {(idx + 1) % 4 === 0 && idx < posts.length - 1 && (
+                  <InFeedAdCard key={`ad-${idx}`} layout={layout as "grid" | "masonry"} pageType="blog-index" index={idx} />
+                )}
+                </Fragment>
               ))}
             </div>
           )}

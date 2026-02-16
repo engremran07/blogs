@@ -68,9 +68,10 @@ export async function AdContainer({
 
     // Check per-position kill switch from AdSettings
     const adSettings = await (prisma as any).adSettings.findFirst({
-      select: { positionKillSwitches: true },
+      select: { positionKillSwitches: true, requireConsent: true },
     });
     const posKillSwitches = (adSettings?.positionKillSwitches as Record<string, boolean>) ?? {};
+    const requireConsent: boolean = adSettings?.requireConsent ?? false;
     if (posKillSwitches[position] === true) {
       if (!showPlaceholder) return null;
       return <ReservedAdSlot position={position} label="Position disabled" className={className} />;
@@ -147,7 +148,7 @@ export async function AdContainer({
     return (
       <div className={`ad-slot-container ${className}`} data-position={position}>
         {activePlacements.map((p) => (
-          <AdRenderer key={p.id} placement={p} />
+          <AdRenderer key={p.id} placement={p} requireConsent={requireConsent} />
         ))}
       </div>
     );

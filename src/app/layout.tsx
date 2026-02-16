@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/layout/Providers";
 import { PublicShell } from "@/components/layout/PublicShell";
+import { GlobalAdSlots } from "@/features/ads/ui/GlobalAdSlots";
 import { siteSettingsService } from "@/server/wiring";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
@@ -93,6 +94,7 @@ export default async function RootLayout({
         />
         <Providers>
           <PublicShell>{children}</PublicShell>
+          <GlobalAdSlots />
         </Providers>
       </body>
     </html>

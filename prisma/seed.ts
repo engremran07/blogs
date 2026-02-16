@@ -578,14 +578,14 @@ async function main() {
 
   // ─── Create Settings ──────────────────────────────────────────────
   const settingsTasks = [
-    { model: "siteSettings", data: { siteName: "My Blog", siteTagline: "A modern blog built with Next.js", language: "en", timezone: "UTC", siteDescription: "Discover insightful articles on web development, programming, and technology.", adsEnabled: true } },
+    { model: "siteSettings", data: { siteName: "My Blog", siteTagline: "A modern blog built with Next.js", language: "en", timezone: "UTC", siteDescription: "Discover insightful articles on web development, programming, and technology.", adsEnabled: true, cookieConsentEnabled: true, gdprEnabled: true, cookieConsentMessage: "We use cookies to enhance your browsing experience, serve personalized ads, and analyze our traffic. By clicking \"Accept All\", you consent to our use of cookies." } },
     { model: "userSettings", data: {} },
     { model: "commentSettings", data: {} },
     { model: "editorSettings", data: {} },
     { model: "tagSettings", data: {} },
     { model: "captchaSettings", data: {} },
     { model: "pageSettings", data: {} },
-    { model: "adSettings", data: { adsEnabled: true } },
+    { model: "adSettings", data: { adsEnabled: true, enableAutoPlacement: true, enableAnalytics: true, requireConsent: true } },
   ] as const;
 
   for (const s of settingsTasks) {
@@ -736,6 +736,11 @@ async function main() {
     { name: "Before Comments Ad", slug: "before-comments-ad", position: "BEFORE_COMMENTS", format: "DISPLAY", pageTypes: ["blog"], renderPriority: 4 },
     { name: "Header Banner", slug: "header-banner", position: "HEADER", format: "DISPLAY", pageTypes: ["*"], maxWidth: 728, maxHeight: 90, renderPriority: 15 },
     { name: "Footer Banner", slug: "footer-banner", position: "FOOTER", format: "DISPLAY", pageTypes: ["*"], maxWidth: 728, maxHeight: 90, renderPriority: 2 },
+    { name: "In-Article Ad", slug: "in-article-ad", position: "IN_ARTICLE", format: "IN_ARTICLE", pageTypes: ["blog"], renderPriority: 7 },
+    { name: "Sticky Bottom Banner", slug: "sticky-bottom-banner", position: "STICKY_BOTTOM", format: "ANCHOR", pageTypes: ["*"], maxWidth: 728, maxHeight: 90, renderPriority: 12 },
+    { name: "Interstitial Overlay", slug: "interstitial-overlay", position: "INTERSTITIAL", format: "INTERSTITIAL", pageTypes: ["blog", "blog-index"], renderPriority: 1 },
+    { name: "Exit Intent Popup", slug: "exit-intent-popup", position: "EXIT_INTENT", format: "DISPLAY", pageTypes: ["blog", "blog-index"], renderPriority: 1 },
+    { name: "Floating Corner Ad", slug: "floating-corner-ad", position: "FLOATING", format: "DISPLAY", pageTypes: ["*"], maxWidth: 300, maxHeight: 250, renderPriority: 3 },
   ];
 
   for (const slot of AD_SLOTS) {
@@ -763,6 +768,56 @@ async function main() {
   }
   console.log(`✅ ${AD_SLOTS.length} ad slots created`);
 
+  // ─── Default Ad Provider (Custom placeholder) ─────────────────────
+  const defaultProvider = await (prisma as any).adProvider.upsert({
+    where: { slug: "default-custom" },
+    update: {},
+    create: {
+      name: "Default (Custom HTML)",
+      slug: "default-custom",
+      type: "CUSTOM",
+      isActive: true,
+      priority: 1,
+      maxPerPage: 10,
+      loadStrategy: "lazy",
+      supportedFormats: ["DISPLAY", "NATIVE", "IN_ARTICLE", "IN_FEED", "ANCHOR", "INTERSTITIAL"],
+    },
+  });
+  console.log(`✅ Default ad provider created`);
+
+  // ─── Sample Placements (connect provider → slots) ─────────────────
+  const slotSlugsForPlacements = [
+    "header-banner", "footer-banner", "sidebar-ad", "in-content-ad",
+    "in-feed-ad", "in-article-ad", "sticky-bottom-banner",
+  ];
+  let placementCount = 0;
+  for (const slotSlug of slotSlugsForPlacements) {
+    const slot = await (prisma as any).adSlot.findUnique({ where: { slug: slotSlug } });
+    if (!slot) continue;
+    const existing = await (prisma as any).adPlacement.findFirst({
+      where: { providerId: defaultProvider.id, slotId: slot.id },
+    });
+    if (!existing) {
+      await (prisma as any).adPlacement.create({
+        data: {
+          providerId: defaultProvider.id,
+          slotId: slot.id,
+          isActive: true,
+          autoPlace: ["in-article-ad", "in-feed-ad"].includes(slotSlug),
+          autoStrategy: "PARAGRAPH_COUNT",
+          minParagraphs: 3,
+          paragraphGap: 4,
+          maxAdsPerPage: 5,
+          lazyOffset: 200,
+          closeable: ["sticky-bottom-banner"].includes(slotSlug),
+          customHtml: `<div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:8px;padding:24px;text-align:center;color:#fff;font-family:system-ui,sans-serif"><p style="margin:0 0 4px;font-size:13px;opacity:0.8">Advertisement</p><p style="margin:0;font-size:16px;font-weight:600">${slot.name}</p><p style="margin:6px 0 0;font-size:12px;opacity:0.7">Configure your ad provider in Admin → Ads</p></div>`,
+        },
+      });
+      placementCount++;
+    }
+  }
+  console.log(`✅ ${placementCount} sample ad placements created`);
+
   // ─── Summary ──────────────────────────────────────────────────────
   const counts = {
     users: await prisma.user.count(),
@@ -771,16 +826,20 @@ async function main() {
     comments: await prisma.comment.count(),
     pages: await prisma.page.count(),
     adSlots: await (prisma as any).adSlot.count(),
+    adProviders: await (prisma as any).adProvider.count(),
+    adPlacements: await (prisma as any).adPlacement.count(),
   };
 
   console.log("\n🎉 Seed complete!");
   console.log("─────────────────────────────────────────");
-  console.log(`  Users:    ${counts.users}`);
-  console.log(`  Posts:    ${counts.posts}`);
-  console.log(`  Tags:     ${counts.tags}`);
-  console.log(`  Comments: ${counts.comments}`);
-  console.log(`  Pages:    ${counts.pages}`);
-  console.log(`  Ad Slots: ${counts.adSlots}`);
+  console.log(`  Users:       ${counts.users}`);
+  console.log(`  Posts:       ${counts.posts}`);
+  console.log(`  Tags:        ${counts.tags}`);
+  console.log(`  Comments:    ${counts.comments}`);
+  console.log(`  Pages:       ${counts.pages}`);
+  console.log(`  Ad Slots:    ${counts.adSlots}`);
+  console.log(`  Ad Providers:${counts.adProviders}`);
+  console.log(`  Ad Placements:${counts.adPlacements}`);
   console.log("─────────────────────────────────────────");
   console.log("  Admin login: admin@myblog.com / Aa1357");
   console.log("─────────────────────────────────────────");

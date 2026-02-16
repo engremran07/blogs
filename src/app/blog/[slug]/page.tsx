@@ -13,6 +13,7 @@ import { PostNavigation } from "@/components/blog/PostNavigation";
 import { BlogSidebar } from "@/components/blog/BlogSidebar";
 import { buildArticleJsonLd, buildBreadcrumbJsonLd } from "@/features/seo/server/json-ld.util";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
+import { InArticleAd } from "@/features/ads/ui/InArticleAd";
 import type { Metadata } from "next";
 import type { PostListItem, CategoryItem } from "@/types/prisma-helpers";
 
@@ -62,6 +63,17 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   const ogImage = post.ogImage || post.featuredImage;
   const authorName = post.author?.displayName || post.author?.username || undefined;
 
+  // Dynamic OG image fallback when no featured image exists
+  const ogImageUrl = ogImage
+    ? ogImage
+    : `${baseUrl}/api/og?${new URLSearchParams({
+        title: post.title,
+        ...(authorName ? { author: authorName } : {}),
+        ...(post.categories?.[0]?.name ? { category: post.categories[0].name } : {}),
+        siteName,
+        ...(post.publishedAt ? { date: new Date(post.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) } : {}),
+      }).toString()}`;
+
   return {
     title,
     description,
@@ -77,7 +89,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       type: "article",
       siteName,
       locale: "en_US",
-      images: ogImage ? [{ url: ogImage, width: 1200, height: 630, alt: post.featuredImageAlt || title }] : [],
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: post.featuredImageAlt || title }],
       publishedTime: post.publishedAt?.toISOString(),
       modifiedTime: post.updatedAt?.toISOString(),
       authors: authorName ? [authorName] : undefined,
@@ -85,10 +97,10 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       tags: post.tags?.map((t) => t.name),
     },
     twitter: {
-      card: (post.twitterCard as "summary" | "summary_large_image") || (ogImage ? "summary_large_image" : "summary"),
+      card: (post.twitterCard as "summary" | "summary_large_image") || "summary_large_image",
       title: post.twitterTitle || post.ogTitle || title,
       description: post.twitterDescription || post.ogDescription || description,
-      images: post.twitterImage || ogImage ? [post.twitterImage || ogImage!] : undefined,
+      images: [post.twitterImage || ogImageUrl],
     },
   };
 }
@@ -303,15 +315,16 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
             </div>
           )}
 
-          {/* Content */}
-          <div
+          {/* Content with auto-injected in-article ads */}
+          <InArticleAd
+            content={post.content || ""}
+            pageType="blog"
             className="prose prose-lg prose-blue dark:prose-invert max-w-none
               prose-headings:scroll-mt-20
               prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
               prose-img:rounded-xl
               prose-pre:overflow-x-auto prose-pre:rounded-xl
               prose-code:rounded prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-sm prose-code:font-normal dark:prose-code:bg-gray-800"
-            dangerouslySetInnerHTML={{ __html: post.content || "" }}
           />
 
           {/* Tags */}
