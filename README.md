@@ -55,11 +55,11 @@ A production-ready, feature-rich blog platform and content management system bui
 | **Content Management** | Posts, pages, categories, tags, series, revisions, guest posts, scheduled publishing, soft delete |
 | **Admin Dashboard** | 13-section admin panel with role-based access, module kill switches, responsive sidebar |
 | **Rich Text Editor** | Custom TipTap WYSIWYG with 22 toggleable features, markdown shortcuts, drag-and-drop images, tables, code blocks, auto-save |
-| **SEO Engine** | Per-content scoring (0–100), 8 audit categories, JSON-LD structured data, auto-sitemap, robots.txt, keyword tracking |
+| **SEO Engine** | Per-content scoring (0–100), 8 audit categories, JSON-LD structured data, dynamic OG image generation (Edge runtime), auto-sitemap, robots.txt, keyword tracking |
 | **Media Library** | Grid/list views, folder tree, drag-and-drop/paste/URL upload, image optimization (WebP/AVIF), bulk operations, deduplication |
 | **Comments** | Threaded comments, moderation queue, spam detection, upvoting, guest comments, per-post settings |
 | **CAPTCHA** | 5 providers (Turnstile, reCAPTCHA v3, reCAPTCHA v2, hCaptcha, in-house) with automatic fallback chain |
-| **Advertising** | Provider/slot/placement management, 11 ad networks, 30+ positions, 14 formats, global kill switch |
+| **Advertising** | Provider/slot/placement management, 11 ad networks, 30+ positions, 14 formats, 10+ specialized components (sticky, interstitial, floating, exit-intent, vignette, video, in-article, in-feed, native), global/overlay ad slots, AdSettings panel (25+ fields), consent-gated rendering, global kill switch |
 | **Distribution** | 12 social platforms, auto-publish, circuit breaker, rate limiting, health monitoring |
 | **Cookie Consent** | GDPR-compliant cookie banner, per-category consent (essential/analytics/marketing), localStorage persistence |
 | **Analytics** | Consent-aware GA4 injection, conditional script loading, `anonymize_ip` |
@@ -127,7 +127,7 @@ MyBlog/
 │   │   ├── layout/         # Shell components (header, footer, providers, cookie banner, analytics)
 │   │   └── ui/             # Reusable UI library (button, card, modal, toast, table, forms)
 │   ├── features/           # Domain modules (12 feature modules)
-│   │   ├── ads/            # Advertising management
+│   │   ├── ads/            # Advertising — 10+ specialized components (AdRenderer, GlobalAdSlots, GlobalOverlayAds, StickyAd, InterstitialAd, FloatingAd, ExitIntentAd, VignetteAd, VideoAd, InArticleAd, InFeedAdCard, NativeRecommendationAd), AdSettings panel, consent integration
 │   │   ├── auth/           # Authentication & user services
 │   │   ├── blog/           # Blog listing & rendering
 │   │   ├── captcha/        # Multi-provider CAPTCHA system
@@ -216,7 +216,8 @@ cp .env.example .env.local
 # Push database schema (development)
 npx prisma db push
 
-# Seed with demo data (optional — creates users, posts, pages, categories, tags)
+# Seed with demo data (optional — creates users, posts, pages, categories, tags,
+# 12 ad slots, default ad provider, 7 sample placements, cookie consent & GDPR enabled)
 npx prisma db seed
 
 # Start development server (Turbopack)
@@ -395,7 +396,7 @@ src/app/admin/
 ├── layout.tsx          # Server-side auth guard (redirects non-admin to /login)
 ├── AdminShell.tsx      # Client-side UI shell (sidebar, topbar, mobile menu)
 ├── page.tsx            # Dashboard overview
-├── ads/                # Ad provider/slot/placement management
+├── ads/                # Ad provider/slot/placement management + AdSettings panel (25+ fields)
 ├── categories/         # Category tree with drag-and-drop
 ├── comments/           # Moderation queue
 ├── cron/               # Cron task panel + history
@@ -415,6 +416,7 @@ src/app/admin/
 ```
 src/app/api/
 ├── ads/                # 10 routes — providers, slots, placements, scan, settings, kill switch
+├── og/                 # 1 route — dynamic OG image generation (Edge runtime, 1200×630)
 ├── auth/               # 2 routes — NextAuth catch-all, registration
 ├── captcha/            # 2 routes — challenge, verification
 ├── categories/         # 2 routes — CRUD + per-ID
@@ -498,7 +500,7 @@ The admin panel at `/admin` requires `ADMINISTRATOR`, `SUPER_ADMIN`, or `EDITOR`
 |---|---|
 | **Settings** | **10 tabs**, 110+ fields — General, Appearance, Content, Comments, Social, SEO, Email, Security, **Privacy**, Advanced |
 | **SEO** | Site-wide audit dashboard, per-content scoring, issue severity tracking, bulk fix page |
-| **Ads** | Provider/slot/placement management, 11 networks, global kill switch, compliance panel |
+| **Ads** | Provider/slot/placement management, 11 networks, global kill switch, compliance panel, **AdSettings panel** (25+ configurable fields: auto-placement, analytics, consent, refresh, lazy loading, viewability) |
 | **Distribution** | 12 platforms, channel management, auto-publish, circuit breaker health, kill switch |
 | **Menus** | Header/Footer/Top Bar builder, nested items, drag-and-drop reorder |
 | **Cron** | 18 automated tasks, manual trigger, execution history with per-task results |
@@ -513,7 +515,7 @@ All public pages use **ISR (Incremental Static Regeneration)** for optimal perfo
 |---|---|---|---|
 | **Home** | `/` | 15 min | Hero section, featured post, latest posts grid, popular tags cloud |
 | **Blog** | `/blog` | 10 min | Configurable layout (grid/list), filters, pagination, sidebar |
-| **Post** | `/blog/[slug]` | 1 hr | Full article with TOC, social sharing, related posts, navigation, comments, JSON-LD. Up to 500 slugs pre-rendered at build via `generateStaticParams` |
+| **Post** | `/blog/[slug]` | 1 hr | Full article with TOC, social sharing, related posts, navigation, comments, JSON-LD, dynamic OG image fallback (`/api/og`). Up to 500 slugs pre-rendered at build via `generateStaticParams` |
 | **About** | `/about` | 24 hr | Dynamic stats, mission statement |
 | **Contact** | `/contact` | — | Contact form with CAPTCHA, info cards |
 | **Tags** | `/tags` | 1 hr | Featured tags, trending tags, tag cloud |
@@ -558,6 +560,7 @@ All API routes are under `/api/`. Admin endpoints require authentication and rol
 | `/api/comments/[id]` | PATCH, DELETE | Auth required | Moderate/delete comments |
 | `/api/comments/bulk` | POST | Editor+ | Bulk moderation |
 | `/api/users` | GET, POST, PATCH | Admin+ | User management |
+| `/api/og` | GET | Public | Dynamic OG image generation (Edge runtime, 1200×630, title/description/author overlay) |
 | `/api/users/bulk` | POST | Admin+ | Bulk user operations |
 | `/api/media` | GET, POST, PATCH, DELETE | Auth required | Media CRUD |
 | `/api/media/[id]` | GET, PATCH, DELETE | Auth required | Individual media operations |
@@ -680,6 +683,13 @@ Turnstile → reCAPTCHA v3 → reCAPTCHA v2 → hCaptcha → In-house
 - Per-post/page: meta title, description, OpenGraph, Twitter Cards, canonical URLs
 - ISR ensures metadata stays fresh without rebuilding
 
+### Dynamic OG Image Generation
+
+- **Edge runtime** API route (`/api/og`) generates 1200×630 Open Graph images on-the-fly
+- Accepts `title`, `description`, `author` query params for per-content customization
+- Used as automatic fallback when a post has no featured image
+- Branded overlay with gradient background, site title, and author attribution
+
 ### Additional
 
 - SEO redirect management (301/302) with hit counting — loaded into `next.config.ts` at build time
@@ -735,18 +745,36 @@ Manage ads from **11 supported networks**:
 ### Management
 
 - **Providers**: Name, type, credentials, priority, load strategy, kill switch
-- **Slots**: 30+ positions, 14 formats, page type targeting, responsive flags, render priority, max dimensions
-- **Placements**: Provider → Slot binding with start/end date scheduling
+- **Slots**: 30+ positions (including IN_ARTICLE, STICKY_BOTTOM, INTERSTITIAL, EXIT_INTENT, FLOATING), 14 formats, page type targeting, responsive flags, render priority, max dimensions
+- **Placements**: Provider → Slot binding with start/end date scheduling, full CRUD modal in admin
 - **Overview**: Stats dashboard with impressions, clicks, CTR, revenue by provider and position
 - **Compliance**: Compliance scan panel
 - **Ad coverage**: `AdContainer` rendered on blog, about, tags, search, contact pages with wildcard matching
+- **AdSettings panel**: 25+ configurable fields — auto-placement, analytics, consent, ad refresh interval, lazy loading, viewability threshold, global density cap, max ads per page
+
+### Specialized Ad Components (10+)
+
+| Component | Description |
+|---|---|
+| **AdRenderer** | Core rendering engine — consent-gated, impression/click tracking, lazy loading, viewability detection |
+| **GlobalAdSlots** | Injects header, sidebar, footer, and sticky ad slots across all public pages |
+| **GlobalOverlayAds** | Renders interstitial, exit-intent, floating, and vignette overlay ads site-wide |
+| **StickyAd** | Fixed-position ad that follows scroll with close button |
+| **InterstitialAd** | Full-screen overlay ad triggered by navigation/time delay |
+| **FloatingAd** | Corner-anchored floating ad with drag support |
+| **ExitIntentAd** | Triggered when cursor moves toward browser close (desktop) or back button (mobile) |
+| **VignetteAd** | Between-page full-screen ad with smooth transitions |
+| **VideoAd** | VAST/VPAID-compatible video ad with play/pause/mute controls |
+| **InArticleAd** | Auto-injected between paragraphs of blog post content |
+| **InFeedAdCard** | Inserted every 4th post in blog listing grids |
+| **NativeRecommendationAd** | Native ad styled as a recommended content card |
 
 ### Controls
 
 - Global kill switch to disable all ads instantly
 - Per-provider enable/disable
 - Module-level kill switch in settings
-- Cookie consent integration — marketing scripts blocked until consent granted (GDPR mode)
+- Cookie consent integration — `requireConsent` flag flows from AdSettings → AdContainer/GlobalAdSlots → AdRenderer/GlobalOverlayAds → `useCookieConsent()` hook; marketing ads blocked until visitor grants consent (GDPR mode), with a consent-needed placeholder shown in place of the ad
 
 ---
 
@@ -798,7 +826,7 @@ A fully-featured, GDPR-compliant cookie consent system that is admin-configurabl
 
 - **Versioned consent** — bump `CONSENT_VERSION` to re-prompt after policy changes
 - **Privacy Policy & Terms links** — configurable URLs displayed in the banner
-- **`useCookieConsent()` hook** — any component can reactively check consent status
+- **`useCookieConsent()` hook** — any component can reactively check consent status; used by ad components to block/show marketing creatives
 - **Custom event dispatch** — `cookie-consent-change` event for cross-component communication
 - **Smooth slide-up animation** — `animate-slide-up` CSS keyframe
 - **Dark mode support** — adapts to site theme
@@ -1140,7 +1168,7 @@ Reusable components in `src/components/ui/`:
 | **PublicShell** | Public layout wrapper — fetches settings, renders TopBar + Header + Footer + CookieConsentBanner + AnalyticsScripts |
 | **AdminShell** | Admin layout — sidebar nav, topbar with breadcrumbs, mobile menu, profile dropdown |
 | **Header** | Responsive site header with navigation |
-| **Footer** | Site footer with social links, contact info |
+| **Footer** | Site footer with social links, contact info, sitemap link |
 | **TopBar** | Configurable utility bar above header (phone, email, CTA, social links) |
 | **CookieConsentBanner** | GDPR-compliant cookie consent with category management |
 | **AnalyticsScripts** | Consent-aware GA4 script injection |
