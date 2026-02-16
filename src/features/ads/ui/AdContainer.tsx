@@ -2,8 +2,16 @@
  * AdContainer — Server component that fetches active ad placements for a
  * given position + pageType from the database and renders them.
  *
- * If no active placement exists for the slot, it renders a ReservedAdSlot
- * placeholder. If the ads module is disabled globally, it renders nothing.
+ * Behaviour matrix:
+ *   adsEnabled=false             → nothing (entire ads module is off)
+ *   adsEnabled=true + position kill switch on → stub placeholder
+ *   adsEnabled=true + provider kill switch on → stub placeholder
+ *   adsEnabled=true + no active placements    → stub placeholder
+ *   adsEnabled=true + active placements       → real ads
+ *
+ * The stub placeholder lets admins see where ads will appear before
+ * providers are connected. When the global kill switch (adsEnabled=false)
+ * is engaged, even stubs disappear.
  *
  * Usage:
  *   <AdContainer position="SIDEBAR" pageType="blog" />
@@ -21,7 +29,7 @@ interface AdContainerProps {
   pageType: string;
   /** Additional CSS class */
   className?: string;
-  /** Show reserved placeholder when no ad exists */
+  /** Show reserved placeholder when no ad exists (default: true) */
   showPlaceholder?: boolean;
 }
 
@@ -29,15 +37,27 @@ export async function AdContainer({
   position,
   pageType,
   className = "",
-  showPlaceholder = false,
+  showPlaceholder = true,
 }: AdContainerProps) {
   try {
-    // Check if ads module is enabled
+    // Check if ads module is enabled globally
     const siteSettings = await prisma.siteSettings.findFirst({
       select: { adsEnabled: true },
     });
+
+    // adsEnabled=false → nothing at all (no stubs, no ads)
     if (siteSettings && !siteSettings.adsEnabled) {
       return null;
+    }
+
+    // Check per-position kill switch from AdSettings
+    const adSettings = await (prisma as any).adSettings.findFirst({
+      select: { positionKillSwitches: true },
+    });
+    const posKillSwitches = (adSettings?.positionKillSwitches as Record<string, boolean>) ?? {};
+    if (posKillSwitches[position] === true) {
+      // Position is killed — show stub so admin knows it's there but disabled
+      return <ReservedAdSlot position={position} label="Position disabled" className={className} />;
     }
 
     const now = new Date();
@@ -82,7 +102,7 @@ export async function AdContainer({
     );
 
     if (activePlacements.length === 0) {
-      // Check if there's a reserved slot (active slot but no active placement)
+      // No active placements — show stub placeholder so admin sees where ads go
       if (showPlaceholder) {
         const reservedSlot = await (prisma as any).adSlot.findFirst({
           where: {
@@ -100,10 +120,13 @@ export async function AdContainer({
         if (reservedSlot) {
           return <ReservedAdSlot position={position} label={reservedSlot.name} className={className} />;
         }
+        // Even without a slot record, show a generic stub for the position
+        return <ReservedAdSlot position={position} label="Ads will display here" className={className} />;
       }
       return null;
     }
 
+    // Real ads exist — render them
     return (
       <div className={`ad-slot-container ${className}`} data-position={position}>
         {activePlacements.map((p) => (
