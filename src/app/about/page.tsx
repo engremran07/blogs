@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db/prisma";
 import { Users, BookOpen, MessageSquare, Globe } from "lucide-react";
+import { AdContainer } from "@/features/ads/ui/AdContainer";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "About", description: "Learn more about our blog" };
@@ -45,6 +46,11 @@ export default async function AboutPage() {
         ))}
       </div>
 
+      {/* In-Content Ad */}
+      <div className="mb-12">
+        <AdContainer position="IN_CONTENT" pageType="about" />
+      </div>
+
       {/* Content */}
       <div className="prose prose-lg dark:prose-invert mx-auto max-w-none">
         <h2>Our Mission</h2>
@@ -77,6 +83,11 @@ export default async function AboutPage() {
           Whether you want to contribute articles, participate in discussions, or simply enjoy
           reading, we welcome you. Feel free to create an account and join the conversation!
         </p>
+      </div>
+
+      {/* Bottom Ad */}
+      <div className="mt-12">
+        <AdContainer position="IN_FEED" pageType="about" />
       </div>
     </div>
   );

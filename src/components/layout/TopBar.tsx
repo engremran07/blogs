@@ -32,8 +32,6 @@ export function TopBar({ settings }: { settings: TopBarSettings }) {
   const hasLeft = settings.topBarPhone || settings.topBarEmail || settings.topBarAddress;
   const hasRight = settings.topBarText || settings.topBarBusinessHours || settings.topBarCtaText;
 
-  if (!hasLeft && !hasRight) return null;
-
   function handleDismiss() {
     setDismissed(true);
     sessionStorage.setItem("topBarDismissed", "1");

@@ -28,7 +28,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isAdmin) {
-      fetch("/api/settings")
+      fetch("/api/settings/public")
         .then((r) => r.json())
         .then((data) => {
           if (data.success && data.data) {

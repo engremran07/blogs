@@ -33,6 +33,26 @@ interface AdContainerProps {
   showPlaceholder?: boolean;
 }
 
+/**
+ * Match a slot's pageTypes array against a concrete pageType string.
+ *
+ * Supports:
+ *   - exact match:  pageTypes includes "blog" → matches "blog"
+ *   - universal:    pageTypes includes "*"    → matches everything
+ *   - empty array:  []                         → matches everything
+ *   - prefix-wildcard: pageTypes includes "tag:*" → matches "tag:tech", "tag:react" etc.
+ */
+function slotMatchesPage(slotPageTypes: string[], pageType: string): boolean {
+  if (!slotPageTypes || slotPageTypes.length === 0) return true;
+  return slotPageTypes.some((t) => {
+    if (t === "*") return true;
+    if (t === pageType) return true;
+    // Prefix-wildcard: "tag:*" matches any "tag:…" value
+    if (t.endsWith(":*") && pageType.startsWith(t.slice(0, -1))) return true;
+    return false;
+  });
+}
+
 export async function AdContainer({
   position,
   pageType,
@@ -44,11 +64,7 @@ export async function AdContainer({
     const siteSettings = await prisma.siteSettings.findFirst({
       select: { adsEnabled: true },
     });
-
-    // adsEnabled=false → nothing at all (no stubs, no ads)
-    if (siteSettings && !siteSettings.adsEnabled) {
-      return null;
-    }
+    const adsEnabled = siteSettings?.adsEnabled ?? false;
 
     // Check per-position kill switch from AdSettings
     const adSettings = await (prisma as any).adSettings.findFirst({
@@ -56,13 +72,18 @@ export async function AdContainer({
     });
     const posKillSwitches = (adSettings?.positionKillSwitches as Record<string, boolean>) ?? {};
     if (posKillSwitches[position] === true) {
-      // Position is killed — show stub so admin knows it's there but disabled
+      if (!showPlaceholder) return null;
       return <ReservedAdSlot position={position} label="Position disabled" className={className} />;
+    }
+
+    if (!adsEnabled) {
+      return null;
     }
 
     const now = new Date();
 
-    // Find active placements matching position + pageType
+    // Fetch ALL active placements for this position, then filter by pageType
+    // in JS to support prefix-wildcard patterns like "tag:*", "category:*"
     const placements = await (prisma as any).adPlacement.findMany({
       where: {
         isActive: true,
@@ -70,11 +91,6 @@ export async function AdContainer({
         slot: {
           isActive: true,
           position,
-          OR: [
-            { pageTypes: { isEmpty: true } },
-            { pageTypes: { has: pageType } },
-            { pageTypes: { has: "*" } },
-          ],
         },
         OR: [
           { startDate: null },
@@ -89,33 +105,34 @@ export async function AdContainer({
           select: {
             name: true, position: true, format: true,
             maxWidth: true, maxHeight: true, responsive: true,
+            pageTypes: true,
           },
         },
       },
       orderBy: { slot: { renderPriority: "desc" } },
-      take: 3, // limit ads per position
     });
 
-    // Also check endDate
+    // Post-filter: pageType matching (exact, "*", empty, prefix-wildcard) + endDate
     const activePlacements: AdPlacementData[] = placements.filter(
-      (p: any) => !p.endDate || new Date(p.endDate) > now,
-    );
+      (p: any) =>
+        slotMatchesPage(p.slot?.pageTypes ?? [], pageType) &&
+        (!p.endDate || new Date(p.endDate) > now),
+    ).slice(0, 3); // limit ads per position
 
     if (activePlacements.length === 0) {
       // No active placements — show stub placeholder so admin sees where ads go
       if (showPlaceholder) {
-        const reservedSlot = await (prisma as any).adSlot.findFirst({
+        const allSlots = await (prisma as any).adSlot.findMany({
           where: {
             isActive: true,
             position,
-            OR: [
-              { pageTypes: { isEmpty: true } },
-              { pageTypes: { has: pageType } },
-              { pageTypes: { has: "*" } },
-            ],
           },
-          select: { name: true, position: true },
+          select: { name: true, position: true, pageTypes: true },
         });
+
+        const reservedSlot = allSlots.find((s: any) =>
+          slotMatchesPage(s.pageTypes ?? [], pageType),
+        );
 
         if (reservedSlot) {
           return <ReservedAdSlot position={position} label={reservedSlot.name} className={className} />;

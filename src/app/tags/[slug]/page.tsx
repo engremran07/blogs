@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/server/db/prisma";
 import { Calendar, Eye, Clock, ArrowLeft, Tag as TagIcon } from "lucide-react";
+import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { PostListItem, TagDetail } from "@/types/prisma-helpers";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +77,11 @@ export default async function TagDetailPage({ params, searchParams }: {
         )}
       </div>
 
+      {/* In-Feed Ad */}
+      <div className="mb-8">
+        <AdContainer position="IN_FEED" pageType={`tag:${slug}`} />
+      </div>
+
       {/* Posts Grid */}
       {posts.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -128,6 +134,11 @@ export default async function TagDetailPage({ params, searchParams }: {
           No published articles with this tag yet.
         </p>
       )}
+
+      {/* In-Content Ad */}
+      <div className="mt-8">
+        <AdContainer position="IN_CONTENT" pageType={`tag:${slug}`} />
+      </div>
 
       {/* Pagination */}
       {totalPages > 1 && (

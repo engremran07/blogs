@@ -3,6 +3,7 @@ import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/prisma";
 import { TagService } from "@/features/tags/server/tag.service";
 import { bulkIdsSchema, mergeTagsSchema, bulkMergeDuplicatesSchema } from "@/features/tags/server/schemas";
+import { removePageTypesFromSlots } from "@/features/ads/server/scan-pages";
 import { createLogger } from "@/server/observability/logger";
 
 const logger = createLogger("api/tags/bulk");
@@ -73,7 +74,17 @@ export async function POST(req: NextRequest) {
 
     switch (action) {
       case "delete": {
+        // Fetch slugs before deleting so we can remove from ad slots
+        const tagsToDelete = await prisma.tag.findMany({
+          where: { id: { in: validIds } },
+          select: { slug: true },
+        });
         const result = await tagService.bulkDelete(validIds);
+        // Auto-exclude deleted tags from ad slot pageTypes
+        const pageTypes = tagsToDelete.map((t: { slug: string }) => `tag:${t.slug}`);
+        if (pageTypes.length > 0) {
+          void removePageTypesFromSlots(prisma as any, pageTypes).catch(() => {});
+        }
         return NextResponse.json({ success: true, message: `${result.deleted} tags deleted` });
       }
       case "feature": {

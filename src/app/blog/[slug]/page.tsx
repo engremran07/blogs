@@ -10,6 +10,7 @@ import { RelatedPosts } from "@/components/blog/RelatedPosts";
 import { SocialShare } from "@/components/blog/SocialShare";
 import { TableOfContents } from "@/components/blog/TableOfContents";
 import { PostNavigation } from "@/components/blog/PostNavigation";
+import { BlogSidebar } from "@/components/blog/BlogSidebar";
 import { buildArticleJsonLd, buildBreadcrumbJsonLd } from "@/features/seo/server/json-ld.util";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { Metadata } from "next";
@@ -115,6 +116,18 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
   const showRelated = settings?.relatedPostsEnabled ?? true;
   const showPostNav = settings?.showPostNavigation ?? true;
   const commentsEnabled = commentSettings?.commentsEnabled ?? true;
+
+  // Sidebar settings (same pattern as blog index)
+  const sidebarSettings = {
+    sidebarEnabled: settings?.sidebarEnabled ?? true,
+    sidebarPosition: settings?.sidebarPosition || "right",
+    sidebarShowSearch: settings?.sidebarShowSearch ?? true,
+    sidebarShowRecentPosts: settings?.sidebarShowRecentPosts ?? true,
+    sidebarShowCategories: settings?.sidebarShowCategories ?? true,
+    sidebarShowTags: settings?.sidebarShowTags ?? true,
+    sidebarShowArchive: settings?.sidebarShowArchive ?? false,
+    sidebarRecentPostsCount: settings?.sidebarRecentPostsCount || 5,
+  };
 
   // Increment view count (skip in preview mode)
   if (!isPreview) {
@@ -338,6 +351,13 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
             </section>
           )}
         </article>
+
+        {/* Sidebar */}
+        {sidebarSettings.sidebarEnabled && (
+          <div className="hidden lg:block w-80 shrink-0">
+            <BlogSidebar settings={sidebarSettings} pageType="blog" />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -731,8 +731,8 @@ async function main() {
   const AD_SLOTS = [
     { name: "Sidebar Ad", slug: "sidebar-ad", position: "SIDEBAR", format: "DISPLAY", pageTypes: ["*"], renderPriority: 10 },
     { name: "Sidebar Sticky Ad", slug: "sidebar-sticky-ad", position: "SIDEBAR_STICKY", format: "DISPLAY", pageTypes: ["blog", "blog-index"], renderPriority: 5 },
-    { name: "In-Content Ad", slug: "in-content-ad", position: "IN_CONTENT", format: "DISPLAY", pageTypes: ["blog", "home"], renderPriority: 8 },
-    { name: "In-Feed Ad", slug: "in-feed-ad", position: "IN_FEED", format: "NATIVE", pageTypes: ["blog-index", "tags-index"], renderPriority: 6 },
+    { name: "In-Content Ad", slug: "in-content-ad", position: "IN_CONTENT", format: "DISPLAY", pageTypes: ["blog", "home", "tag:*", "about", "search", "contact", "tags-index"], renderPriority: 8 },
+    { name: "In-Feed Ad", slug: "in-feed-ad", position: "IN_FEED", format: "NATIVE", pageTypes: ["blog-index", "tags-index", "tag:*", "about"], renderPriority: 6 },
     { name: "Before Comments Ad", slug: "before-comments-ad", position: "BEFORE_COMMENTS", format: "DISPLAY", pageTypes: ["blog"], renderPriority: 4 },
     { name: "Header Banner", slug: "header-banner", position: "HEADER", format: "DISPLAY", pageTypes: ["*"], maxWidth: 728, maxHeight: 90, renderPriority: 15 },
     { name: "Footer Banner", slug: "footer-banner", position: "FOOTER", format: "DISPLAY", pageTypes: ["*"], maxWidth: 728, maxHeight: 90, renderPriority: 2 },
@@ -741,7 +741,12 @@ async function main() {
   for (const slot of AD_SLOTS) {
     await (prisma as any).adSlot.upsert({
       where: { slug: slot.slug },
-      update: {},
+      update: {
+        pageTypes: slot.pageTypes,
+        renderPriority: slot.renderPriority,
+        maxWidth: (slot as any).maxWidth ?? null,
+        maxHeight: (slot as any).maxHeight ?? null,
+      },
       create: {
         name: slot.name,
         slug: slot.slug,

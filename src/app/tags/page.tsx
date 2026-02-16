@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/server/db/prisma";
 import { Tag as TagIcon, TrendingUp, Star } from "lucide-react";
+import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { TagDetail } from "@/types/prisma-helpers";
 
 export const dynamic = "force-dynamic";
@@ -95,6 +96,11 @@ export default async function TagsPage() {
         </section>
       )}
 
+      {/* In-Content Ad */}
+      <div className="mb-12">
+        <AdContainer position="IN_CONTENT" pageType="tags-index" />
+      </div>
+
       {/* Tag Cloud */}
       <section>
         <h2 className="mb-6 text-lg font-semibold text-gray-900 dark:text-white">
@@ -118,6 +124,11 @@ export default async function TagsPage() {
           )}
         </div>
       </section>
+
+      {/* In-Feed Ad — bottom */}
+      <div className="mt-10">
+        <AdContainer position="IN_FEED" pageType="tags-index" />
+      </div>
     </div>
   );
 }

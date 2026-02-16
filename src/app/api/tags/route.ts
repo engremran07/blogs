@@ -3,6 +3,7 @@ import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/prisma";
 import { TagService } from "@/features/tags/server/tag.service";
 import { createTagSchema } from "@/features/tags/server/schemas";
+import { addPageTypesToSlots } from "@/features/ads/server/scan-pages";
 import { createLogger } from "@/server/observability/logger";
 
 const logger = createLogger("api/tags");
@@ -61,6 +62,9 @@ export async function POST(req: NextRequest) {
     }
 
     const tag = await tagService.create(parsed.data);
+
+    // Auto-include this tag in ad slot page types
+    void addPageTypesToSlots(prisma as any, [`tag:${tag.slug}`]).catch(() => {});
 
     return NextResponse.json({ success: true, data: tag }, { status: 201 });
   } catch (error) {
