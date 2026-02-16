@@ -24,12 +24,20 @@ interface TopBarSettings {
 }
 
 interface PublicSettings extends TopBarSettings {
+  siteName: string;
+  siteDescription: string | null;
   cookieConsentEnabled: boolean;
   cookieConsentMessage: string;
   privacyPolicyUrl: string | null;
   termsOfServiceUrl: string | null;
   gdprEnabled: boolean;
   seoGoogleAnalyticsId: string | null;
+  socialGithub: string | null;
+  socialTwitter: string | null;
+  socialFacebook: string | null;
+  socialInstagram: string | null;
+  socialLinkedin: string | null;
+  socialYoutube: string | null;
 }
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
@@ -64,12 +72,22 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
       }
     : null;
 
+  const siteName = settings?.siteName || "MyBlog";
+  const socialLinks = settings ? {
+    github: settings.socialGithub,
+    twitter: settings.socialTwitter,
+    facebook: settings.socialFacebook,
+    instagram: settings.socialInstagram,
+    linkedin: settings.socialLinkedin,
+    youtube: settings.socialYoutube,
+  } : null;
+
   return (
     <div className="flex min-h-screen flex-col">
       {settings && <TopBar settings={settings} />}
-      <Header />
+      <Header siteName={siteName} />
       <main className="flex-1">{children}</main>
-      <Footer />
+      <Footer siteName={siteName} socialLinks={socialLinks} />
       {consentSettings && <CookieConsentBanner settings={consentSettings} />}
       {settings && (
         <AnalyticsScripts

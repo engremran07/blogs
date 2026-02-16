@@ -1,7 +1,33 @@
+import { prisma } from "@/server/db/prisma";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import ContactForm from "./ContactForm";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Contact Us", description: "Get in touch with us" };
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findFirst({ select: { siteName: true } });
+  const siteName = settings?.siteName || "MyBlog";
+
+  return {
+    title: "Contact Us",
+    description: `Get in touch with ${siteName}. Have a question, suggestion, or want to collaborate?`,
+    alternates: { canonical: `${SITE_URL}/contact` },
+    openGraph: {
+      title: `Contact Us | ${siteName}`,
+      description: `Get in touch with ${siteName}`,
+      url: `${SITE_URL}/contact`,
+      type: "website",
+      siteName,
+      locale: "en_US",
+    },
+    twitter: {
+      card: "summary",
+      title: `Contact Us | ${siteName}`,
+      description: `Get in touch with ${siteName}`,
+    },
+  };
+}
 
 export default function ContactPage() {
   return (

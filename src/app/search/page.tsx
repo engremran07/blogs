@@ -2,8 +2,13 @@ import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import SearchContent from "./SearchContent";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Search", description: "Search articles" };
+export const metadata: Metadata = {
+  title: "Search",
+  description: "Search articles and posts",
+  robots: { index: false, follow: true },
+};
 
 export default function SearchPage() {
   return (

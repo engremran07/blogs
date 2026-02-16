@@ -2,10 +2,36 @@ import Link from "next/link";
 import { prisma } from "@/server/db/prisma";
 import { Tag as TagIcon, TrendingUp, Star } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
+import type { Metadata } from "next";
 import type { TagDetail } from "@/types/prisma-helpers";
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
+
 export const revalidate = 3600; // ISR: rebuild at most every hour
-export const metadata = { title: "Tags", description: "Browse all tags" };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findFirst({ select: { siteName: true } });
+  const siteName = settings?.siteName || "MyBlog";
+
+  return {
+    title: "Tags",
+    description: `Browse all tags and topics on ${siteName}`,
+    alternates: { canonical: `${SITE_URL}/tags` },
+    openGraph: {
+      title: `Tags | ${siteName}`,
+      description: `Browse all tags and topics on ${siteName}`,
+      url: `${SITE_URL}/tags`,
+      type: "website",
+      siteName,
+      locale: "en_US",
+    },
+    twitter: {
+      card: "summary",
+      title: `Tags | ${siteName}`,
+      description: `Browse all tags and topics on ${siteName}`,
+    },
+  };
+}
 
 export default async function TagsPage() {
   const tags = await prisma.tag.findMany({

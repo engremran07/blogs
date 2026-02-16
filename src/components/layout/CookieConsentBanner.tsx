@@ -113,7 +113,7 @@ export function CookieConsentBanner({ settings }: { settings: CookieConsentSetti
       role="dialog"
       aria-modal="false"
       aria-label="Cookie consent"
-      className="fixed inset-x-0 bottom-0 z-[9999] animate-slide-up"
+      className="fixed inset-x-0 bottom-0 z-9999 animate-slide-up"
     >
       <div className="mx-auto max-w-4xl px-4 pb-4">
         <div className="rounded-2xl border border-gray-200 bg-white/95 p-5 shadow-2xl backdrop-blur-md dark:border-gray-700 dark:bg-gray-900/95 sm:p-6">

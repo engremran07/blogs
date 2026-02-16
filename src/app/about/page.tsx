@@ -1,9 +1,36 @@
 import { prisma } from "@/server/db/prisma";
 import { Users, BookOpen, MessageSquare, Globe } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
+import type { Metadata } from "next";
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
 
 export const revalidate = 86400; // ISR: rebuild at most once per day
-export const metadata = { title: "About", description: "Learn more about our blog" };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findFirst({ select: { siteName: true, siteDescription: true } });
+  const siteName = settings?.siteName || "MyBlog";
+  const description = settings?.siteDescription || `Learn more about ${siteName}`;
+
+  return {
+    title: "About",
+    description: `About ${siteName} — ${description}`,
+    alternates: { canonical: `${SITE_URL}/about` },
+    openGraph: {
+      title: `About | ${siteName}`,
+      description: `About ${siteName} — ${description}`,
+      url: `${SITE_URL}/about`,
+      type: "website",
+      siteName,
+      locale: "en_US",
+    },
+    twitter: {
+      card: "summary",
+      title: `About | ${siteName}`,
+      description: `About ${siteName} — ${description}`,
+    },
+  };
+}
 
 export default async function AboutPage() {
   const [postCount, commentCount, tagCount, settings] = await Promise.all([

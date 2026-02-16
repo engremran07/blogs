@@ -1,9 +1,12 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/server/db/prisma";
 import { Calendar, Eye, Clock, ArrowLeft, Tag as TagIcon } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { PostListItem, TagDetail } from "@/types/prisma-helpers";
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
 
 export const revalidate = 3600; // ISR: rebuild at most every hour
 
@@ -18,11 +21,34 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const tag = await prisma.tag.findUnique({ where: { slug } });
+  const [tag, settings] = await Promise.all([
+    prisma.tag.findUnique({ where: { slug } }),
+    prisma.siteSettings.findFirst({ select: { siteName: true } }),
+  ]);
   if (!tag) return { title: "Tag Not Found" };
+
+  const siteName = settings?.siteName || "MyBlog";
+  const title = tag.metaTitle || `Posts tagged "${tag.name}"`;
+  const description = tag.metaDescription || tag.description || `All articles tagged with ${tag.name}`;
+  const pageUrl = `${SITE_URL}/tags/${slug}`;
+
   return {
-    title: tag.metaTitle || `Posts tagged "${tag.name}"`,
-    description: tag.metaDescription || tag.description || `All articles tagged with ${tag.name}`,
+    title,
+    description,
+    alternates: { canonical: pageUrl },
+    openGraph: {
+      title: `${title} | ${siteName}`,
+      description,
+      url: pageUrl,
+      type: "website",
+      siteName,
+      locale: "en_US",
+    },
+    twitter: {
+      card: "summary" as const,
+      title: `${title} | ${siteName}`,
+      description,
+    },
   };
 }
 
@@ -101,11 +127,13 @@ export default async function TagDetailPage({ params, searchParams }: {
               className="group rounded-xl border border-gray-200 bg-white transition-all hover:border-blue-300 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600"
             >
               {post.featuredImage && (
-                <div className="aspect-video overflow-hidden rounded-t-xl bg-gray-100 dark:bg-gray-700">
-                  <img
+                <div className="relative aspect-video overflow-hidden rounded-t-xl bg-gray-100 dark:bg-gray-700">
+                  <Image
                     src={post.featuredImage}
                     alt={post.featuredImageAlt || post.title}
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    fill
+                    className="object-cover transition-transform group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 </div>
               )}

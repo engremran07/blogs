@@ -8,10 +8,31 @@ import { PostCardShareOverlay } from "@/components/blog/PostCardShareOverlay";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Blog",
-  description: "Browse all blog posts and articles",
-};
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findFirst({ select: { siteName: true, siteDescription: true } });
+  const siteName = settings?.siteName || "MyBlog";
+
+  return {
+    title: "Blog",
+    description: `Browse all blog posts and articles on ${siteName}`,
+    alternates: { canonical: `${SITE_URL}/blog` },
+    openGraph: {
+      title: `Blog | ${siteName}`,
+      description: `Browse all blog posts and articles on ${siteName}`,
+      url: `${SITE_URL}/blog`,
+      type: "website",
+      siteName,
+      locale: "en_US",
+    },
+    twitter: {
+      card: "summary",
+      title: `Blog | ${siteName}`,
+      description: `Browse all blog posts and articles on ${siteName}`,
+    },
+  };
+}
 
 export const revalidate = 600; // ISR: rebuild at most every 10 minutes
 
@@ -327,6 +348,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
               {page > 1 && (
                 <Link
                   href={`/blog?page=${page - 1}${params.q ? `&q=${params.q}` : ""}${params.tag ? `&tag=${params.tag}` : ""}${params.archive ? `&archive=${params.archive}` : ""}`}
+                  rel="prev"
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
                   Previous
@@ -338,6 +360,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
               {page < totalPages && (
                 <Link
                   href={`/blog?page=${page + 1}${params.q ? `&q=${params.q}` : ""}${params.tag ? `&tag=${params.tag}` : ""}${params.archive ? `&archive=${params.archive}` : ""}`}
+                  rel="next"
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
                   Next

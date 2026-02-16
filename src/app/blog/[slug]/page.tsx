@@ -35,22 +35,26 @@ interface PostPageProps {
 
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = await prisma.post.findUnique({
-    where: { slug },
-    select: {
-      title: true, excerpt: true, seoTitle: true, seoDescription: true,
-      featuredImage: true, featuredImageAlt: true,
-      ogTitle: true, ogDescription: true, ogImage: true,
-      twitterCard: true, twitterTitle: true, twitterDescription: true, twitterImage: true,
-      canonicalUrl: true, seoKeywords: true,
-      publishedAt: true, updatedAt: true,
-      author: { select: { displayName: true, username: true } },
-      categories: { select: { name: true } },
-      tags: { select: { name: true } },
-    },
-  });
+  const [post, settings] = await Promise.all([
+    prisma.post.findUnique({
+      where: { slug },
+      select: {
+        title: true, excerpt: true, seoTitle: true, seoDescription: true,
+        featuredImage: true, featuredImageAlt: true,
+        ogTitle: true, ogDescription: true, ogImage: true,
+        twitterCard: true, twitterTitle: true, twitterDescription: true, twitterImage: true,
+        canonicalUrl: true, seoKeywords: true,
+        publishedAt: true, updatedAt: true,
+        author: { select: { displayName: true, username: true } },
+        categories: { select: { name: true } },
+        tags: { select: { name: true } },
+      },
+    }),
+    prisma.siteSettings.findFirst({ select: { siteName: true } }),
+  ]);
   if (!post) return { title: "Post Not Found" };
 
+  const siteName = settings?.siteName || "MyBlog";
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
   const pageUrl = `${baseUrl}/blog/${slug}`;
   const title = post.seoTitle || post.title;
@@ -71,9 +75,9 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       description: post.ogDescription || description,
       url: pageUrl,
       type: "article",
-      siteName: "MyBlog",
+      siteName,
       locale: "en_US",
-      images: ogImage ? [{ url: ogImage, alt: post.featuredImageAlt || title }] : [],
+      images: ogImage ? [{ url: ogImage, width: 1200, height: 630, alt: post.featuredImageAlt || title }] : [],
       publishedTime: post.publishedAt?.toISOString(),
       modifiedTime: post.updatedAt?.toISOString(),
       authors: authorName ? [authorName] : undefined,
@@ -154,12 +158,15 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
   const fullPostUrl = `${baseUrl}/blog/${post.slug}`;
 
   // Build JSON-LD structured data
+  const siteName = settings?.siteName || "MyBlog";
   const articleJsonLd = buildArticleJsonLd({
     title: post.title,
     description: post.excerpt || "",
     url: fullPostUrl,
     imageUrl: post.featuredImage || undefined,
     authorName: post.author?.displayName || post.author?.username || "Unknown",
+    publisherName: siteName,
+    publisherLogoUrl: (settings as Record<string, unknown>)?.logoUrl as string | undefined,
     publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : new Date().toISOString(),
     modifiedAt: post.updatedAt ? new Date(post.updatedAt).toISOString() : undefined,
     section: post.categories?.[0]?.name,

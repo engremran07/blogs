@@ -26,7 +26,7 @@ const navLinks = [
   { href: "/contact", label: "Contact" },
 ];
 
-export function Header() {
+export function Header({ siteName = "MyBlog" }: { siteName?: string }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -42,9 +42,9 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 font-bold text-white">
-            B
+            {siteName.charAt(0).toUpperCase()}
           </div>
-          <span className="text-lg font-bold text-gray-900 dark:text-white">MyBlog</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-white">{siteName}</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -55,7 +55,7 @@ export function Header() {
               href={link.href}
               className={clsx(
                 "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                pathname === link.href
+                (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href))
                   ? "bg-gray-100 text-blue-600 dark:bg-gray-800 dark:text-blue-400"
                   : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white",
               )}
@@ -171,7 +171,7 @@ export function Header() {
                 onClick={() => setMobileOpen(false)}
                 className={clsx(
                   "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  pathname === link.href
+                  (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href))
                     ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                     : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800",
                 )}

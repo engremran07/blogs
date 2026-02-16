@@ -1,8 +1,26 @@
 import Link from "next/link";
-import { Github, Twitter, Rss, Heart } from "lucide-react";
+import { Github, Twitter, Rss, Heart, Facebook, Instagram, Linkedin, Youtube } from "lucide-react";
 
-export function Footer() {
+interface SocialLinks {
+  github: string | null;
+  twitter: string | null;
+  facebook: string | null;
+  instagram: string | null;
+  linkedin: string | null;
+  youtube: string | null;
+}
+
+export function Footer({ siteName = "MyBlog", socialLinks }: { siteName?: string; socialLinks?: SocialLinks | null }) {
   const year = new Date().getFullYear();
+
+  const socials = [
+    { href: socialLinks?.github, icon: Github, label: "GitHub" },
+    { href: socialLinks?.twitter, icon: Twitter, label: "Twitter" },
+    { href: socialLinks?.facebook, icon: Facebook, label: "Facebook" },
+    { href: socialLinks?.instagram, icon: Instagram, label: "Instagram" },
+    { href: socialLinks?.linkedin, icon: Linkedin, label: "LinkedIn" },
+    { href: socialLinks?.youtube, icon: Youtube, label: "YouTube" },
+  ].filter((s) => s.href);
 
   return (
     <footer className="border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
@@ -12,24 +30,29 @@ export function Footer() {
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 font-bold text-white">
-                B
+                {siteName.charAt(0).toUpperCase()}
               </div>
-              <span className="text-lg font-bold text-gray-900 dark:text-white">MyBlog</span>
+              <span className="text-lg font-bold text-gray-900 dark:text-white">{siteName}</span>
             </Link>
             <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
               A modern blog platform built with Next.js. Sharing ideas, tutorials, and insights.
             </p>
-            <div className="mt-4 flex gap-3">
-              <a href="#" className="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300">
-                <Github className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <Link href="/rss" className="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300">
-                <Rss className="h-5 w-5" />
-              </Link>
-            </div>
+            {socials.length > 0 && (
+              <div className="mt-4 flex gap-3">
+                {socials.map((s) => (
+                  <a
+                    key={s.label}
+                    href={s.href!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.label}
+                    className="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <s.icon className="h-5 w-5" />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Navigation */}
@@ -73,7 +96,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 flex flex-col items-center justify-between border-t border-gray-200 pt-6 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400 sm:flex-row">
-          <p>© {year} MyBlog. All rights reserved.</p>
+          <p>&copy; {year} {siteName}. All rights reserved.</p>
           <p className="mt-2 flex items-center gap-1 sm:mt-0">
             Made with <Heart className="h-3 w-3 text-red-500" /> using Next.js
           </p>

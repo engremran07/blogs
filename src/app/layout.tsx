@@ -20,10 +20,12 @@ const geistMono = Geist_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   let siteName = "MyBlog";
   let description = "A modern blog platform built with Next.js";
+  let ogImage: string | null = null;
   try {
     const s = await siteSettingsService.getSettings();
     siteName = s.siteName || siteName;
     description = s.siteDescription || description;
+    ogImage = (s as unknown as Record<string, unknown>).seoDefaultImage as string | null;
   } catch {
     /* fallback to defaults */
   }
@@ -32,7 +34,20 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     metadataBase: new URL(SITE_URL),
     alternates: { canonical: SITE_URL },
-    openGraph: { type: "website", siteName, locale: "en_US" },
+    openGraph: {
+      type: "website",
+      siteName,
+      locale: "en_US",
+      description,
+      url: SITE_URL,
+      ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630, alt: siteName }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: siteName,
+      description,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
   };
 }
 

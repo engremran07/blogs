@@ -1,11 +1,43 @@
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/server/db/prisma";
 import { ArrowRight, Calendar, Clock, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/Card";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
+import type { Metadata } from "next";
 import type { PostListItem, TagDetail } from "@/types/prisma-helpers";
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
+
 export const revalidate = 900; // ISR: rebuild at most every 15 minutes
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findFirst();
+  const siteName = settings?.siteName || "MyBlog";
+  const description = settings?.siteDescription || "A modern blog platform built with Next.js";
+  const ogImage = (settings as Record<string, unknown>)?.seoDefaultImage as string | null;
+
+  return {
+    title: { absolute: siteName },
+    description,
+    alternates: { canonical: SITE_URL },
+    openGraph: {
+      title: siteName,
+      description,
+      url: SITE_URL,
+      type: "website",
+      siteName,
+      locale: "en_US",
+      ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630, alt: siteName }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: siteName,
+      description,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
+  };
+}
 
 async function getLatestPosts() {
   return prisma.post.findMany({
@@ -39,22 +71,25 @@ async function getPopularTags() {
 }
 
 export default async function HomePage() {
-  const [posts, featured, tags] = await Promise.all([
+  const [posts, featured, tags, settings] = await Promise.all([
     getLatestPosts() as Promise<PostListItem[]>,
     getFeaturedPost() as Promise<PostListItem | null>,
     getPopularTags() as Promise<TagDetail[]>,
+    prisma.siteSettings.findFirst(),
   ]);
+
+  const siteName = settings?.siteName || "MyBlog";
+  const siteDescription = settings?.siteDescription || "Exploring ideas, sharing knowledge, and building things. Dive into articles on technology, development, and more.";
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       {/* Hero Section */}
       <section className="mb-16 text-center">
         <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl dark:text-white">
-          Welcome to <span className="text-blue-600">MyBlog</span>
+          Welcome to <span className="text-blue-600">{siteName}</span>
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
-          Exploring ideas, sharing knowledge, and building things. Dive into articles on
-          technology, development, and more.
+          {siteDescription}
         </p>
         <div className="mt-8 flex justify-center gap-4">
           <Link
@@ -85,11 +120,14 @@ export default async function HomePage() {
           >
             <div className="grid md:grid-cols-2">
               {featured.featuredImage ? (
-                <div className="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
-                  <img
+                <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+                  <Image
                     src={featured.featuredImage}
-                    alt={featured.title}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    alt={featured.featuredImageAlt || featured.title}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority
                   />
                 </div>
               ) : (
@@ -164,11 +202,13 @@ export default async function HomePage() {
                 className="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
               >
                 {post.featuredImage ? (
-                  <div className="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
-                    <img
+                  <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+                    <Image
                       src={post.featuredImage}
-                      alt={post.title}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      alt={post.featuredImageAlt || post.title}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                   </div>
                 ) : (

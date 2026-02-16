@@ -31,13 +31,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     select: { slug: true, updatedAt: true },
   });
 
+  // Use latest post date for dynamic pages, a stable date for static ones
+  const latestPostDate = posts[0]?.updatedAt ?? new Date();
+  const latestTagDate = tags[0]?.updatedAt ?? new Date();
+
   // Static routes
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: baseUrl, lastModified: new Date(), changeFrequency: "daily", priority: 1.0 },
-    { url: `${baseUrl}/blog`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
-    { url: `${baseUrl}/about`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
-    { url: `${baseUrl}/contact`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
-    { url: `${baseUrl}/tags`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.5 },
+    { url: baseUrl, lastModified: latestPostDate, changeFrequency: "daily", priority: 1.0 },
+    { url: `${baseUrl}/blog`, lastModified: latestPostDate, changeFrequency: "daily", priority: 0.9 },
+    { url: `${baseUrl}/about`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${baseUrl}/contact`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${baseUrl}/tags`, lastModified: latestTagDate, changeFrequency: "weekly", priority: 0.5 },
   ];
 
   // Post routes
