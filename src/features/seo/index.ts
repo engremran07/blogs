@@ -300,3 +300,18 @@ export {
 
 /* ── Main Service ── */
 export { SeoService } from './server/seo.service';
+
+/* ── Interlinking ── */
+export {
+  InterlinkService,
+  scanContentForLinks,
+  injectLinksIntoContent,
+  detectBrokenLinks,
+} from './server/interlink.service';
+
+export type {
+  LinkCandidate,
+  InternalLinkRecord,
+  InterlinkScanResult,
+  InterlinkReport,
+} from './server/interlink.service';

@@ -1063,10 +1063,20 @@ export class SeoService {
   }
 
   /* ======================================================================== */
-  /*  3G — BULK ENHANCEMENT                                                   */
+  /*  3G — BULK ENHANCEMENT (Intelligent)                                     */
   /* ======================================================================== */
 
-  /** Bulk-enhance all published posts and pages — fill missing SEO fields. */
+  /**
+   * Intelligent bulk-enhance engine for all published posts and pages.
+   *
+   * Phase 1 — Fill Missing Fields: seoTitle, seoDescription, excerpt,
+   *           seoKeywords, ogTitle, ogDescription, wordCount, readingTime
+   * Phase 2 — Quality Improvement: upgrade short/weak existing fields
+   * Phase 3 — Auto-Interlinking: scan content, inject internal links
+   * Phase 4 — Keyword Optimization: refresh stale keywords, ensure diversity
+   *
+   * The engine is idempotent — safe to run repeatedly via cron.
+   */
   async bulkEnhanceContent(
     limit: number = 100,
     dryRun: boolean = false,
@@ -1119,10 +1129,20 @@ export class SeoService {
         };
       }
 
+      // ── Build content index for auto-interlinking ──
+      const { InterlinkService } = await import('./interlink.service');
+      const interlinkSvc = new InterlinkService({
+        post: this.deps.post as any,
+        page: this.deps.page as any,
+      });
+      const contentIndex = await interlinkSvc.buildIndex();
+
       for (const item of allContent) {
         try {
           const updates: Record<string, unknown> = {};
           const fieldsUpdated: string[] = [];
+
+          // ── PHASE 1: Fill missing fields ──
 
           // Generate missing seoTitle
           if (!item.seoTitle) {
@@ -1132,6 +1152,15 @@ export class SeoService {
             );
             fieldsUpdated.push('seoTitle');
           } else {
+            // PHASE 2: Quality check — upgrade short/generic titles
+            const title = item.seoTitle as string;
+            if (title.length < 20 || title === item.title) {
+              const improved = generateSeoTitle(item.title, (item.seoKeywords ?? []));
+              if (improved.length > title.length) {
+                updates.seoTitle = improved;
+                fieldsUpdated.push('seoTitle:improved');
+              }
+            }
             stats.fieldCompleteness.seoTitle.filled++;
           }
 
@@ -1143,6 +1172,19 @@ export class SeoService {
             );
             fieldsUpdated.push('seoDescription');
           } else {
+            // PHASE 2: Upgrade short descriptions
+            const desc = item.seoDescription as string;
+            if (desc.length < 80) {
+              const improved = generateSeoDescription(
+                item.content,
+                (item.seoKeywords ?? []),
+                155,
+              );
+              if (improved.length > desc.length) {
+                updates.seoDescription = improved;
+                fieldsUpdated.push('seoDescription:improved');
+              }
+            }
             stats.fieldCompleteness.seoDescription.filled++;
           }
 
@@ -1151,15 +1193,36 @@ export class SeoService {
             updates.excerpt = generateExcerpt(item.content);
             fieldsUpdated.push('excerpt');
           } else {
+            // PHASE 2: Upgrade very short excerpts
+            const exc = item.excerpt as string;
+            if (exc.length < 50) {
+              const improved = generateExcerpt(item.content);
+              if (improved && improved.length > exc.length) {
+                updates.excerpt = improved;
+                fieldsUpdated.push('excerpt:improved');
+              }
+            }
             stats.fieldCompleteness.excerpt.filled++;
           }
 
-          // Generate missing keywords
+          // Generate missing keywords (or refresh stale/sparse keywords)
           if (!item.seoKeywords || item.seoKeywords.length === 0) {
-            const extracted = extractKeywords(item.content, 5);
+            const extracted = extractKeywords(item.content, 8);
             updates.seoKeywords = extracted.map((k) => k.term);
             fieldsUpdated.push('seoKeywords');
           } else {
+            // PHASE 4: Enrich sparse keywords (< 3)
+            if (item.seoKeywords.length < 3) {
+              const extracted = extractKeywords(item.content, 8);
+              const existing = new Set((item.seoKeywords as string[]).map((k: string) => k.toLowerCase()));
+              const newKw = extracted
+                .map(k => k.term)
+                .filter(t => !existing.has(t.toLowerCase()));
+              if (newKw.length > 0) {
+                updates.seoKeywords = [...item.seoKeywords, ...newKw.slice(0, 5)];
+                fieldsUpdated.push('seoKeywords:enriched');
+              }
+            }
             stats.fieldCompleteness.seoKeywords.filled++;
           }
 
@@ -1180,11 +1243,50 @@ export class SeoService {
             stats.fieldCompleteness.ogDescription.filled++;
           }
 
-          // Calculate reading time & word count
+          // Calculate reading time & word count (always refresh)
           const wc = countWords(item.content);
           const rt = calculateReadingTime(item.content);
-          if (!item.wordCount) updates.wordCount = wc;
-          if (!item.readingTime) updates.readingTime = rt;
+          if (!item.wordCount || item.wordCount !== wc) {
+            updates.wordCount = wc;
+            if (!item.wordCount) fieldsUpdated.push('wordCount');
+          }
+          if (!item.readingTime || item.readingTime !== rt) {
+            updates.readingTime = rt;
+            if (!item.readingTime) fieldsUpdated.push('readingTime');
+          }
+
+          // ── PHASE 3: Auto-interlinking ──
+          if (item.content && wc >= 50) {
+            try {
+              const { scanContentForLinks, injectLinksIntoContent } = await import('./interlink.service');
+              const candidates = scanContentForLinks(
+                {
+                  id: item.id,
+                  type: item._type,
+                  content: item.content,
+                  seoKeywords: item.seoKeywords || [],
+                  tags: (item as any).tags || [],
+                  categories: (item as any).categories || [],
+                },
+                contentIndex,
+              );
+
+              const unlinked = candidates.filter(c => !c.alreadyLinked);
+              if (unlinked.length > 0) {
+                const { html, inserted } = injectLinksIntoContent(
+                  item.content,
+                  candidates,
+                  contentIndex,
+                );
+                if (inserted > 0) {
+                  updates.content = html;
+                  fieldsUpdated.push(`interlinks:${inserted}`);
+                }
+              }
+            } catch (linkErr) {
+              this.log.warn(`Interlinking failed for ${item._type} ${item.id}`, { error: linkErr });
+            }
+          }
 
           if (fieldsUpdated.length === 0) {
             stats.skipped++;

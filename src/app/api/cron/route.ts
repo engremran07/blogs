@@ -34,6 +34,7 @@ import {
   distributionService,
 } from "@/server/wiring";
 import { syncAdSlotPageTypes } from "@/features/ads/server/scan-pages";
+import { InterlinkService } from "@/features/seo/server/interlink.service";
 
 const logger = createLogger("cron");
 
@@ -326,6 +327,30 @@ export async function GET(request: NextRequest) {
     results.push(
       await runTask("sync-ad-slot-page-types", adsEnabled, async () => {
         await syncAdSlotPageTypes(prisma as any);
+      }),
+    );
+
+    // ── SEO Auto-Enhancement Tasks ──────────────────────────────────────
+
+    // 5q-seo. Bulk SEO enhancement (fill missing + improve weak fields)
+    results.push(
+      await runTask("seo-bulk-enhance", true, async () => {
+        await seoService.bulkEnhanceContent(30, false);
+      }),
+    );
+
+    // 5r-seo. Auto-interlink content (scan & inject internal links)
+    results.push(
+      await runTask("seo-auto-interlink", true, async () => {
+        const interlinkSvc = new InterlinkService(prisma as any);
+        await interlinkSvc.autoLinkAll(20);
+      }),
+    );
+
+    // 5s-seo. Generate SEO suggestions from audit
+    results.push(
+      await runTask("seo-generate-suggestions", true, async () => {
+        await seoService.generateSuggestions('site');
       }),
     );
 

@@ -3,6 +3,7 @@ import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/prisma";
 import { auditContent, aggregateSiteAudit, generateRecommendations } from "@/features/seo/server/seo-audit.util";
 import { generateSeoTitle, generateSeoDescription, scoreTitleQuality, extractKeywords } from "@/features/seo/server/seo-text.util";
+import { InterlinkService } from "@/features/seo/server/interlink.service";
 import type { AuditableContent, AuditResult, SiteAuditResult, SeoTargetType } from "@/features/seo/types";
 import { createLogger } from "@/server/observability/logger";
 
@@ -275,6 +276,41 @@ export async function GET(request: NextRequest) {
         success: true,
         data: { suggestedTitle, suggestedDescription, keywords },
       });
+    }
+
+    // ── Interlinking actions ────────────────────────────────────────────
+
+    if (action === "interlink-scan") {
+      const id = searchParams.get("id");
+      const type = (searchParams.get("type") || "post").toUpperCase() as "POST" | "PAGE";
+      if (!id) return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
+
+      const interlinkSvc = new InterlinkService(prisma as any);
+      const result = await interlinkSvc.scanSingle(id, type);
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === "interlink-apply") {
+      const id = searchParams.get("id");
+      const type = (searchParams.get("type") || "post").toUpperCase() as "POST" | "PAGE";
+      if (!id) return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
+
+      const interlinkSvc = new InterlinkService(prisma as any);
+      const result = await interlinkSvc.autoLinkContent(id, type);
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === "interlink-all") {
+      const limitParam = parseInt(searchParams.get("limit") || "50", 10);
+      const interlinkSvc = new InterlinkService(prisma as any);
+      const result = await interlinkSvc.autoLinkAll(limitParam);
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === "interlink-report") {
+      const interlinkSvc = new InterlinkService(prisma as any);
+      const report = await interlinkSvc.generateReport();
+      return NextResponse.json({ success: true, data: report });
     }
 
     return NextResponse.json({ success: false, error: "Unknown action" }, { status: 400 });
