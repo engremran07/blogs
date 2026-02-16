@@ -1190,7 +1190,7 @@ model SiteSettings {
   topBarTextColor                 String   @default("#ffffff")
   topBarCtaText                   String?
   topBarCtaUrl                    String?
-  topBarDismissible               Boolean  @default(true)
+  topBarDismissible               Boolean  @default(false)
 
   // Announcement Banner
   announcementEnabled             Boolean  @default(false)

@@ -538,7 +538,7 @@ export default function AdminSettingsPage() {
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <ToggleCard label="Show social links" checked={settings.topBarShowSocialLinks ?? false} onChange={(v) => update("topBarShowSocialLinks", v)} />
-                    <ToggleCard label="Allow visitors to dismiss" checked={settings.topBarDismissible ?? true} onChange={(v) => update("topBarDismissible", v)} />
+                    <ToggleCard label="Allow visitors to dismiss" checked={settings.topBarDismissible ?? false} onChange={(v) => update("topBarDismissible", v)} />
                   </div>
                   <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-600">
                     <p className="mb-2 text-xs font-medium text-gray-400">Live Preview</p>

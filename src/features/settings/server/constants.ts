@@ -55,7 +55,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   topBarTextColor: '#ffffff',
   topBarCtaText: null,
   topBarCtaUrl: null,
-  topBarDismissible: true,
+  topBarDismissible: false,
 
   // Announcement Banner
   announcementEnabled: false,
