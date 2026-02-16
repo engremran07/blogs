@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/server/auth";
 import { adsService } from "@/server/wiring";
+import { prisma } from "@/server/db/prisma";
 
 const killSwitchBodySchema = z.object({
   killed: z.boolean(),
@@ -43,6 +44,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { killed } = killSwitchBodySchema.parse(body);
     await adsService.globalKillSwitch(killed);
+
+    // Also sync SiteSettings.adsEnabled so module-status API stays consistent
+    const settings = await prisma.siteSettings.findFirst();
+    if (settings) {
+      await prisma.siteSettings.update({
+        where: { id: settings.id },
+        data: { adsEnabled: !killed } as any,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: { adsEnabled: !killed, message: killed ? "All ads killed" : "Ads re-enabled" },

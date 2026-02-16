@@ -90,7 +90,7 @@ export default function AdsAdminPage() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [adsKilled, setAdsKilled] = useState(false);
+  const [adsOn, setAdsOn] = useState(true);
 
   // Modal state
   const [providerModal, setProviderModal] = useState(false);
@@ -128,10 +128,6 @@ export default function AdsAdminPage() {
       if (ovRes.success) setOverview(ovRes.data);
       if (provRes.success) {
         setProviders(provRes.data);
-        // Detect global kill switch state: all providers killed = switch engaged
-        if (provRes.data.length > 0) {
-          setAdsKilled(provRes.data.every((p: any) => p.killSwitch));
-        }
       }
       if (slotRes.success) setSlots(slotRes.data);
       if (placRes.success) setPlacements(placRes.data);
@@ -144,22 +140,33 @@ export default function AdsAdminPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Fetch module enabled status
+  useEffect(() => {
+    fetch("/api/settings/module-status")
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setAdsOn(d.data.ads); })
+      .catch(() => {});
+  }, []);
+
   /* ─── Kill Switch ─── */
 
-  async function toggleKillSwitch() {
+  async function toggleAds() {
     try {
       const res = await fetch("/api/ads/kill-switch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ killed: !adsKilled }),
+        body: JSON.stringify({ killed: adsOn }),
       });
       const data = await res.json();
       if (data.success) {
-        setAdsKilled(!adsKilled);
-        toast(adsKilled ? "Ads re-enabled" : "All ads killed", adsKilled ? "success" : "warning");
+        const newState = !adsOn;
+        setAdsOn(newState);
+        toast(newState ? "Ads enabled" : "Ads disabled", newState ? "success" : "warning");
+        window.dispatchEvent(new CustomEvent("module-status-changed", { detail: { ads: newState } }));
+        fetchAll();
       }
     } catch {
-      toast("Failed to toggle kill switch", "error");
+      toast("Failed to toggle ads", "error");
     }
   }
 
@@ -373,18 +380,41 @@ export default function AdsAdminPage() {
             Manage ad providers, slots, placements &amp; compliance
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={adsKilled ? "danger" : "outline"}
-            onClick={toggleKillSwitch}
-            icon={adsKilled ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
-          >
-            {adsKilled ? "Ads Killed" : "Kill Switch"}
-          </Button>
+        <div className="flex items-center gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span>{adsOn ? "Ads On" : "Ads Off"}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={adsOn}
+              onClick={toggleAds}
+              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
+                adsOn ? "bg-green-500" : "bg-red-500"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  adsOn ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </label>
           <Button variant="outline" onClick={scanPages} icon={<ScanSearch className="h-4 w-4" />}>
             Scan Pages
           </Button>
         </div>
+      </div>
+
+      {/* Module status banner */}
+      <div className={`mb-4 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium ${
+        adsOn
+          ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
+          : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
+      }`}>
+        {adsOn
+          ? <><CheckCircle className="h-4 w-4" /> Ads module is <span className="font-semibold">enabled</span> &amp; active</>
+          : <><AlertTriangle className="h-4 w-4" /> Ads module is <span className="font-semibold">disabled</span> — ads will not render on the site</>
+        }
       </div>
 
       {/* Tabs */}

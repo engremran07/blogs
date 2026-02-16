@@ -16,8 +16,6 @@ import {
   Hash,
   Globe,
   Zap,
-  Power,
-  PowerOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/FormFields";
@@ -88,7 +86,7 @@ export default function DistributionAdminPage() {
   const [records, setRecords] = useState<DistRecord[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [distKilled, setDistKilled] = useState(false);
+  const [distOn, setDistOn] = useState(true);
 
   // Modal state
   const [channelModal, setChannelModal] = useState(false);
@@ -126,32 +124,32 @@ export default function DistributionAdminPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Fetch kill switch state
+  // Fetch module enabled status (single source of truth)
   useEffect(() => {
-    fetch("/api/distribution/kill-switch")
+    fetch("/api/settings/module-status")
       .then((r) => r.json())
-      .then((data) => {
-        if (data.success) setDistKilled(!data.data.distributionEnabled);
-      })
+      .then((d) => { if (d.success) setDistOn(d.data.distribution); })
       .catch(() => {});
   }, []);
 
   /* ─── Kill Switch ─── */
 
-  async function toggleKillSwitch() {
+  async function toggleDistribution() {
     try {
       const res = await fetch("/api/distribution/kill-switch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: distKilled }), // toggle: if killed, enable; if not killed, disable
+        body: JSON.stringify({ enabled: !distOn }),
       });
       const data = await res.json();
       if (data.success) {
-        setDistKilled(!distKilled);
-        toast(distKilled ? "Distribution re-enabled" : "Distribution disabled", distKilled ? "success" : "warning");
+        const newState = !distOn;
+        setDistOn(newState);
+        toast(newState ? "Distribution enabled" : "Distribution disabled", newState ? "success" : "warning");
+        window.dispatchEvent(new CustomEvent("module-status-changed", { detail: { distribution: newState } }));
       }
     } catch {
-      toast("Failed to toggle kill switch", "error");
+      toast("Failed to toggle distribution", "error");
     }
   }
 
@@ -304,18 +302,41 @@ export default function DistributionAdminPage() {
             Distribute posts to social platforms &amp; third-party channels
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={distKilled ? "danger" : "outline"}
-            onClick={toggleKillSwitch}
-            icon={distKilled ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
-          >
-            {distKilled ? "Disabled" : "Kill Switch"}
-          </Button>
+        <div className="flex items-center gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span>{distOn ? "Dist On" : "Dist Off"}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={distOn}
+              onClick={toggleDistribution}
+              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
+                distOn ? "bg-green-500" : "bg-red-500"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  distOn ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </label>
           <Button onClick={() => { setTab("channels"); openCreate(); }} icon={<Plus className="h-4 w-4" />}>
             New Channel
           </Button>
         </div>
+      </div>
+
+      {/* Module status banner */}
+      <div className={`mb-4 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium ${
+        distOn
+          ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
+          : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
+      }`}>
+        {distOn
+          ? <><CheckCircle className="h-4 w-4" /> Distribution module is <span className="font-semibold">enabled</span> &amp; active</>
+          : <><AlertTriangle className="h-4 w-4" /> Distribution module is <span className="font-semibold">disabled</span> — posts will not be distributed</>
+        }
       </div>
 
       {/* Tabs */}

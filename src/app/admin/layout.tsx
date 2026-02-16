@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { redirect } from "next/navigation";
 import { clsx } from "clsx";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   LayoutDashboard,
   FileText,
@@ -108,7 +108,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [session?.user?.id]);
 
   // Fetch module enabled/disabled status for sidebar indicators
-  useEffect(() => {
+  const refreshModuleStatus = useCallback(() => {
     if (session?.user) {
       fetch("/api/settings/module-status")
         .then((r) => r.json())
@@ -120,6 +120,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .catch(() => {});
     }
   }, [session?.user]);
+
+  useEffect(() => { refreshModuleStatus(); }, [refreshModuleStatus]);
+
+  // Listen for real-time module status changes from child pages
+  useEffect(() => {
+    function onModuleChange(e: Event) {
+      const detail = (e as CustomEvent).detail;
+      if (detail) {
+        setModuleStatus((prev) => ({ ...prev, ...detail }));
+      }
+    }
+    window.addEventListener("module-status-changed", onModuleChange);
+    return () => window.removeEventListener("module-status-changed", onModuleChange);
+  }, []);
 
   // Click-outside to close profile dropdown
   useEffect(() => {

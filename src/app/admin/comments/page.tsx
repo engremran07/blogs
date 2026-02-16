@@ -48,6 +48,7 @@ export default function AdminCommentsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [moduleEnabled, setModuleEnabled] = useState(true);
   const perPage = 20;
 
   // Bulk
@@ -82,6 +83,33 @@ export default function AdminCommentsPage() {
 
   useEffect(() => { fetchComments(); }, [fetchComments]);
   useEffect(() => { setSelected(new Set()); }, [page, statusFilter]);
+
+  // Fetch module enabled status
+  useEffect(() => {
+    fetch("/api/settings/module-status")
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setModuleEnabled(d.data.comments); })
+      .catch(() => {});
+  }, []);
+
+  async function toggleComments() {
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enableComments: !moduleEnabled }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const newState = !moduleEnabled;
+        setModuleEnabled(newState);
+        toast(newState ? "Comments enabled" : "Comments disabled", newState ? "success" : "warning");
+        window.dispatchEvent(new CustomEvent("module-status-changed", { detail: { comments: newState } }));
+      }
+    } catch {
+      toast("Failed to toggle comments", "error");
+    }
+  }
 
   async function updateStatus(id: string, status: string) {
     try {
@@ -128,9 +156,41 @@ export default function AdminCommentsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Comments</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{total} comments</p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Comments</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{total} comments</p>
+        </div>
+        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span>{moduleEnabled ? "Comments On" : "Comments Off"}</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={moduleEnabled}
+            onClick={toggleComments}
+            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
+              moduleEnabled ? "bg-green-500" : "bg-red-500"
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                moduleEnabled ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </label>
+      </div>
+
+      {/* Module status banner */}
+      <div className={`mb-4 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium ${
+        moduleEnabled
+          ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400"
+          : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
+      }`}>
+        {moduleEnabled
+          ? <><Check className="h-4 w-4" /> Comments module is <span className="font-semibold">enabled</span> &amp; active</>
+          : <><AlertTriangle className="h-4 w-4" /> Comments module is <span className="font-semibold">disabled</span></>
+        }
       </div>
 
       {/* Tabs */}
