@@ -154,7 +154,7 @@ export function VideoAd({
       )}
 
       {/* Controls overlay */}
-      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-linear-to-t from-black/60 to-transparent px-4 py-3">
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-linear-to-t from-black/60 to-transparent px-4 py-3">
         {/* Mute toggle */}
         <button onClick={toggleMute} className="text-white/80 hover:text-white" aria-label={muted ? "Unmute" : "Mute"}>
           {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}

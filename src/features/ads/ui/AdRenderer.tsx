@@ -57,10 +57,12 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
   const [closed, setClosed] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const { consented, categories } = useCookieConsent();
+  const consentBlocked = requireConsent && (!consented || !categories.marketing);
 
   // ── Track event ────────────────────────────────────────────────────
   const trackEvent = useCallback(
     (eventType: string) => {
+      if (consentBlocked) return;
       try {
         navigator.sendBeacon(
           "/api/ads/events",
@@ -70,12 +72,10 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
         // silently fail — non-critical
       }
     },
-    [placement.id],
+    [placement.id, consentBlocked],
   );
 
   // ── Impression tracking via IntersectionObserver ───────────────────
-  const consentBlocked = requireConsent && (!consented || !categories.marketing);
-
   useEffect(() => {
     if (consentBlocked) return;
     const el = containerRef.current;
