@@ -159,6 +159,19 @@ export const CreateCategorySchema = z.object({
   parentId: idSchema.nullish(),
 });
 
+/** Schema for creating multiple categories at once (comma-separated names). */
+export const BulkCreateCategoriesSchema = z.object({
+  names: z.string()
+    .min(1, 'At least one category name is required')
+    .transform(s => s.split(',').map(n => n.trim()).filter(n => n.length > 0)),
+  description: z.string().max(500).nullish(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Invalid hex color').nullish(),
+  icon: z.string().max(50).nullish(),
+  image: urlOrNull,
+  featured: z.boolean().default(false),
+  parentId: idSchema.nullish(),
+});
+
 export const UpdateCategorySchema = z.object({
   name: z.string().min(1).max(BLOG_LIMITS.CATEGORY_NAME_MAX).transform(s => s.trim()).optional(),
   description: z.string().max(500).nullish(),
@@ -315,6 +328,7 @@ export const ReorderSeriesSchema = z.object({
 export type CreatePostPayload = z.infer<typeof CreatePostSchema>;
 export type UpdatePostPayload = z.infer<typeof UpdatePostSchema>;
 export type CreateCategoryPayload = z.infer<typeof CreateCategorySchema>;
+export type BulkCreateCategoriesPayload = z.infer<typeof BulkCreateCategoriesSchema>;
 export type UpdateCategoryPayload = z.infer<typeof UpdateCategorySchema>;
 export type CreateSeriesPayload = z.infer<typeof CreateSeriesSchema>;
 export type UpdateSeriesPayload = z.infer<typeof UpdateSeriesSchema>;

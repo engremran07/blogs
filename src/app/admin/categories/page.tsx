@@ -401,37 +401,86 @@ export default function CategoriesPage() {
       toast("Name is required", "error");
       return;
     }
+
+    // Detect comma-separated names for bulk creation (only in create mode)
+    const isBulk = !editingId && form.name.includes(",");
+    const names = isBulk
+      ? form.name.split(",").map((n) => n.trim()).filter(Boolean)
+      : [];
+
+    if (isBulk && names.length < 2) {
+      // Single name with trailing comma — treat as single
+    }
+
     setSaving(true);
     try {
-      const body: Record<string, unknown> = {
-        name: form.name,
-        description: form.description || null,
-        color: form.color || null,
-        icon: form.icon || null,
-        image: form.image || null,
-        featured: form.featured,
-        sortOrder: form.sortOrder,
-        parentId: form.parentId || null,
-      };
+      if (isBulk && names.length >= 2) {
+        // ── Bulk creation ──
+        const body: Record<string, unknown> = {
+          names: form.name,
+          description: form.description || null,
+          color: form.color || null,
+          icon: form.icon || null,
+          image: form.image || null,
+          featured: form.featured,
+          parentId: form.parentId || null,
+        };
 
-      const url = editingId
-        ? `/api/categories/${editingId}`
-        : `/api/categories`;
-      const method = editingId ? "PATCH" : "POST";
+        const res = await fetch("/api/categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        toast(editingId ? "Category updated!" : "Category created!", "success");
-        setModalOpen(false);
-        fetchCategories();
+        if (data.success) {
+          const created = data.meta?.created ?? data.data?.length ?? 0;
+          const failed = data.meta?.failed ?? 0;
+          if (failed > 0) {
+            toast(
+              `Created ${created} categories, ${failed} failed: ${(data.meta?.errors || []).join("; ")}`,
+              "warning",
+            );
+          } else {
+            toast(`${created} categories created!`, "success");
+          }
+          setModalOpen(false);
+          fetchCategories();
+        } else {
+          toast(data.error || "Failed to create categories", "error");
+        }
       } else {
-        toast(data.error || "Failed to save", "error");
+        // ── Single creation / update ──
+        const body: Record<string, unknown> = {
+          name: form.name,
+          description: form.description || null,
+          color: form.color || null,
+          icon: form.icon || null,
+          image: form.image || null,
+          featured: form.featured,
+          sortOrder: form.sortOrder,
+          parentId: form.parentId || null,
+        };
+
+        const url = editingId
+          ? `/api/categories/${editingId}`
+          : `/api/categories`;
+        const method = editingId ? "PATCH" : "POST";
+
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          toast(editingId ? "Category updated!" : "Category created!", "success");
+          setModalOpen(false);
+          fetchCategories();
+        } else {
+          toast(data.error || "Failed to save", "error");
+        }
       }
     } catch {
       toast("Failed to save category", "error");
@@ -696,18 +745,38 @@ export default function CategoriesPage() {
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingId ? "Edit Category" : "New Category"}
+        title={editingId ? "Edit Category" : (!editingId && form.name.includes(",") && form.name.split(",").filter(n => n.trim()).length >= 2) ? `Create ${form.name.split(",").filter(n => n.trim()).length} Categories` : "New Category"}
         size="lg"
       >
         <div className="space-y-4">
           {/* Row 1: Name + Parent */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              label="Name"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Category name"
-            />
+            <div>
+              <Input
+                label="Name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder={editingId ? "Category name" : "Category name, or multiple, like this"}
+              />
+              {!editingId && (
+                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                  💡 Tip: Separate names with commas to create multiple categories at once.
+                </p>
+              )}
+              {/* Bulk preview */}
+              {!editingId && form.name.includes(",") && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {form.name.split(",").map((n) => n.trim()).filter(Boolean).map((n, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                    >
+                      {n}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             <Select
               label="Parent Category"
               value={form.parentId}
@@ -809,7 +878,11 @@ export default function CategoriesPage() {
               Cancel
             </Button>
             <Button onClick={handleSave} loading={saving}>
-              {editingId ? "Update" : "Create"}
+              {editingId
+                ? "Update"
+                : !editingId && form.name.includes(",") && form.name.split(",").filter(n => n.trim()).length >= 2
+                  ? `Create ${form.name.split(",").filter(n => n.trim()).length} Categories`
+                  : "Create"}
             </Button>
           </div>
         </div>

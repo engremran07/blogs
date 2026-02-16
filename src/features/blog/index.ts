@@ -51,7 +51,7 @@ export {
 /* ── Schemas (Zod) ───────────────────────────────────────────────── */
 export {
   CreatePostSchema, UpdatePostSchema,
-  CreateCategorySchema, UpdateCategorySchema,
+  CreateCategorySchema, BulkCreateCategoriesSchema, UpdateCategorySchema,
   CreateSeriesSchema, UpdateSeriesSchema,
   BulkUpdateStatusSchema, BulkDeleteSchema, BulkScheduleSchema,
   BulkFeatureSchema, BulkCategorySchema,
