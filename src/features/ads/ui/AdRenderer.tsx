@@ -58,24 +58,6 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
   const [refreshKey, setRefreshKey] = useState(0);
   const { consented, categories } = useCookieConsent();
 
-  // If consent is required but not given, show a placeholder
-  if (requireConsent && (!consented || !categories.marketing)) {
-    return (
-      <div
-        className={`ad-container flex items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center dark:border-gray-700 dark:bg-gray-800/50 ${className}`}
-        role="complementary"
-        aria-label="Ad placeholder — consent required"
-      >
-        <div>
-          <p className="text-xs font-medium text-gray-400 dark:text-gray-500">Advertisement</p>
-          <p className="mt-1 text-[10px] text-gray-300 dark:text-gray-600">
-            Enable marketing cookies to view this ad
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   // ── Track event ────────────────────────────────────────────────────
   const trackEvent = useCallback(
     (eventType: string) => {
@@ -92,7 +74,10 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
   );
 
   // ── Impression tracking via IntersectionObserver ───────────────────
+  const consentBlocked = requireConsent && (!consented || !categories.marketing);
+
   useEffect(() => {
+    if (consentBlocked) return;
     const el = containerRef.current;
     if (!el || impressionTracked.current) return;
 
@@ -115,10 +100,11 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
     }
 
     return () => observer.disconnect();
-  }, [eager, trackEvent]);
+  }, [eager, trackEvent, consentBlocked]);
 
   // ── Inject external provider scripts (e.g. AdSense) ───────────────
   useEffect(() => {
+    if (consentBlocked) return;
     if (scriptInjected.current) return;
     const scriptUrl = placement.provider.scriptUrl;
     if (!scriptUrl) return;
@@ -138,10 +124,11 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
     }
     document.head.appendChild(script);
     scriptInjected.current = true;
-  }, [placement.provider]);
+  }, [placement.provider, consentBlocked]);
 
   // ── Ad refresh ─────────────────────────────────────────────────────
   useEffect(() => {
+    if (consentBlocked) return;
     const interval = placement.refreshIntervalSec;
     if (!interval || interval <= 0) return;
     const timer = setInterval(() => {
@@ -149,13 +136,31 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
       setRefreshKey((k) => k + 1);
     }, interval * 1000);
     return () => clearInterval(timer);
-  }, [placement.refreshIntervalSec]);
+  }, [placement.refreshIntervalSec, consentBlocked]);
 
   // ── Close handler ──────────────────────────────────────────────────
   const handleClose = useCallback(() => {
     setClosed(true);
     trackEvent("CLOSE");
   }, [trackEvent]);
+
+  // ── Consent gate — show placeholder if marketing cookies not accepted
+  if (consentBlocked) {
+    return (
+      <div
+        className={`ad-container flex items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center dark:border-gray-700 dark:bg-gray-800/50 ${className}`}
+        role="complementary"
+        aria-label="Ad placeholder — consent required"
+      >
+        <div>
+          <p className="text-xs font-medium text-gray-400 dark:text-gray-500">Advertisement</p>
+          <p className="mt-1 text-[10px] text-gray-300 dark:text-gray-600">
+            Enable marketing cookies to view this ad
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (closed) return null;
 
