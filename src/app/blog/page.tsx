@@ -5,6 +5,7 @@ import { Calendar, Clock, Search, Eye, User } from "lucide-react";
 import { Badge } from "@/components/ui/Card";
 import { BlogSidebar } from "@/components/blog/BlogSidebar";
 import { PostCardShareOverlay } from "@/components/blog/PostCardShareOverlay";
+import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -120,7 +121,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   const sidebar = sidebarSettings.sidebarEnabled ? (
     <div className="w-full lg:w-80 shrink-0">
-      <BlogSidebar settings={sidebarSettings} />
+      <BlogSidebar settings={sidebarSettings} pageType="blog-index" />
     </div>
   ) : null;
 
@@ -344,6 +345,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
               )}
             </nav>
           )}
+
+          {/* In-Feed Ad */}
+          <div className="mt-6">
+            <AdContainer position="IN_FEED" pageType="blog-index" />
+          </div>
         </div>
 
         {/* Sidebar */}

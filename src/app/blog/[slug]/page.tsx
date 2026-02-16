@@ -11,6 +11,7 @@ import { SocialShare } from "@/components/blog/SocialShare";
 import { TableOfContents } from "@/components/blog/TableOfContents";
 import { PostNavigation } from "@/components/blog/PostNavigation";
 import { buildArticleJsonLd, buildBreadcrumbJsonLd } from "@/features/seo/server/json-ld.util";
+import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { Metadata } from "next";
 import type { PostListItem, CategoryItem } from "@/types/prisma-helpers";
 
@@ -319,6 +320,16 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
               <RelatedPosts postId={post.id} tagIds={post.tags.map((t) => t.id)} categoryIds={post.categories.map((c) => c.id)} />
             </div>
           )}
+
+          {/* In-Content Ad */}
+          <div className="mt-8">
+            <AdContainer position="IN_CONTENT" pageType="blog" showPlaceholder />
+          </div>
+
+          {/* Before Comments Ad */}
+          <div className="mt-6">
+            <AdContainer position="BEFORE_COMMENTS" pageType="blog" />
+          </div>
 
           {/* Comments */}
           {commentsEnabled && (

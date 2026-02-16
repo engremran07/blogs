@@ -578,13 +578,14 @@ async function main() {
 
   // ─── Create Settings ──────────────────────────────────────────────
   const settingsTasks = [
-    { model: "siteSettings", data: { siteName: "My Blog", siteTagline: "A modern blog built with Next.js", language: "en", timezone: "UTC", siteDescription: "Discover insightful articles on web development, programming, and technology." } },
+    { model: "siteSettings", data: { siteName: "My Blog", siteTagline: "A modern blog built with Next.js", language: "en", timezone: "UTC", siteDescription: "Discover insightful articles on web development, programming, and technology.", adsEnabled: true } },
     { model: "userSettings", data: {} },
     { model: "commentSettings", data: {} },
     { model: "editorSettings", data: {} },
     { model: "tagSettings", data: {} },
     { model: "captchaSettings", data: {} },
     { model: "pageSettings", data: {} },
+    { model: "adSettings", data: { adsEnabled: true } },
   ] as const;
 
   for (const s of settingsTasks) {
@@ -726,6 +727,37 @@ async function main() {
   }
   console.log(`✅ ${PAGE_DATA.length} pages created`);
 
+  // ─── Ad Slots (default positions) ─────────────────────────────────
+  const AD_SLOTS = [
+    { name: "Sidebar Ad", slug: "sidebar-ad", position: "SIDEBAR", format: "DISPLAY", pageTypes: ["*"], renderPriority: 10 },
+    { name: "Sidebar Sticky Ad", slug: "sidebar-sticky-ad", position: "SIDEBAR_STICKY", format: "DISPLAY", pageTypes: ["blog", "blog-index"], renderPriority: 5 },
+    { name: "In-Content Ad", slug: "in-content-ad", position: "IN_CONTENT", format: "DISPLAY", pageTypes: ["blog", "home"], renderPriority: 8 },
+    { name: "In-Feed Ad", slug: "in-feed-ad", position: "IN_FEED", format: "NATIVE", pageTypes: ["blog-index", "tags-index"], renderPriority: 6 },
+    { name: "Before Comments Ad", slug: "before-comments-ad", position: "BEFORE_COMMENTS", format: "DISPLAY", pageTypes: ["blog"], renderPriority: 4 },
+    { name: "Header Banner", slug: "header-banner", position: "HEADER", format: "DISPLAY", pageTypes: ["*"], maxWidth: 728, maxHeight: 90, renderPriority: 15 },
+    { name: "Footer Banner", slug: "footer-banner", position: "FOOTER", format: "DISPLAY", pageTypes: ["*"], maxWidth: 728, maxHeight: 90, renderPriority: 2 },
+  ];
+
+  for (const slot of AD_SLOTS) {
+    await (prisma as any).adSlot.upsert({
+      where: { slug: slot.slug },
+      update: {},
+      create: {
+        name: slot.name,
+        slug: slot.slug,
+        position: slot.position,
+        format: slot.format,
+        pageTypes: slot.pageTypes,
+        isActive: true,
+        responsive: true,
+        renderPriority: slot.renderPriority,
+        maxWidth: (slot as any).maxWidth ?? null,
+        maxHeight: (slot as any).maxHeight ?? null,
+      },
+    });
+  }
+  console.log(`✅ ${AD_SLOTS.length} ad slots created`);
+
   // ─── Summary ──────────────────────────────────────────────────────
   const counts = {
     users: await prisma.user.count(),
@@ -733,6 +765,7 @@ async function main() {
     tags: await prisma.tag.count(),
     comments: await prisma.comment.count(),
     pages: await prisma.page.count(),
+    adSlots: await (prisma as any).adSlot.count(),
   };
 
   console.log("\n🎉 Seed complete!");
@@ -742,6 +775,7 @@ async function main() {
   console.log(`  Tags:     ${counts.tags}`);
   console.log(`  Comments: ${counts.comments}`);
   console.log(`  Pages:    ${counts.pages}`);
+  console.log(`  Ad Slots: ${counts.adSlots}`);
   console.log("─────────────────────────────────────────");
   console.log("  Admin login: admin@myblog.com / Aa1357");
   console.log("─────────────────────────────────────────");

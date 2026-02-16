@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/server/db/prisma";
 import { Search, Clock, Tag, Archive, FolderOpen } from "lucide-react";
+import { AdContainer } from "@/features/ads/ui/AdContainer";
 
 interface SidebarSettings {
   sidebarEnabled: boolean;
@@ -13,7 +14,7 @@ interface SidebarSettings {
   sidebarRecentPostsCount: number;
 }
 
-export async function BlogSidebar({ settings }: { settings: SidebarSettings }) {
+export async function BlogSidebar({ settings, pageType = "blog-index" }: { settings: SidebarSettings; pageType?: string }) {
   if (!settings.sidebarEnabled) return null;
 
   // Fetch sidebar data in parallel
@@ -190,6 +191,13 @@ export async function BlogSidebar({ settings }: { settings: SidebarSettings }) {
           </ul>
         </div>
       )}
+      {/* Sidebar Ad Slot */}
+      <AdContainer position="SIDEBAR" pageType={pageType} showPlaceholder />
+
+      {/* Sticky Sidebar Ad */}
+      <div className="sticky top-24">
+        <AdContainer position="SIDEBAR_STICKY" pageType={pageType} />
+      </div>
     </aside>
   );
 }

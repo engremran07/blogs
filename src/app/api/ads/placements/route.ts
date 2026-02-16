@@ -12,12 +12,7 @@ import {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-
-    // If pageType is provided, return public placements for that page
+    // If pageType is provided, return public placements for that page (no auth required)
     const pageType = req.nextUrl.searchParams.get("pageType");
     if (pageType) {
       const params = Object.fromEntries(req.nextUrl.searchParams);
@@ -30,7 +25,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: placements });
     }
 
-    // Otherwise return all placements (admin view)
+    // Admin-only: return all placements
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const placements = await adsService.findAllPlacements();
     return NextResponse.json({ success: true, data: placements });
   } catch (error) {

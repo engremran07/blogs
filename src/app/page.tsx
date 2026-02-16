@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/server/db/prisma";
 import { ArrowRight, Calendar, Clock, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/Card";
+import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { PostListItem, TagDetail } from "@/types/prisma-helpers";
 
 export const dynamic = "force-dynamic";
@@ -210,6 +211,11 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      {/* Home Page Ad */}
+      <div className="my-8">
+        <AdContainer position="IN_CONTENT" pageType="home" />
+      </div>
 
       {/* Tags Cloud */}
       {tags.length > 0 && (

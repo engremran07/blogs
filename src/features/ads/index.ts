@@ -40,3 +40,8 @@ export {
   RESPONSIVE_BREAKPOINTS,
   AdsError,
 } from "./types";
+
+/* ── UI Components ───────────────────────────────────────────────── */
+export { AdContainer } from "./ui/AdContainer";
+export { AdRenderer } from "./ui/AdRenderer";
+export { ReservedAdSlot } from "./ui/ReservedAdSlot";
