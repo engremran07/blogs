@@ -1,0 +1,65 @@
+# ============================================================================
+# Docker Compose — Local development with PostgreSQL + Redis
+# Usage: docker compose up -d postgres redis
+#        npm run dev
+# Or full stack: docker compose up --build
+# ============================================================================
+
+services:
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: myblog
+      POSTGRES_USER: myblog
+      POSTGRES_PASSWORD: myblog_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myblog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (Dragonfly — drop-in Redis replacement, faster, less memory) ────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── App (optional — for production-like local testing) ─────────────────────
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://myblog:myblog_dev_password@postgres:5432/myblog"
+      DATABASE_URL_UNPOOLED: "postgresql://myblog:myblog_dev_password@postgres:5432/myblog"
+      UPSTASH_REDIS_REST_URL: ""
+      UPSTASH_REDIS_REST_TOKEN: ""
+      AUTH_SECRET: "dev-secret-change-me-in-production-at-least-32-chars"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NODE_ENV: "production"
+    profiles:
+      - full  # Only starts with: docker compose --profile full up
+
+volumes:
+  postgres_data:
+  redis_data:

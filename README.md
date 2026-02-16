@@ -1,13 +1,15 @@
 # MyBlog — Full-Stack Blog & CMS Platform
 
-A production-ready, feature-rich blog platform and content management system built with **Next.js 16**, **React 19**, **Prisma 7**, and **PostgreSQL**. Includes a complete admin dashboard, rich text editor, SEO engine, ad management, social distribution, media library, CAPTCHA system, and more.
+A production-ready, feature-rich blog platform and content management system built with **Next.js 16**, **React 19**, **Prisma 7**, and **PostgreSQL**. Includes a complete admin dashboard, rich text editor, SEO engine, ad management, social distribution, media library, CAPTCHA system, cookie consent (GDPR), analytics injection, and more — deployable on **Vercel** or any **Docker / VPS** host.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?logo=next.js)
 ![React](https://img.shields.io/badge/React-19.2.3-61DAFB?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
 ![Prisma](https://img.shields.io/badge/Prisma-7.4.0-2D3748?logo=prisma)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?logo=postgresql)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?logo=postgresql)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss)
+![Node](https://img.shields.io/badge/Node.js-22-339933?logo=node.js)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
 ![License](https://img.shields.io/badge/License-Private-red)
 
 ---
@@ -31,12 +33,18 @@ A production-ready, feature-rich blog platform and content management system bui
 - [Media Management](#media-management)
 - [Advertising Module](#advertising-module)
 - [Social Distribution](#social-distribution)
+- [Cookie Consent & GDPR](#cookie-consent--gdpr)
+- [Analytics Integration](#analytics-integration)
 - [Settings & Theming](#settings--theming)
 - [Menu Builder](#menu-builder)
 - [Cron & Automation](#cron--automation)
 - [Authentication & Security](#authentication--security)
+- [Middleware & Rate Limiting](#middleware--rate-limiting)
+- [Health Check](#health-check)
 - [Deployment](#deployment)
+- [UI Component Library](#ui-component-library)
 - [Contributing](#contributing)
+- [License](#license)
 
 ---
 
@@ -45,21 +53,26 @@ A production-ready, feature-rich blog platform and content management system bui
 | Category | Highlights |
 |---|---|
 | **Content Management** | Posts, pages, categories, tags, series, revisions, guest posts, scheduled publishing, soft delete |
-| **Admin Dashboard** | 15-section admin panel with role-based access, module kill switches, responsive sidebar |
-| **Rich Text Editor** | Custom WYSIWYG with 22 toggleable features, markdown shortcuts, drag-and-drop images, tables, code blocks, auto-save |
+| **Admin Dashboard** | 13-section admin panel with role-based access, module kill switches, responsive sidebar |
+| **Rich Text Editor** | Custom TipTap WYSIWYG with 22 toggleable features, markdown shortcuts, drag-and-drop images, tables, code blocks, auto-save |
 | **SEO Engine** | Per-content scoring (0–100), 8 audit categories, JSON-LD structured data, auto-sitemap, robots.txt, keyword tracking |
 | **Media Library** | Grid/list views, folder tree, drag-and-drop/paste/URL upload, image optimization (WebP/AVIF), bulk operations, deduplication |
 | **Comments** | Threaded comments, moderation queue, spam detection, upvoting, guest comments, per-post settings |
 | **CAPTCHA** | 5 providers (Turnstile, reCAPTCHA v3, reCAPTCHA v2, hCaptcha, in-house) with automatic fallback chain |
 | **Advertising** | Provider/slot/placement management, 11 ad networks, 30+ positions, 14 formats, global kill switch |
 | **Distribution** | 12 social platforms, auto-publish, circuit breaker, rate limiting, health monitoring |
+| **Cookie Consent** | GDPR-compliant cookie banner, per-category consent (essential/analytics/marketing), localStorage persistence |
+| **Analytics** | Consent-aware GA4 injection, conditional script loading, `anonymize_ip` |
 | **Authentication** | NextAuth v5, JWT sessions, bcrypt hashing, role-based authorization (6 roles), CAPTCHA-protected login |
 | **Theming** | Dark mode, color customization, font selection, custom CSS injection, top bar configuration |
 | **Automation** | 18 cron tasks, scheduled publishing, media cleanup, session purge, spam removal |
 | **Menus** | Visual menu builder for header/footer/top bar, drag-and-drop reordering, nested items |
-| **Settings** | 110+ configurable fields across 9 settings tabs, per-module kill switches |
-| **SEO Redirects** | 301/302 redirect management with hit counting |
+| **Settings** | 110+ configurable fields across 10 settings tabs, per-module kill switches |
+| **SEO Redirects** | 301/302 redirect management with hit counting, loaded into Next.js at build time |
 | **RSS** | Configurable RSS feed with customizable title |
+| **Middleware** | API rate limiting (30 mutations/60s), CRON secret gate |
+| **Health Check** | `/api/health` endpoint for Docker HEALTHCHECK, load balancers, uptime monitors |
+| **Deployment** | Vercel-ready (`vercel.json`), Docker-ready (multi-stage `Dockerfile` + `docker-compose.yml`) |
 
 ---
 
@@ -67,63 +80,112 @@ A production-ready, feature-rich blog platform and content management system bui
 
 | Layer | Technology |
 |---|---|
-| **Framework** | [Next.js 16](https://nextjs.org/) (App Router, Turbopack, React Compiler) |
-| **Language** | [TypeScript 5](https://www.typescriptlang.org/) |
+| **Framework** | [Next.js 16.1.6](https://nextjs.org/) — App Router, Turbopack, React Compiler, standalone output |
+| **Language** | [TypeScript 5](https://www.typescriptlang.org/) — strict mode |
 | **UI** | [React 19](https://react.dev/), [Tailwind CSS 4](https://tailwindcss.com/), [Headless UI](https://headlessui.com/), [Lucide Icons](https://lucide.dev/) |
-| **Database** | [PostgreSQL](https://www.postgresql.org/) via [Prisma ORM 7](https://www.prisma.io/) |
-| **Auth** | [NextAuth v5](https://authjs.dev/) (Auth.js) with Credentials provider |
-| **Caching** | [Upstash Redis](https://upstash.com/) + rate limiting |
-| **Validation** | [Zod 4](https://zod.dev/) |
-| **Security** | bcrypt, sanitize-html, HSTS, CSP headers |
-| **AI** | [OpenAI SDK](https://platform.openai.com/) (SEO suggestions, content assistance) |
-| **Deployment** | [Vercel](https://vercel.com/) (configured), any Node.js host |
+| **Database** | [PostgreSQL 16](https://www.postgresql.org/) via [Prisma ORM 7.4](https://www.prisma.io/) with `@prisma/adapter-pg` driver adapter |
+| **Auth** | [NextAuth v5](https://authjs.dev/) (Auth.js) — Credentials provider, JWT strategy, PrismaAdapter |
+| **Caching** | [Upstash Redis](https://upstash.com/) with in-memory no-op fallback for local dev |
+| **Rate Limiting** | [@upstash/ratelimit](https://github.com/upstash/ratelimit) — sliding window, 30 req/60s per IP |
+| **Editor** | [TipTap](https://tiptap.dev/) — 15 extensions, custom config |
+| **Validation** | [Zod 4](https://zod.dev/) — schema validation on every API route |
+| **Security** | bcrypt 6, sanitize-html, HSTS/CSP/X-Frame headers, server-only imports |
+| **AI** | [OpenAI SDK](https://platform.openai.com/) — SEO suggestions, content assistance (optional) |
+| **Deployment** | [Vercel](https://vercel.com/) (serverless, cron) or Docker / VPS (standalone Node.js) |
+
+### Key Dependencies
+
+```
+next 16.1.6          react 19.2.3         prisma 7.4.0
+next-auth 5-beta.30  @upstash/redis       @upstash/ratelimit
+@tiptap/* 3.19       zod 4.3              tailwindcss 4
+bcrypt 6             sanitize-html 2.17   lucide-react 0.564
+openai 6.21          pg 8.18              tsx 4.21
+```
 
 ---
 
 ## Architecture
 
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── (public pages)      # Home, blog, about, contact, search, tags, auth
-│   ├── admin/              # Admin dashboard (15 sections)
-│   └── api/                # REST API endpoints (15 modules)
-├── components/
-│   ├── blog/               # Blog-specific components (TOC, sidebar, social share)
-│   ├── layout/             # Shell components (header, footer, providers, top bar)
-│   └── ui/                 # Reusable UI library (button, card, modal, toast, table)
-├── features/               # Domain modules (12 feature modules)
-│   ├── ads/                # Advertising management
-│   ├── auth/               # Authentication & user services
-│   ├── blog/               # Blog listing & rendering
-│   ├── captcha/            # Multi-provider CAPTCHA system
-│   ├── comments/           # Comment system & moderation
-│   ├── distribution/       # Social media distribution
-│   ├── editor/             # Rich text WYSIWYG editor
-│   ├── media/              # Media library & processing
-│   ├── pages/              # Static page management
-│   ├── seo/                # SEO audit engine & tools
-│   ├── settings/           # Site settings, theme, menu builder
-│   └── tags/               # Tag management & deduplication
-├── server/
-│   ├── auth.ts             # NextAuth v5 configuration
-│   ├── cache/              # Redis caching layer
-│   ├── db/                 # Prisma client singleton
-│   ├── env/                # Zod-validated environment variables
-│   └── observability/      # Structured logging
-└── types/                  # Shared TypeScript types
-```
-
-Each feature module follows a consistent structure:
+### High-Level Structure
 
 ```
-feature/
-├── index.ts                # Public re-exports
-├── types.ts                # TypeScript types & interfaces
-├── server/                 # Server-side services, schemas, repositories
+MyBlog/
+├── prisma/                 # Database schema, migrations, seed
+│   ├── schema.prisma       # 45 models, 12 enums (~1,430 lines)
+│   ├── seed.ts             # Demo data seeder
+│   └── migrations/         # Prisma migration history
+├── public/uploads/         # Local media storage (writable)
+├── src/
+│   ├── middleware.ts        # API rate limiting + CRON gate
+│   ├── app/                # Next.js App Router (pages + API)
+│   │   ├── (public pages)  # Home, blog, about, contact, search, tags, auth
+│   │   ├── admin/          # Admin dashboard (13 sections)
+│   │   └── api/            # REST API endpoints (67 route files)
+│   ├── components/
+│   │   ├── blog/           # Blog-specific (TOC, sidebar, social share, related)
+│   │   ├── layout/         # Shell components (header, footer, providers, cookie banner, analytics)
+│   │   └── ui/             # Reusable UI library (button, card, modal, toast, table, forms)
+│   ├── features/           # Domain modules (12 feature modules)
+│   │   ├── ads/            # Advertising management
+│   │   ├── auth/           # Authentication & user services
+│   │   ├── blog/           # Blog listing & rendering
+│   │   ├── captcha/        # Multi-provider CAPTCHA system
+│   │   ├── comments/       # Comment system & moderation
+│   │   ├── distribution/   # Social media distribution
+│   │   ├── editor/         # Rich text WYSIWYG editor
+│   │   ├── media/          # Media library & processing
+│   │   ├── pages/          # Static page management
+│   │   ├── seo/            # SEO audit engine & tools
+│   │   ├── settings/       # Site settings, theme, menu builder
+│   │   └── tags/           # Tag management & deduplication
+│   ├── server/
+│   │   ├── auth.ts         # NextAuth v5 configuration
+│   │   ├── cache/redis.ts  # Singleton Redis client (Upstash or no-op fallback)
+│   │   ├── db/prisma.ts    # Singleton Prisma client
+│   │   ├── env/            # Zod-validated environment variables (27+ vars)
+│   │   ├── observability/  # Structured JSON logging
+│   │   └── wiring/         # Dependency Injection container (~310 lines)
+│   └── types/              # Shared TypeScript types
+├── Dockerfile              # Multi-stage production image (node:22-alpine)
+├── docker-compose.yml      # PostgreSQL 16 + Redis 7 + App
+├── vercel.json             # Cron schedule + function durations
+├── next.config.ts          # Standalone output, CSP, security headers, React Compiler
+├── prisma.config.ts        # Migration & seed configuration
+├── .env.example            # Documented env var template
+├── .nvmrc                  # Node.js 22
+└── package.json            # npm scripts & dependencies
+```
+
+**Codebase**: **277 source files**, **67 API routes**, **45 Prisma models**, **12 enums**
+
+### Feature Module Pattern
+
+Every feature module follows a consistent structure:
+
+```
+features/<module>/
+├── index.ts                # Public barrel exports (types + services + UI)
+├── types.ts                # TypeScript types, interfaces, enums
+├── server/                 # Server-only code (marked with "server-only")
+│   ├── <module>.service.ts # Business logic
+│   ├── schemas.ts          # Zod validation schemas
+│   ├── constants.ts        # Defaults and config
+│   └── ...                 # Additional services, utils
 ├── ui/                     # React components
-└── utils/                  # Shared utilities
+│   └── <Component>.tsx
+└── utils/                  # Shared utilities (optional)
 ```
+
+### Dependency Injection
+
+All services are instantiated once in `src/server/wiring/index.ts` (~310 lines) and imported as singletons:
+
+```typescript
+import { blogService, commentService, tagService } from "@/server/wiring";
+```
+
+This ensures single Prisma client, single Redis client, consistent event bus wiring, and testability.
 
 ---
 
@@ -131,88 +193,128 @@ feature/
 
 ### Prerequisites
 
-- **Node.js** 20+
-- **PostgreSQL** 15+
-- **npm** (or pnpm/yarn)
+| Requirement | Version |
+|---|---|
+| **Node.js** | 22+ (pinned in `.nvmrc`) |
+| **PostgreSQL** | 16+ |
+| **npm** | 10+ |
 
-### Installation
+### Quick Start
 
 ```bash
 # Clone the repository
-git clone https://github.com/engremran07/blogs.git
-cd blogs
+git clone https://github.com/your-username/myblog.git
+cd myblog
 
 # Install dependencies
 npm install
 
 # Set up environment variables
-cp .env.example .env
-# Edit .env with your database URL and secrets (see below)
+cp .env.example .env.local
+# Edit .env.local — at minimum set DATABASE_URL and AUTH_SECRET
 
-# Push database schema
+# Push database schema (development)
 npx prisma db push
 
-# Seed the database (optional — creates demo data)
+# Seed with demo data (optional — creates users, posts, pages, categories, tags)
 npx prisma db seed
 
-# Start development server
+# Start development server (Turbopack)
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Default Seed Users
+
+| Role | Email | Password |
+|---|---|---|
+| Super Admin | `admin@myblog.com` | `Admin123!@#` |
+| Editor | `editor@myblog.com` | `Editor123!@#` |
+| Author | `author@myblog.com` | `Author123!@#` |
+
 ---
 
 ## Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env.local` file in the project root. Only `DATABASE_URL` and `AUTH_SECRET` are required — everything else has sensible defaults or can be configured via the admin panel.
 
 ```env
-# ── Required ─────────────────────────────────────────────────
-DATABASE_URL="postgresql://user:password@localhost:5432/myblog"
-AUTH_SECRET="your-auth-secret-min-32-chars-long"
+# ═══════════════════════════════════════════════════════════════
+# DATABASE (required)
+# ═══════════════════════════════════════════════════════════════
+DATABASE_URL="postgresql://user:pass@localhost:5432/myblog"
+DATABASE_URL_UNPOOLED="postgresql://user:pass@localhost:5432/myblog"
 
-# ── Optional — Redis caching & rate limiting ─────────────────
-UPSTASH_REDIS_REST_URL=""
-UPSTASH_REDIS_REST_TOKEN=""
+# ═══════════════════════════════════════════════════════════════
+# AUTH (required in production)
+# ═══════════════════════════════════════════════════════════════
+# Generate: openssl rand -base64 32
+AUTH_SECRET="generate-with-openssl-rand-base64-32"
+NEXTAUTH_URL="http://localhost:3000"
 
-# ── Optional — Site URL (OG tags, sitemap, distribution) ────
-NEXT_PUBLIC_SITE_URL="https://yourdomain.com"
+# ═══════════════════════════════════════════════════════════════
+# CACHE — Upstash Redis (optional)
+# Falls back to in-memory no-op if not set
+# ═══════════════════════════════════════════════════════════════
+# UPSTASH_REDIS_REST_URL="https://your-redis.upstash.io"
+# UPSTASH_REDIS_REST_TOKEN="your-token"
 
-# ── Optional — AI features ──────────────────────────────────
-OPENAI_API_KEY=""
+# ═══════════════════════════════════════════════════════════════
+# VPS / Docker (required for non-Vercel rolling deploys)
+# Prevents Server Action version-skew
+# Generate: openssl rand -hex 32
+# ═══════════════════════════════════════════════════════════════
+# NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=""
 
-# ── Optional — Cron authentication ──────────────────────────
-CRON_SECRET=""
+# ═══════════════════════════════════════════════════════════════
+# AI (optional)
+# ═══════════════════════════════════════════════════════════════
+# OPENAI_API_KEY=""
 
-# ── Optional — CAPTCHA providers ─────────────────────────────
-CLOUDFLARE_TURNSTILE_SECRET=""
-NEXT_PUBLIC_TURNSTILE_SITE_KEY=""
-NEXT_PUBLIC_RECAPTCHA_V2_SITE_KEY=""
-NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY=""
-NEXT_PUBLIC_HCAPTCHA_SITE_KEY=""
+# ═══════════════════════════════════════════════════════════════
+# CRON (recommended)
+# Verified by middleware on /api/cron
+# Generate: openssl rand -base64 32
+# ═══════════════════════════════════════════════════════════════
+# CRON_SECRET=""
 
-# ── Optional — S3 media storage (falls back to local fs) ────
-S3_BUCKET=""
-S3_REGION=""
-S3_ACCESS_KEY_ID=""
-S3_SECRET_ACCESS_KEY=""
-S3_ENDPOINT=""
-S3_PUBLIC_URL=""
+# ═══════════════════════════════════════════════════════════════
+# CAPTCHA (optional — supports multiple providers)
+# ═══════════════════════════════════════════════════════════════
+# CLOUDFLARE_TURNSTILE_SECRET=""
+# NEXT_PUBLIC_TURNSTILE_SITE_KEY=""
+# NEXT_PUBLIC_RECAPTCHA_V2_SITE_KEY=""
+# NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY=""
+# NEXT_PUBLIC_HCAPTCHA_SITE_KEY=""
+
+# ═══════════════════════════════════════════════════════════════
+# PUBLIC SITE URL (optional — for OG images, sitemap, etc.)
+# ═══════════════════════════════════════════════════════════════
+# NEXT_PUBLIC_SITE_URL="https://yourdomain.com"
+
+# ═══════════════════════════════════════════════════════════════
+# MEDIA / S3 STORAGE (optional — falls back to public/uploads/)
+# ═══════════════════════════════════════════════════════════════
+# S3_BUCKET=""
+# S3_REGION=""
+# S3_ACCESS_KEY_ID=""
+# S3_SECRET_ACCESS_KEY=""
+# S3_ENDPOINT=""
+# S3_PUBLIC_URL=""
 ```
 
-> Only `DATABASE_URL` and `AUTH_SECRET` (production) are **required**. Everything else has sensible defaults or can be configured via the admin panel.
+All environment variables are validated at startup via Zod in `src/server/env/index.ts`. If a required variable is missing, the server fails fast with a clear error message.
 
 ---
 
 ## Database Setup
 
-```bash
-# Push schema to database (development)
-npx prisma db push
+### Development
 
-# Or use migrations (production)
-npx prisma migrate dev
+```bash
+# Push schema directly (no migration history)
+npx prisma db push
 
 # Seed with demo data
 npx prisma db seed
@@ -221,30 +323,17 @@ npx prisma db seed
 npx prisma studio
 ```
 
-The schema defines **30+ models** covering users, posts, pages, categories, tags, comments, media, ads, distribution, SEO, settings, cron logs, and more.
+### Production
 
----
+```bash
+# Run migrations
+npx prisma migrate deploy
 
-## Available Scripts
+# Or via Docker (handled automatically by Dockerfile CMD)
+docker compose --profile full up
+```
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start dev server with Turbopack |
-| `npm run build` | Generate Prisma client + production build |
-| `npm start` | Start production server |
-| `npm run lint` | Run ESLint |
-| `npm run typecheck` | TypeScript type checking |
-| `npm run db:generate` | Regenerate Prisma client |
-| `npm run db:push` | Push schema to database |
-| `npm run db:migrate` | Run database migrations |
-| `npm run db:studio` | Open Prisma Studio GUI |
-| `npm run db:seed` | Seed database with demo data |
-
----
-
-## Project Structure
-
-### Prisma Schema (~1,770 lines)
+### Schema Overview (45 Models, 12 Enums)
 
 | Model Group | Models |
 |---|---|
@@ -255,14 +344,101 @@ The schema defines **30+ models** covering users, posts, pages, categories, tags
 | **Ads** | `AdProvider`, `AdSlot`, `AdPlacement`, `AdLog` |
 | **Distribution** | `DistributionChannel`, `DistributionRecord` |
 | **SEO** | `SeoRedirect`, `SeoKeyword`, `SeoKeywordRelation`, `SeoSuggestion`, `SeoKeywordVolume` |
-| **Settings** | `SiteSettings`, `CommentSettings` |
-| **System** | `CronLog`, `PageType` |
+| **Settings** | `SiteSettings`, `CommentSettings`, `PageType` |
+| **System** | `CronLog`, `Menu`, `MenuItem` |
+
+| Enum | Values |
+|---|---|
+| `UserRole` | SUBSCRIBER, CONTRIBUTOR, AUTHOR, EDITOR, ADMINISTRATOR, SUPER_ADMIN |
+| `PostStatus` | DRAFT, PUBLISHED, SCHEDULED, ARCHIVED |
+| `PageStatus` | DRAFT, PUBLISHED, SCHEDULED, ARCHIVED |
+| `PageVisibility` | PUBLIC, PRIVATE, PASSWORD_PROTECTED, LOGGED_IN_ONLY |
+| `CommentStatus` | PENDING, APPROVED, REJECTED, SPAM, DELETED, FLAGGED |
+| `MediaType` | IMAGE, VIDEO, AUDIO, DOCUMENT, ARCHIVE, OTHER |
+| `DistributionStatus` | PENDING, SCHEDULED, PUBLISHING, PUBLISHED, FAILED, CANCELLED |
+| ... | *(12 total enums)* |
+
+---
+
+## Available Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start dev server with Turbopack (hot reload) |
+| `npm run build` | Generate Prisma client + Next.js production build (standalone output) |
+| `npm start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | TypeScript type checking (`tsc --noEmit`) |
+| `npm run db:generate` | Regenerate Prisma client |
+| `npm run db:push` | Push schema to database (dev) |
+| `npm run db:migrate` | Run Prisma migrations (dev) |
+| `npm run db:studio` | Open Prisma Studio GUI |
+| `npm run db:seed` | Seed database with demo data (`tsx prisma/seed.ts`) |
+
+---
+
+## Project Structure
+
+### Prisma Schema (~1,430 lines)
+
+The schema at `prisma/schema.prisma` defines the entire data model. Key groups:
+
+- **Content models** with full-text search, soft delete (`deletedAt`), slug uniqueness, and audit timestamps
+- **Settings** as a single-row config table with 110+ fields across identity, appearance, content, comments, social, SEO, email, security, privacy, and advanced categories
+- **Media** with variant generation, folder hierarchy, content-hash deduplication
+- **SEO** with per-content audit scoring, keyword volume tracking, suggestion lifecycle
+
+### Admin Panel (13 Sections)
+
+```
+src/app/admin/
+├── layout.tsx          # Server-side auth guard (redirects non-admin to /login)
+├── AdminShell.tsx      # Client-side UI shell (sidebar, topbar, mobile menu)
+├── page.tsx            # Dashboard overview
+├── ads/                # Ad provider/slot/placement management
+├── categories/         # Category tree with drag-and-drop
+├── comments/           # Moderation queue
+├── cron/               # Cron task panel + history
+├── distribution/       # Social distribution channels
+├── media/              # Media library
+├── menus/              # Menu builder
+├── pages/              # Page management
+├── posts/              # Post management + editor
+├── seo/                # SEO audit dashboard
+├── settings/           # 10-tab settings page (963 lines)
+├── tags/               # Tag management
+└── users/              # User management
+```
+
+### API Routes (67 Files)
+
+```
+src/app/api/
+├── ads/                # 10 routes — providers, slots, placements, scan, settings, kill switch
+├── auth/               # 2 routes — NextAuth catch-all, registration
+├── captcha/            # 2 routes — challenge, verification
+├── categories/         # 2 routes — CRUD + per-ID
+├── comments/           # 3 routes — CRUD, per-ID, bulk moderation
+├── cron/               # 2 routes — trigger + history
+├── distribution/       # 10 routes — channels, distribute, health, kill switch, records, stats
+├── health/             # 1 route — system health check
+├── media/              # 7 routes — CRUD, bulk, cleanup, folders, optimize, stats, upload-url
+├── pages/              # 3 routes — CRUD, per-ID, bulk
+├── posts/              # 3 routes — CRUD, per-ID, bulk
+├── seo/                # 2 routes — audit data + redirects
+├── settings/           # 4 routes — CRUD, per-group, module-status, public
+├── tags/               # 3 routes — CRUD, per-ID, bulk
+├── upload/             # 1 route — file upload
+└── users/              # 2 routes — CRUD + bulk
+```
 
 ---
 
 ## Admin Panel
 
-The admin panel at `/admin` provides a full-featured CMS dashboard. Access requires `ADMINISTRATOR` or `SUPER_ADMIN` role.
+### Access Control
+
+The admin panel at `/admin` requires `ADMINISTRATOR`, `SUPER_ADMIN`, or `EDITOR` role. Authentication is enforced server-side in `src/app/admin/layout.tsx` before any client code loads. The client shell (`AdminShell.tsx`) provides the sidebar, top bar, mobile menu, and profile dropdown.
 
 ### Dashboard
 
@@ -320,7 +496,7 @@ The admin panel at `/admin` provides a full-featured CMS dashboard. Access requi
 
 | Section | Features |
 |---|---|
-| **Settings** | 9 tabs, 110+ fields — General, Appearance, Content, Comments, Social, SEO, Email, Security, Advanced |
+| **Settings** | **10 tabs**, 110+ fields — General, Appearance, Content, Comments, Social, SEO, Email, Security, **Privacy**, Advanced |
 | **SEO** | Site-wide audit dashboard, per-content scoring, issue severity tracking, bulk fix page |
 | **Ads** | Provider/slot/placement management, 11 networks, global kill switch, compliance panel |
 | **Distribution** | 12 platforms, channel management, auto-publish, circuit breaker health, kill switch |
@@ -331,19 +507,21 @@ The admin panel at `/admin` provides a full-featured CMS dashboard. Access requi
 
 ## Public Pages
 
-| Page | Route | Description |
-|---|---|---|
-| **Home** | `/` | Hero section, featured post, latest posts grid, popular tags cloud |
-| **Blog** | `/blog` | Configurable layout (grid/list), filters (tag, category, search, archive), pagination, sidebar |
-| **Post** | `/blog/[slug]` | Full article with TOC, social sharing, related posts, prev/next navigation, comments, JSON-LD |
-| **About** | `/about` | Dynamic stats, mission statement |
-| **Contact** | `/contact` | Contact form with CAPTCHA, info cards |
-| **Tags** | `/tags` | Featured tags, trending tags, tag cloud |
-| **Tag Detail** | `/tags/[slug]` | Posts filtered by tag |
-| **Search** | `/search` | Full-text search with real-time results |
-| **Login** | `/login` | Email/password auth with CAPTCHA |
-| **Register** | `/register` | Registration with password strength indicator and CAPTCHA |
-| **Profile** | `/profile` | Edit profile, change password |
+All public pages use **ISR (Incremental Static Regeneration)** for optimal performance and cost:
+
+| Page | Route | ISR | Description |
+|---|---|---|---|
+| **Home** | `/` | 15 min | Hero section, featured post, latest posts grid, popular tags cloud |
+| **Blog** | `/blog` | 10 min | Configurable layout (grid/list), filters, pagination, sidebar |
+| **Post** | `/blog/[slug]` | 1 hr | Full article with TOC, social sharing, related posts, navigation, comments, JSON-LD. Up to 500 slugs pre-rendered at build via `generateStaticParams` |
+| **About** | `/about` | 24 hr | Dynamic stats, mission statement |
+| **Contact** | `/contact` | — | Contact form with CAPTCHA, info cards |
+| **Tags** | `/tags` | 1 hr | Featured tags, trending tags, tag cloud |
+| **Tag Detail** | `/tags/[slug]` | 1 hr | Posts filtered by tag. Up to 500 slugs pre-rendered |
+| **Search** | `/search` | — | Full-text search with real-time results |
+| **Login** | `/login` | — | Email/password auth with CAPTCHA |
+| **Register** | `/register` | — | Registration with password strength indicator, CAPTCHA |
+| **Profile** | `/profile` | — | Edit profile, change password |
 
 ### Blog Components
 
@@ -360,7 +538,7 @@ The admin panel at `/admin` provides a full-featured CMS dashboard. Access requi
 
 ## API Reference
 
-All API routes are under `/api/`. Admin endpoints require authentication and role-based authorization.
+All API routes are under `/api/`. Admin endpoints require authentication and role-based authorization. All mutation routes are rate-limited (30 requests per 60 seconds per IP).
 
 | Endpoint | Methods | Auth | Description |
 |---|---|---|---|
@@ -382,23 +560,32 @@ All API routes are under `/api/`. Admin endpoints require authentication and rol
 | `/api/users` | GET, POST, PATCH | Admin+ | User management |
 | `/api/users/bulk` | POST | Admin+ | Bulk user operations |
 | `/api/media` | GET, POST, PATCH, DELETE | Auth required | Media CRUD |
+| `/api/media/[id]` | GET, PATCH, DELETE | Auth required | Individual media operations |
 | `/api/media/bulk` | POST | Auth required | Bulk media operations |
+| `/api/media/cleanup` | POST | Admin+ | Orphan media cleanup |
+| `/api/media/folders` | GET, POST | Auth required | Folder management |
+| `/api/media/optimize` | POST | Auth required | Image optimization |
+| `/api/media/stats` | GET | Auth required | Media library statistics |
 | `/api/upload` | POST | Auth required | File upload |
 | `/api/settings` | GET, PATCH | PATCH: Admin+ | Site settings |
-| `/api/settings/[group]` | GET, PATCH | PATCH: Admin+ | Settings by group |
+| `/api/settings/[group]` | GET, PATCH | PATCH: Admin+ | Settings by group (social, privacy, etc.) |
 | `/api/settings/module-status` | GET | Public | Module enable/disable status |
+| `/api/settings/public` | GET | Public | Public layout settings (theme, cookie consent, analytics) |
 | `/api/seo` | GET | Editor+ | SEO audit data |
 | `/api/seo/redirects` | GET, POST, DELETE | Editor+ | SEO redirect management |
-| `/api/ads` | GET, POST, PATCH, DELETE | Auth required | Ad management |
-| `/api/distribution` | GET, POST, PATCH, DELETE | Auth required | Distribution management |
-| `/api/captcha` | POST | Public | CAPTCHA challenge & verification |
-| `/api/cron` | POST | Bearer token | Trigger cron tasks |
+| `/api/ads/*` | Various | Auth required | Ad provider/slot/placement management (10 routes) |
+| `/api/distribution/*` | Various | Auth required | Distribution channel management (10 routes) |
+| `/api/captcha/challenge` | POST | Public | Generate CAPTCHA challenge |
+| `/api/captcha/verify` | POST | Public | Verify CAPTCHA response |
+| `/api/cron` | POST | Bearer token | Trigger cron tasks (secret-gated) |
+| `/api/cron/history` | GET | Admin+ | Cron execution history |
+| `/api/health` | GET | Public | System health check (DB + Redis) |
 
 ---
 
 ## Rich Text Editor
 
-A custom-built WYSIWYG editor with 22 admin-toggleable features:
+A custom-built TipTap WYSIWYG editor with **22 admin-toggleable features**:
 
 ### Formatting
 
@@ -438,7 +625,7 @@ A custom-built WYSIWYG editor with 22 admin-toggleable features:
 
 ## CAPTCHA System
 
-Multi-provider CAPTCHA with automatic fallback:
+Multi-provider CAPTCHA with automatic fallback chain:
 
 ```
 Turnstile → reCAPTCHA v3 → reCAPTCHA v2 → hCaptcha → In-house
@@ -461,6 +648,7 @@ Turnstile → reCAPTCHA v3 → reCAPTCHA v2 → hCaptcha → In-house
 - **Global kill switch** — auto-verifies with sentinel token when disabled
 - **Theme support** — light, dark, auto
 - **Error boundary** wrapping for resilience
+- **Direct server-side verification** — auth flow calls `CaptchaVerificationService` directly (no self-fetch)
 
 ---
 
@@ -468,30 +656,36 @@ Turnstile → reCAPTCHA v3 → reCAPTCHA v2 → hCaptcha → In-house
 
 ### Audit System
 
-- Per-content scoring (0–100) across 8 categories:
+- Per-content scoring (0–100) across **8 categories**:
   - Meta, Content, Technical, Image, Linking, Structured Data, Social, Performance
 - 4 issue severity tiers: **Critical**, **Important**, **Optional**, **Info**
 - Site-wide aggregation with score distribution (excellent/good/needs work/poor)
 - Worst-performing content list with actionable recommendations
 - Bulk fix page for rapid corrections
 
-### Structured Data
+### Structured Data (JSON-LD)
 
-- Auto-generated **JSON-LD** on blog posts: `Article` + `BreadcrumbList`
-- `WebSite` JSON-LD with `SearchAction` on root layout
-- Support for 16 Schema.org types
+- **`WebSite`** JSON-LD with `SearchAction` on root layout — **dynamic** (reads `siteName` and `siteDescription` from database)
+- **`Article`** + **`BreadcrumbList`** JSON-LD on every blog post
+- Support for **16 Schema.org types**: Article, BlogPosting, NewsArticle, Event, WebSite, WebPage, BreadcrumbList, FAQPage, HowTo, Organization, Person, Product, LocalBusiness, VideoObject, ImageObject, SearchAction
 
 ### Auto-Generated Files
 
 - **`sitemap.xml`** — Posts, pages, categories, tags, static routes (respects `noIndex`)
 - **`robots.txt`** — Blocks AI scrapers (GPTBot, ChatGPT-User, CCBot, anthropic-ai, ClaudeBot), disallows admin/API paths
 
+### Dynamic Metadata
+
+- `generateMetadata()` on root layout reads `siteName`, `siteDescription` from database
+- Per-post/page: meta title, description, OpenGraph, Twitter Cards, canonical URLs
+- ISR ensures metadata stays fresh without rebuilding
+
 ### Additional
 
-- SEO redirect management (301/302) with hit counting
+- SEO redirect management (301/302) with hit counting — loaded into `next.config.ts` at build time
 - Keyword tracking with volume history and trend analysis
 - Search verification codes (Google, Bing, Yandex, Pinterest, Baidu)
-- Canonical URLs, OpenGraph, Twitter Cards per post/page
+- Content-Security-Policy header with properly scoped directives for all CAPTCHA/analytics providers
 
 ---
 
@@ -527,14 +721,14 @@ Turnstile → reCAPTCHA v3 → reCAPTCHA v2 → hCaptcha → In-house
 
 ### Storage
 
-- Local filesystem (default)
-- S3-compatible storage (configurable via env vars)
+- **Local filesystem** (default) — `public/uploads/`
+- **S3-compatible storage** — configurable via env vars (any S3-compatible backend)
 
 ---
 
 ## Advertising Module
 
-Manage ads from 11 supported networks:
+Manage ads from **11 supported networks**:
 
 > AdSense · Google Ad Manager · Media.net · Amazon APS · Ezoic · Raptive · Monumetric · PropellerAds · Sovrn · Outbrain · Custom
 
@@ -545,18 +739,20 @@ Manage ads from 11 supported networks:
 - **Placements**: Provider → Slot binding with start/end date scheduling
 - **Overview**: Stats dashboard with impressions, clicks, CTR, revenue by provider and position
 - **Compliance**: Compliance scan panel
+- **Ad coverage**: `AdContainer` rendered on blog, about, tags, search, contact pages with wildcard matching
 
 ### Controls
 
 - Global kill switch to disable all ads instantly
 - Per-provider enable/disable
 - Module-level kill switch in settings
+- Cookie consent integration — marketing scripts blocked until consent granted (GDPR mode)
 
 ---
 
 ## Social Distribution
 
-Distribute content across 12 platforms:
+Distribute content across **12 platforms**:
 
 > Twitter · Facebook · LinkedIn · Telegram · WhatsApp · Pinterest · Reddit · Instagram · TikTok · Medium · YouTube · Custom
 
@@ -573,9 +769,81 @@ Distribute content across 12 platforms:
 
 ---
 
+## Cookie Consent & GDPR
+
+A fully-featured, GDPR-compliant cookie consent system that is admin-configurable and respects user choices across the site.
+
+### How It Works
+
+1. Admin enables cookie consent in **Settings → Privacy** tab
+2. A banner slides up on every public page for first-time visitors
+3. User makes a choice → consent is stored in `localStorage` with version tracking
+
+### Two Modes
+
+| Mode | Behavior |
+|---|---|
+| **Simple** (GDPR off) | Informational banner with a **"Got it!"** button. All scripts load immediately. |
+| **GDPR** (GDPR on) | Full consent management: **Accept All**, **Reject All**, **Manage Preferences**. Analytics and marketing scripts are blocked until the visitor explicitly opts in. |
+
+### Cookie Categories (GDPR Mode)
+
+| Category | Description | Toggleable |
+|---|---|---|
+| **Essential** | Auth, CSRF, session — always on | No (locked) |
+| **Analytics** | GA4, site usage tracking | Yes |
+| **Marketing** | Ad scripts, pixel tracking | Yes |
+
+### Features
+
+- **Versioned consent** — bump `CONSENT_VERSION` to re-prompt after policy changes
+- **Privacy Policy & Terms links** — configurable URLs displayed in the banner
+- **`useCookieConsent()` hook** — any component can reactively check consent status
+- **Custom event dispatch** — `cookie-consent-change` event for cross-component communication
+- **Smooth slide-up animation** — `animate-slide-up` CSS keyframe
+- **Dark mode support** — adapts to site theme
+- **Accessible** — `role="dialog"`, `aria-label`, keyboard-navigable
+
+### Admin Settings (Privacy Tab)
+
+| Field | Description |
+|---|---|
+| Enable Cookie Banner | Toggle the banner on/off |
+| Banner Message | Customizable consent text (max 2,000 chars) |
+| Privacy Policy URL | Link displayed in banner |
+| Terms of Service URL | Link displayed in banner |
+| GDPR Mode | Enable per-category consent controls |
+
+---
+
+## Analytics Integration
+
+Google Analytics 4 is **consent-aware** and **admin-configurable** — no code changes needed:
+
+1. Admin enters GA4 Measurement ID (`G-XXXXXXXXXX`) in **Settings → SEO → Analytics**
+2. The `AnalyticsScripts` component conditionally injects the GA4 script
+
+### Behavior
+
+| Scenario | Result |
+|---|---|
+| No GA ID configured | Nothing injected |
+| GDPR off | GA4 loads immediately after consent banner dismissed |
+| GDPR on, analytics not accepted | GA4 **blocked** until user opts in |
+| GDPR on, analytics accepted | GA4 loads with `anonymize_ip: true` |
+
+### Technical Details
+
+- Uses Next.js `<Script>` component with `afterInteractive` strategy
+- Reads consent state from `useCookieConsent()` hook (reactive — loads instantly when user accepts)
+- Cookie flags: `SameSite=None; Secure`
+- IP anonymization enabled by default
+
+---
+
 ## Settings & Theming
 
-### Settings (9 Tabs, 110+ Fields)
+### Settings (10 Tabs, 110+ Fields)
 
 | Tab | Key Settings |
 |---|---|
@@ -584,10 +852,11 @@ Distribute content across 12 platforms:
 | **Content** | Posts per page, excerpt length, RSS, blog layout (grid/list/columns), sidebar widgets, related posts, social sharing, TOC, post navigation, show/hide toggles |
 | **Comments** | Enable/disable, moderation, auto-approve, voting, threading, guest comments, max reply depth, close after days, edit window |
 | **Social** | Social media profile links, contact info, footer text |
-| **SEO** | Analytics ID, verification codes, custom robots.txt, custom head code |
+| **SEO** | Google Analytics ID, search verification codes, custom robots.txt, custom head code |
 | **Email** | SMTP config, from address, notification toggles, welcome email, digest |
 | **Security** | CAPTCHA provider config, per-form requirements, registration toggle |
-| **Advanced** | Custom footer code injection |
+| **Privacy** | Cookie consent toggle, banner message, privacy/terms URLs, GDPR mode |
+| **Advanced** | Custom head/footer code injection |
 
 ### Theme System
 
@@ -600,6 +869,7 @@ Distribute content across 12 platforms:
 
 ### Third-Party Integrations
 
+- Google Analytics 4 (consent-aware injection)
 - Google Tag Manager
 - Facebook Pixel
 - Hotjar
@@ -638,7 +908,7 @@ Visual menu builder for 3 slots:
 
 ## Cron & Automation
 
-18 automated maintenance tasks, triggered hourly via Vercel Cron or manual trigger:
+**18 automated maintenance tasks**, triggered hourly via Vercel Cron or manual trigger:
 
 | Task | Description |
 |---|---|
@@ -661,6 +931,15 @@ Visual menu builder for 3 slots:
 | Cleanup expired sessions | Removes expired auth sessions/tokens |
 | Cleanup old cron logs | Prunes old execution history |
 
+### Configuration
+
+```json
+// vercel.json
+{
+  "crons": [{ "path": "/api/cron", "schedule": "0 * * * *" }]
+}
+```
+
 ### Admin Interface
 
 - Module-gated display (hidden when parent module disabled)
@@ -676,20 +955,22 @@ Visual menu builder for 3 slots:
 
 - **NextAuth v5** (Auth.js) with Credentials provider
 - **JWT session strategy** with token refresh
-- **bcrypt** password hashing
+- **bcrypt 6** password hashing
 - **6 user roles**: Subscriber, Contributor, Author, Editor, Administrator, Super Admin
-- **CAPTCHA-protected** login and registration
-- **Password strength enforcement** (12+ chars, uppercase, lowercase, digit, special char, no common passwords)
+- **CAPTCHA-protected** login and registration (direct server-side verification — no self-fetch)
+- **Password strength enforcement**: 12+ chars, uppercase, lowercase, digit, special char, no common passwords
 
 ### Authorization
 
+- Server-side auth guard on admin layout (checks role before rendering)
 - Route-level auth guards on all admin API endpoints
 - Role-based permission checks (Author+, Editor+, Admin+)
-- Admin panel access restricted to Administrator/Super Admin
 - `authorId` derived from session (not client body)
 - Email PII excluded from public API responses
 
 ### Security Headers
+
+Applied to all routes via `next.config.ts`:
 
 ```
 X-DNS-Prefetch-Control: on
@@ -698,45 +979,139 @@ X-Frame-Options: SAMEORIGIN
 X-Content-Type-Options: nosniff
 Referrer-Policy: strict-origin-when-cross-origin
 Permissions-Policy: camera=(), microphone=(), geolocation=()
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' ...
 ```
+
+The CSP is scoped to allow Cloudflare Turnstile, Google reCAPTCHA, hCaptcha, and Google Analytics while blocking everything else.
 
 ### Additional Protections
 
-- XSS-safe HTML sanitization (allowlist-based)
+- XSS-safe HTML sanitization (allowlist-based via `sanitize-html`)
 - Slug sanitization on all content creation/update
 - Slug uniqueness validation
 - Username collision loop guard (max 100 attempts)
 - Open redirect protection on login callback URLs
 - `poweredByHeader: false` (no X-Powered-By header)
+- `server-only` imports prevent accidental client-side usage of server code
+
+---
+
+## Middleware & Rate Limiting
+
+The root middleware (`src/middleware.ts`) runs on all `/api/*` routes:
+
+### CRON Secret Gate
+
+- Requests to `/api/cron` must include a valid secret via `x-cron-secret` header or `Authorization: Bearer <secret>`
+- Verified against the `CRON_SECRET` environment variable
+- Returns `401 Unauthorized` on mismatch
+
+### API Rate Limiting
+
+- **30 mutations per 60 seconds** per IP (sliding window)
+- Only applies to non-GET methods (POST, PATCH, PUT, DELETE)
+- Skips `/api/auth` routes (NextAuth handles its own rate limiting)
+- Powered by `@upstash/ratelimit` with Upstash Redis
+- **Fails open** — if Redis is unavailable, requests are allowed through
+- Returns `429 Too Many Requests` with `Retry-After: 60` header when rate-limited
+- Lazy-initialized singleton client
+
+---
+
+## Health Check
+
+`GET /api/health` — lightweight endpoint for Docker HEALTHCHECK, load balancers, and uptime monitors.
+
+### Response
+
+```json
+{
+  "status": "ok",        // "ok" | "degraded"
+  "uptime": 3600,        // process uptime in seconds
+  "latency": 12,         // health check duration in ms
+  "db": "ok",            // "ok" | "error"
+  "redis": "ok"          // "ok" | "unavailable"
+}
+```
+
+- Returns **200** when database is reachable (Redis is optional)
+- Returns **503** when database is down
+- Used by Dockerfile HEALTHCHECK (every 30s, 5s timeout, 15s start period)
 
 ---
 
 ## Deployment
 
-### Vercel (Recommended)
-
-The project includes `vercel.json` with hourly cron and extended function timeouts:
-
-```bash
-npm run build
-vercel deploy
-```
-
-### Any Node.js Host
+### Vercel (Recommended for Serverless)
 
 ```bash
 # Build
 npm run build
 
-# Start production server
-npm start
+# Deploy
+vercel deploy --prod
 ```
+
+The project includes `vercel.json` with:
+- Hourly cron job at `/api/cron`
+- Extended function timeouts (60s for cron, 30s for upload)
+
+### Docker / VPS (Self-Hosted)
+
+#### Quick Start with Docker Compose
+
+```bash
+# Start PostgreSQL + Redis (development infrastructure)
+docker compose up -d postgres redis
+
+# Full stack (app + postgres + redis)
+docker compose --profile full up -d
+```
+
+#### Dockerfile Details
+
+Multi-stage build on `node:22-alpine`:
+
+| Stage | Purpose |
+|---|---|
+| **deps** | `npm ci` + `prisma generate` |
+| **builder** | `next build` → standalone output |
+| **runner** | Minimal production image, non-root user (`nextjs`), HEALTHCHECK |
+
+```bash
+# Build and run manually
+docker build -t myblog .
+docker run -p 3000:3000 \
+  -e DATABASE_URL="postgresql://..." \
+  -e AUTH_SECRET="..." \
+  myblog
+```
+
+The container automatically runs `prisma migrate deploy` before starting the server.
+
+#### Docker Compose Services
+
+| Service | Image | Port | Notes |
+|---|---|---|---|
+| `postgres` | `postgres:16-alpine` | 5432 | Persistent volume, healthcheck |
+| `redis` | `redis:7-alpine` | 6379 | Persistent volume, healthcheck |
+| `app` | Built from Dockerfile | 3000 | Depends on postgres + redis (healthy), behind `full` profile |
 
 ### Environment Requirements
 
-- Node.js 20+
-- PostgreSQL 15+
-- `DATABASE_URL` and `AUTH_SECRET` environment variables
+| Requirement | Vercel | Docker/VPS |
+|---|---|---|
+| Node.js | Managed | 22 (pinned in `.nvmrc`) |
+| PostgreSQL | External (Neon, Supabase) | Included in docker-compose |
+| Redis | External (Upstash) | Included in docker-compose |
+| `DATABASE_URL` | Required | Required |
+| `AUTH_SECRET` | Required | Required |
+| `CRON_SECRET` | Recommended | Recommended |
+| `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | Not needed | Recommended for rolling deploys |
+
+### Standalone Output
+
+Next.js is configured with `output: "standalone"` which produces a self-contained `server.js` that bundles only the needed `node_modules`. This reduces the Docker image size significantly and eliminates the need for a full `node_modules` directory in production.
 
 ---
 
@@ -746,7 +1121,7 @@ Reusable components in `src/components/ui/`:
 
 | Component | Description |
 |---|---|
-| **Button** | Styled button with variants |
+| **Button** | Styled button with loading state, icon support, disabled styles |
 | **Card** | Container with header, title, padding sizes, hover effects |
 | **Badge** | 6 variants: default, success, warning, danger, info, outline |
 | **Avatar** | User avatar display |
@@ -758,6 +1133,36 @@ Reusable components in `src/components/ui/`:
 | **Toast** | Global notifications (success/error/info/warning), auto-dismiss |
 | **PasswordStrengthIndicator** | Live password policy checker with visual strength meter |
 
+### Layout Components
+
+| Component | Description |
+|---|---|
+| **PublicShell** | Public layout wrapper — fetches settings, renders TopBar + Header + Footer + CookieConsentBanner + AnalyticsScripts |
+| **AdminShell** | Admin layout — sidebar nav, topbar with breadcrumbs, mobile menu, profile dropdown |
+| **Header** | Responsive site header with navigation |
+| **Footer** | Site footer with social links, contact info |
+| **TopBar** | Configurable utility bar above header (phone, email, CTA, social links) |
+| **CookieConsentBanner** | GDPR-compliant cookie consent with category management |
+| **AnalyticsScripts** | Consent-aware GA4 script injection |
+
+---
+
+## What's Not in Git
+
+The following are **intentionally excluded** from version control (`.gitignore`):
+
+| Path | Reason |
+|---|---|
+| `/.next/` | Build output — regenerated by `npm run build` |
+| `/node_modules/` | Dependencies — restored by `npm install` |
+| `/out/` | Static export output |
+| `.env*` | Environment secrets — use `.env.example` as template |
+| `*.tsbuildinfo` | TypeScript incremental build cache |
+| `next-env.d.ts` | Auto-generated by Next.js |
+| `.vercel/` | Vercel project config |
+
+> **Note**: `.env.example` is committed as a documented template. All other env files are excluded.
+
 ---
 
 ## Contributing
@@ -768,6 +1173,15 @@ Reusable components in `src/components/ui/`:
 4. Push to the branch: `git push origin feature/my-feature`
 5. Open a Pull Request
 
+### Code Style
+
+- TypeScript strict mode — no `any` in new code
+- Feature-first architecture — all domain code lives in `src/features/<module>/`
+- Server-only imports — use `import "server-only"` in all server files
+- Zod validation on every API input
+- Named exports preferred over default exports
+- Barrel index files for public module API
+
 ---
 
 ## License
@@ -776,4 +1190,7 @@ This is a private project. All rights reserved.
 
 ---
 
-<p align="center">Built with Next.js, React, Prisma, and PostgreSQL</p>
+<p align="center">
+  Built with Next.js 16 · React 19 · Prisma 7 · PostgreSQL 16 · Tailwind CSS 4<br/>
+  <strong>277 source files · 67 API routes · 45 models · 12 feature modules</strong>
+</p>

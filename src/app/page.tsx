@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/Card";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { PostListItem, TagDetail } from "@/types/prisma-helpers";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 900; // ISR: rebuild at most every 15 minutes
 
 async function getLatestPosts() {
   return prisma.post.findMany({

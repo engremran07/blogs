@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/layout/Providers";
 import { PublicShell } from "@/components/layout/PublicShell";
+import { siteSettingsService } from "@/server/wiring";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
 
@@ -16,41 +17,56 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "MyBlog",
-    template: "%s | MyBlog",
-  },
-  description: "A modern blog platform built with Next.js",
-  metadataBase: new URL(SITE_URL),
-  alternates: {
-    canonical: SITE_URL,
-  },
-  openGraph: {
-    type: "website",
-    siteName: "MyBlog",
-    locale: "en_US",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  let siteName = "MyBlog";
+  let description = "A modern blog platform built with Next.js";
+  try {
+    const s = await siteSettingsService.getSettings();
+    siteName = s.siteName || siteName;
+    description = s.siteDescription || description;
+  } catch {
+    /* fallback to defaults */
+  }
+  return {
+    title: { default: siteName, template: `%s | ${siteName}` },
+    description,
+    metadataBase: new URL(SITE_URL),
+    alternates: { canonical: SITE_URL },
+    openGraph: { type: "website", siteName, locale: "en_US" },
+  };
+}
 
-const webSiteJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: "MyBlog",
-  url: SITE_URL,
-  description: "A modern blog platform built with Next.js",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: `${SITE_URL}/search?q={search_term_string}`,
-    "query-input": "required name=search_term_string",
-  },
-};
+async function getWebSiteJsonLd() {
+  let siteName = "MyBlog";
+  let description = "A modern blog platform built with Next.js";
+  try {
+    const s = await siteSettingsService.getSettings();
+    siteName = s.siteName || siteName;
+    description = s.siteDescription || description;
+  } catch {
+    /* fallback to defaults */
+  }
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteName,
+    url: SITE_URL,
+    description,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${SITE_URL}/search?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const webSiteJsonLd = await getWebSiteJsonLd();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body

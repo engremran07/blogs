@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/users/sanitization.util.ts
+ * MODULE:   features/auth/sanitization.util.ts
  * PURPOSE:  Self-contained input sanitization for the Users module.
  *           No external dependencies (sanitize-html removed).
  *           BUG FIX: Removed 'data' from allowedSchemes (XSS vector).

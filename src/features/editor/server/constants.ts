@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/editor/constants.ts
+ * MODULE:   features/editor/constants.ts
  * PURPOSE:  Editor-specific constants isolated from global design tokens.
  *           When this module is extracted to a separate repo, consumers
  *           provide their own palette via props or override this file.

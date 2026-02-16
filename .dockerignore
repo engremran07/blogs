@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build output (built inside Docker)
+.next
+out
+
+# Git
+.git
+.gitignore
+
+# Environment (secrets never go in image)
+.env
+.env.*
+!.env.example
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests / Dev
+coverage
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__
+
+# Docs
+README.md
+CHANGELOG.md
+LICENSE

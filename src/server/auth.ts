@@ -7,7 +7,11 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/server/db/prisma";
 import bcrypt from "bcrypt";
+import { CaptchaVerificationService } from "@/features/captcha/server/verification.service";
 import type { UserRole } from "@/features/auth/types";
+
+// Direct captcha verification — no self-fetch HTTP call
+const captchaService = new CaptchaVerificationService(prisma as any);
 
 declare module "next-auth" {
   interface User {
@@ -62,22 +66,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const captchaType = credentials.captchaType as string | undefined;
         const captchaId = credentials.captchaId as string | undefined;
 
-        // Verify CAPTCHA — reject if token is missing or invalid
+        // Verify CAPTCHA — direct service call (no self-fetch HTTP)
         try {
-          const captchaRes = await fetch(
-            `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/captcha/verify`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                captchaToken: captchaToken || "",
-                captchaType: captchaType || undefined,
-                captchaId: captchaId || undefined,
-              }),
-            },
-          );
-          const captchaData = await captchaRes.json();
-          if (!captchaData.success) return null;
+          const captchaResult = await captchaService.verify({
+            token: captchaToken || "",
+            clientIp: "127.0.0.1", // IP not available in authorize(); middleware handles rate-limiting
+            captchaType: captchaType as any,
+            captchaId,
+          });
+          if (!captchaResult.success) return null;
         } catch {
           // If captcha service is unavailable, deny login
           return null;

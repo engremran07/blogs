@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { TopBar } from "./TopBar";
+import { CookieConsentBanner, type CookieConsentSettings } from "./CookieConsentBanner";
+import { AnalyticsScripts } from "./AnalyticsScripts";
 
 interface TopBarSettings {
   topBarEnabled: boolean;
@@ -21,10 +23,19 @@ interface TopBarSettings {
   topBarDismissible: boolean;
 }
 
+interface PublicSettings extends TopBarSettings {
+  cookieConsentEnabled: boolean;
+  cookieConsentMessage: string;
+  privacyPolicyUrl: string | null;
+  termsOfServiceUrl: string | null;
+  gdprEnabled: boolean;
+  seoGoogleAnalyticsId: string | null;
+}
+
 export function PublicShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
-  const [topBarSettings, setTopBarSettings] = useState<TopBarSettings | null>(null);
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -32,7 +43,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
         .then((r) => r.json())
         .then((data) => {
           if (data.success && data.data) {
-            setTopBarSettings(data.data);
+            setSettings(data.data);
           }
         })
         .catch(() => {});
@@ -43,12 +54,29 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  const consentSettings: CookieConsentSettings | null = settings
+    ? {
+        cookieConsentEnabled: settings.cookieConsentEnabled,
+        cookieConsentMessage: settings.cookieConsentMessage,
+        privacyPolicyUrl: settings.privacyPolicyUrl,
+        termsOfServiceUrl: settings.termsOfServiceUrl,
+        gdprEnabled: settings.gdprEnabled,
+      }
+    : null;
+
   return (
     <div className="flex min-h-screen flex-col">
-      {topBarSettings && <TopBar settings={topBarSettings} />}
+      {settings && <TopBar settings={settings} />}
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
+      {consentSettings && <CookieConsentBanner settings={consentSettings} />}
+      {settings && (
+        <AnalyticsScripts
+          gaId={settings.seoGoogleAnalyticsId}
+          gdprEnabled={settings.gdprEnabled}
+        />
+      )}
     </div>
   );
 }

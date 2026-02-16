@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/users/password.util.ts
+ * MODULE:   features/auth/password.util.ts
  * PURPOSE:  Password hashing and policy validation — extracted from services
  *           to eliminate duplication between auth.service and user.service.
  * ============================================================================

@@ -4,9 +4,9 @@
  * PURPOSE:  Public API barrel for the pluggable CAPTCHA module
  *
  * USAGE:
- *   import { Captcha } from '@/components/captcha';
- *   import type { CaptchaProps, CaptchaProviderType } from '@/components/captcha';
- *   import { CaptchaAdminSettingsService } from '@/components/captcha';
+ *   import { Captcha } from '@/features/captcha';
+ *   import type { CaptchaProps, CaptchaProviderType } from '@/features/captcha';
+ *   import { CaptchaAdminSettingsService } from '@/features/captcha';
  *
  * This module is designed with clear boundaries so it can be extracted
  * to a standalone repository (@yourorg/captcha-react) in the future.

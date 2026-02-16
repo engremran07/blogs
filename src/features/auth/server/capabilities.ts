@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/users/capabilities.ts
+ * MODULE:   features/auth/capabilities.ts
  * PURPOSE:  Role → capability mapping with full TypeScript type safety.
  *           All capabilities are derived from `as const` objects —
  *           no magic strings, no runtime `Record<string, string[]>` casts.

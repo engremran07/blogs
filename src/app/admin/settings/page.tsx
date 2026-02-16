@@ -7,7 +7,7 @@ import {
   Share2, BookOpen, Navigation, Clock, User, Hash, Image as ImageIcon,
   Rss, Moon, Type, Upload, AlertCircle, Trash2, BarChart3, CheckCircle,
   Phone, MapPin, Link2, Megaphone, Mail, Code2, Smartphone, Bell,
-  Database, Server, ExternalLink,
+  Database, Server, ExternalLink, Cookie, Scale,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/FormFields";
@@ -133,6 +133,12 @@ interface SiteSettings {
   requireCaptchaRegister: boolean;
   requireCaptchaComment: boolean;
   requireCaptchaContact: boolean;
+  // Privacy & Legal
+  cookieConsentEnabled: boolean;
+  cookieConsentMessage: string;
+  privacyPolicyUrl: string | null;
+  termsOfServiceUrl: string | null;
+  gdprEnabled: boolean;
 }
 
 // ─── Tab Configuration ──────────────────────────────────────────────────────
@@ -146,6 +152,7 @@ const TABS = [
   { key: "seo",        label: "SEO",        icon: <Search className="h-4 w-4" /> },
   { key: "email",      label: "Email",      icon: <Mail className="h-4 w-4" /> },
   { key: "security",   label: "Security",   icon: <Shield className="h-4 w-4" /> },
+  { key: "privacy",    label: "Privacy",    icon: <Cookie className="h-4 w-4" /> },
   { key: "advanced",   label: "Advanced",   icon: <Code2 className="h-4 w-4" /> },
 ] as const;
 
@@ -897,6 +904,38 @@ export default function AdminSettingsPage() {
                 </div>
               </>
             )}
+          </>
+        )}
+
+        {/* ═══ PRIVACY & LEGAL ═══ */}
+        {activeTab === "privacy" && (
+          <>
+            <Section title="Cookie Consent" icon={<Cookie className="h-5 w-5 text-amber-500" />} description="Show a GDPR / privacy-compliant cookie consent banner to visitors">
+              <div className="space-y-4">
+                <ToggleCard label="Enable Cookie Banner" description="Display a cookie consent banner at the bottom of every page" checked={settings.cookieConsentEnabled ?? false} onChange={(v) => update("cookieConsentEnabled", v)} />
+                {settings.cookieConsentEnabled && (
+                  <>
+                    <Textarea label="Banner Message" value={settings.cookieConsentMessage || ""} onChange={(e) => update("cookieConsentMessage", e.target.value)} rows={3} hint="Displayed in the consent banner. Supports plain text." />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Input label="Privacy Policy URL" value={settings.privacyPolicyUrl || ""} onChange={(e) => update("privacyPolicyUrl", e.target.value || null)} placeholder="/privacy-policy or https://..." />
+                      <Input label="Terms of Service URL" value={settings.termsOfServiceUrl || ""} onChange={(e) => update("termsOfServiceUrl", e.target.value || null)} placeholder="/terms-of-service or https://..." />
+                    </div>
+                  </>
+                )}
+              </div>
+            </Section>
+
+            <Section title="GDPR Compliance" icon={<Scale className="h-5 w-5 text-blue-500" />} description="European privacy regulation settings">
+              <ToggleCard label="GDPR Mode" description="Enables cookie-category controls (essential, analytics, marketing). Scripts won\u2019t load until the visitor explicitly consents." checked={settings.gdprEnabled ?? false} onChange={(v) => update("gdprEnabled", v)} />
+              {settings.gdprEnabled && (
+                <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800/50 dark:bg-blue-900/20">
+                  <p className="text-sm text-blue-700 dark:text-blue-400">
+                    When GDPR mode is on the banner shows <strong>Accept All</strong>, <strong>Reject All</strong> and <strong>Manage Preferences</strong> buttons.
+                    Analytics / marketing scripts are blocked until the visitor opts in. Essential cookies (auth, CSRF) are always allowed.
+                  </p>
+                </div>
+              )}
+            </Section>
           </>
         )}
 

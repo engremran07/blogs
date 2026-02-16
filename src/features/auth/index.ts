@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/users/index.ts
+ * MODULE:   features/auth/index.ts
  * PURPOSE:  Public barrel exports for the Users module.
  * ============================================================================
  */

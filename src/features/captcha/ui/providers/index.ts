@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/captcha/providers/index.ts
+ * MODULE:   features/captcha/providers/index.ts
  * PURPOSE:  Barrel export for all CAPTCHA provider components
  * ============================================================================
  */

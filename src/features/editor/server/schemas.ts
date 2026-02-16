@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/editor/schemas.ts
+ * MODULE:   features/editor/schemas.ts
  * PURPOSE:  Zod validation schemas for editor admin-dynamic settings.
  *           Used by API routes and the admin-settings service to validate
  *           incoming payloads before persisting to DB.

@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/editor/admin-settings.service.ts
+ * MODULE:   features/editor/admin-settings.service.ts
  * PURPOSE:  DB-backed admin settings for the Rich Text Editor.
  *           Singleton service — reads / writes EditorSettings row via Prisma,
  *           propagates changes to registered EditorConfigConsumer instances,
@@ -9,7 +9,7 @@
  * PATTERN:  Matches captcha, comments, and tags admin-settings services.
  *
  * USAGE:
- *   import { EditorAdminSettingsService } from '@/components/editor';
+ *   import { EditorAdminSettingsService } from '@/features/editor';
  *
  *   const svc = new EditorAdminSettingsService(prisma);
  *   await svc.initialise();

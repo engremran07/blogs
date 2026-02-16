@@ -2,7 +2,7 @@ import { prisma } from "@/server/db/prisma";
 import { Users, BookOpen, MessageSquare, Globe } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 86400; // ISR: rebuild at most once per day
 export const metadata = { title: "About", description: "Learn more about our blog" };
 
 export default async function AboutPage() {

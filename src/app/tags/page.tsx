@@ -4,7 +4,7 @@ import { Tag as TagIcon, TrendingUp, Star } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { TagDetail } from "@/types/prisma-helpers";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600; // ISR: rebuild at most every hour
 export const metadata = { title: "Tags", description: "Browse all tags" };
 
 export default async function TagsPage() {

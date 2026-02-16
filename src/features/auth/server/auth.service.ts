@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/users/auth.service.ts
+ * MODULE:   features/auth/auth.service.ts
  * PURPOSE:  Authentication logic — framework-agnostic.
  *           Login, registration, JWT refresh, email verification,
  *           password reset, rate limiting, session management.

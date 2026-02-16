@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/users/types.ts
+ * MODULE:   features/auth/types.ts
  * PURPOSE:  Pure TypeScript types for the Users/Auth module.
  *           No framework imports — works in Next.js, NestJS, or standalone.
  * ============================================================================

@@ -1,12 +1,12 @@
 /**
  * ============================================================================
- * MODULE:   components/users/middleware.ts
+ * MODULE:   features/auth/middleware.ts
  * PURPOSE:  Next.js-compatible auth middleware helpers.
  *           Replaces NestJS guards, decorators, and Passport strategies.
  *
  * Usage (Next.js App Router API Route):
  *
- *   import { withAuth, withRoles } from '@/components/users';
+ *   import { withAuth, withRoles } from '@/features/auth';
  *
  *   // Protected route:
  *   export const GET = withAuth(async (req, user) => {
@@ -20,7 +20,7 @@
  *
  * Usage (Next.js middleware.ts):
  *
- *   import { verifyAccessToken } from '@/components/users';
+ *   import { verifyAccessToken } from '@/features/auth';
  *
  *   export async function middleware(req: NextRequest) {
  *     const token = getTokenFromRequest(req);
@@ -293,7 +293,7 @@ export function validateCsrf(req: NextRequest | Request): boolean {
  * ```ts
  * // app/dashboard/page.tsx
  * import { cookies } from 'next/headers';
- * import { getServerSession } from '@/components/users';
+ * import { getServerSession } from '@/features/auth';
  *
  * export default async function Dashboard() {
  *   const user = await getServerSession(jwt);

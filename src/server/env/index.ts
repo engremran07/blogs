@@ -23,6 +23,9 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(1).optional(),
   JWT_REFRESH_SECRET: z.string().min(1).optional(),
 
+  // Server Actions encryption key — required for VPS rolling deploys
+  NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: z.string().min(1).optional(),
+
   // Site URL for distribution / OG links
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
 

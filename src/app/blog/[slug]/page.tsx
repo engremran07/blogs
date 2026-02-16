@@ -16,6 +16,18 @@ import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { Metadata } from "next";
 import type { PostListItem, CategoryItem } from "@/types/prisma-helpers";
 
+export const revalidate = 3600; // ISR: rebuild at most every hour
+
+/** Pre-render all published post slugs at build time */
+export async function generateStaticParams() {
+  const posts = await prisma.post.findMany({
+    where: { status: "PUBLISHED", deletedAt: null },
+    select: { slug: true },
+    take: 500,
+  });
+  return posts.map((p) => ({ slug: p.slug }));
+}
+
 interface PostPageProps {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ preview?: string }>;

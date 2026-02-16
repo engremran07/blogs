@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/users/schemas.ts
+ * MODULE:   features/auth/schemas.ts
  * PURPOSE:  Zod validation schemas — replaces class-validator DTOs.
  *           Every user-facing input is validated here before reaching services.
  * ============================================================================

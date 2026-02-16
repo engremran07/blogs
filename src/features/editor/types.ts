@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/editor/types.ts
+ * MODULE:   features/editor/types.ts
  * PURPOSE:  Shared TypeScript interfaces for the pluggable Rich Text Editor
  * BOUNDARY: Pure types — no framework imports. Safe to copy to any repo.
  * ============================================================================

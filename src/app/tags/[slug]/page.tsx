@@ -5,7 +5,16 @@ import { Calendar, Eye, Clock, ArrowLeft, Tag as TagIcon } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { PostListItem, TagDetail } from "@/types/prisma-helpers";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600; // ISR: rebuild at most every hour
+
+/** Pre-render all tag slugs at build time */
+export async function generateStaticParams() {
+  const tags = await prisma.tag.findMany({
+    select: { slug: true },
+    take: 500,
+  });
+  return tags.map((t) => ({ slug: t.slug }));
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

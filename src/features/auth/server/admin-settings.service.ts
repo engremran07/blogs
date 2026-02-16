@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/users/admin-settings.service.ts
+ * MODULE:   features/auth/admin-settings.service.ts
  * PURPOSE:  DB-backed dynamic admin settings — fully configurable at runtime.
  *           Same consumer-propagation pattern as captcha/editor/comments.
  *

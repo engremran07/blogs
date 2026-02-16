@@ -52,6 +52,16 @@ export async function GET() {
         // Footer
         footerText: (s as any).footerText ?? null,
         footerShowSocialLinks: (s as any).footerShowSocialLinks ?? true,
+
+        // Cookie consent / Privacy
+        cookieConsentEnabled: s.cookieConsentEnabled ?? false,
+        cookieConsentMessage: s.cookieConsentMessage ?? "",
+        privacyPolicyUrl: (s as any).privacyPolicyUrl ?? null,
+        termsOfServiceUrl: (s as any).termsOfServiceUrl ?? null,
+        gdprEnabled: (s as any).gdprEnabled ?? false,
+
+        // Analytics (non-secret — needed by script injector)
+        seoGoogleAnalyticsId: (s as any).seoGoogleAnalyticsId ?? null,
       },
     });
   } catch {

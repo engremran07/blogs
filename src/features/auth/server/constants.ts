@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/users/constants.ts
+ * MODULE:   features/auth/constants.ts
  * PURPOSE:  All hard defaults for the Users/Auth module.
  *           Every magic number / string that was scattered across services
  *           is centralised here and referenced by DEFAULT_USER_CONFIG.

@@ -4,9 +4,9 @@
  * PURPOSE:  Public API barrel for the pluggable Rich Text Editor module
  *
  * USAGE:
- *   import RichTextEditor from '@/components/editor';
- *   import type { RichTextEditorProps } from '@/components/editor';
- *   import { EditorAdminSettingsService } from '@/components/editor';
+ *   import RichTextEditor from '@/features/editor';
+ *   import type { RichTextEditorProps } from '@/features/editor';
+ *   import { EditorAdminSettingsService } from '@/features/editor';
  *
  * This module is designed with clear boundaries so it can be extracted
  * to a standalone repository (@yourorg/rich-text-editor) in the future.

@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MODULE:   components/users/user.service.ts
+ * MODULE:   features/auth/user.service.ts
  * PURPOSE:  User management — framework-agnostic.
  *           Profile updates, admin CRUD, bulk actions, email change workflow.
  *

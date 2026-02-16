@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: "Browse all blog posts and articles",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 600; // ISR: rebuild at most every 10 minutes
 
 interface BlogPageProps {
   searchParams: Promise<{ page?: string; tag?: string; category?: string; q?: string; archive?: string }>;
