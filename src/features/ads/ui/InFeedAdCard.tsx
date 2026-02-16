@@ -51,7 +51,7 @@ export function InFeedAdCard({
       } ${className}`}
       data-ad-feed-index={index}
     >
-      <div className="flex min-h-[200px] items-center justify-center p-4">
+      <div className="flex min-h-50 items-center justify-center p-4">
         <AdContainer
           position="IN_FEED"
           pageType={pageType}
