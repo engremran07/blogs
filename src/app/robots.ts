@@ -11,29 +11,13 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: ["/"],
-        disallow: ["/api/", "/admin/", "/_next/", "/login", "/register", "/profile"],
+        disallow: ["/api/", "/admin/", "/_next/", "/login", "/register", "/profile", "/search"],
       },
       // Block AI scrapers
-      {
-        userAgent: "GPTBot",
-        disallow: ["/"],
-      },
-      {
-        userAgent: "ChatGPT-User",
-        disallow: ["/"],
-      },
-      {
-        userAgent: "CCBot",
-        disallow: ["/"],
-      },
-      {
-        userAgent: "anthropic-ai",
-        disallow: ["/"],
-      },
-      {
-        userAgent: "ClaudeBot",
-        disallow: ["/"],
-      },
+      ...[
+        "GPTBot", "ChatGPT-User", "CCBot", "anthropic-ai", "ClaudeBot",
+        "Google-Extended", "Bytespider", "Omgilibot", "FacebookBot",
+      ].map((ua) => ({ userAgent: ua, disallow: ["/"] })),
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
   };

@@ -25,26 +25,13 @@ import {
   SLUG_MAX_LENGTH,
   SLUG_MAX_WORDS,
 } from './constants';
+import { stripHtml, countWords } from '@/shared/text.util';
 
 /* ========================================================================== */
 /*  SECTION 1 — HTML / Text Helpers                                           */
 /* ========================================================================== */
 
-/** Strip all HTML tags and decode common entities. */
-export function stripHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+export { stripHtml, countWords } from '@/shared/text.util';
 
 /** Tokenise text into lowercase words. */
 export function tokenize(text: string): string[] {
@@ -291,13 +278,6 @@ export function calculateReadingTime(
 ): number {
   const wordCount = countWords(content);
   return Math.max(1, Math.ceil(wordCount / wpm));
-}
-
-/** Count words in HTML or plain text. */
-export function countWords(text: string): number {
-  const clean = stripHtml(text);
-  if (!clean) return 0;
-  return clean.split(/\s+/).filter((w) => w.length > 0).length;
 }
 
 /* ========================================================================== */

@@ -54,6 +54,8 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
   const containerRef = useRef<HTMLDivElement>(null);
   const impressionTracked = useRef(false);
   const scriptInjected = useRef(false);
+  const viewableTracked = useRef(false);
+  const lastClickTime = useRef(0);
   const [closed, setClosed] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const { consented, categories } = useCookieConsent();
@@ -81,12 +83,28 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
     const el = containerRef.current;
     if (!el || impressionTracked.current) return;
 
+    let viewableTimer: ReturnType<typeof setTimeout> | null = null;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          impressionTracked.current = true;
-          trackEvent("IMPRESSION");
-          observer.disconnect();
+          if (!impressionTracked.current) {
+            impressionTracked.current = true;
+            trackEvent("IMPRESSION");
+          }
+          // IAB viewability: 50% visible for ≥1 second
+          if (!viewableTracked.current) {
+            viewableTimer = setTimeout(() => {
+              viewableTracked.current = true;
+              trackEvent("VIEWABLE");
+            }, 1000);
+          }
+        } else {
+          // Left viewport before 1s — cancel viewable timer
+          if (viewableTimer) {
+            clearTimeout(viewableTimer);
+            viewableTimer = null;
+          }
         }
       },
       { threshold: 0.5 },
@@ -99,7 +117,10 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
       observer.observe(el);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (viewableTimer) clearTimeout(viewableTimer);
+    };
   }, [eager, trackEvent, consentBlocked]);
 
   // ── Inject external provider scripts (e.g. AdSense) ───────────────
@@ -142,6 +163,14 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
   const handleClose = useCallback(() => {
     setClosed(true);
     trackEvent("CLOSE");
+  }, [trackEvent]);
+
+  // ── Click debounce — prevent rapid duplicate clicks on client side
+  const handleClick = useCallback(() => {
+    const now = Date.now();
+    if (now - lastClickTime.current < 5000) return; // 5s debounce
+    lastClickTime.current = now;
+    trackEvent("CLICK");
   }, [trackEvent]);
 
   // ── Consent gate — show placeholder if marketing cookies not accepted
@@ -191,7 +220,7 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
       key={refreshKey}
       className={`ad-container relative overflow-hidden ${breakpointClass} ${className}`}
       style={style}
-      onClick={() => trackEvent("CLICK")}
+      onClick={handleClick}
       role="complementary"
       aria-label={`Advertisement — ${placement.slot.name}`}
       data-ad-position={placement.slot.position}

@@ -114,11 +114,18 @@ export async function AdContainer({
     });
 
     // Post-filter: pageType matching (exact, "*", empty, prefix-wildcard) + endDate
-    const activePlacements: AdPlacementData[] = placements.filter(
+    let activePlacements: AdPlacementData[] = placements.filter(
       (p: any) =>
         slotMatchesPage(p.slot?.pageTypes ?? [], pageType) &&
         (!p.endDate || new Date(p.endDate) > now),
-    ).slice(0, 3); // limit ads per position
+    );
+
+    // Ad rotation: shuffle eligible placements so different ads show on each load
+    for (let i = activePlacements.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [activePlacements[i], activePlacements[j]] = [activePlacements[j], activePlacements[i]];
+    }
+    activePlacements = activePlacements.slice(0, 3); // limit ads per position
 
     if (activePlacements.length === 0) {
       // No active placements — show stub placeholder so admin sees where ads go

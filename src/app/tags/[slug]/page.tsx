@@ -2,8 +2,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/server/db/prisma";
-import { Calendar, Eye, Clock, ArrowLeft, Tag as TagIcon } from "lucide-react";
+import { Calendar, Eye, Clock, Tag as TagIcon } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { PostImageFallback } from "@/components/blog/PostImageFallback";
 import type { PostListItem, TagDetail } from "@/types/prisma-helpers";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
@@ -83,13 +85,12 @@ export default async function TagDetailPage({ params, searchParams }: {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      {/* Back to Tags */}
-      <Link
-        href="/tags"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" /> All Tags
-      </Link>
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={[
+        { label: "Home", href: "/" },
+        { label: "Tags", href: "/tags" },
+        { label: tag.name },
+      ]} />
 
       {/* Tag Header */}
       <div className="mb-10 rounded-2xl border border-gray-200 bg-white p-8 dark:border-gray-700 dark:bg-gray-800">
@@ -126,7 +127,7 @@ export default async function TagDetailPage({ params, searchParams }: {
               href={`/blog/${post.slug}`}
               className="group rounded-xl border border-gray-200 bg-white transition-all hover:border-blue-300 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600"
             >
-              {post.featuredImage && (
+              {post.featuredImage ? (
                 <div className="relative aspect-video overflow-hidden rounded-t-xl bg-gray-100 dark:bg-gray-700">
                   <Image
                     src={post.featuredImage}
@@ -136,6 +137,11 @@ export default async function TagDetailPage({ params, searchParams }: {
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 </div>
+              ) : (
+                <PostImageFallback
+                  title={post.title}
+                  className="aspect-video rounded-t-xl"
+                />
               )}
               <div className="p-5">
                 <h2 className="mb-2 font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400 line-clamp-2">

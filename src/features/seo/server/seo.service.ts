@@ -158,7 +158,9 @@ export class SeoService {
         take: pageSize,
       });
 
-      return ok(suggestions, { page, pageSize, total: suggestions.length });
+      const total = await this.deps.seoSuggestion.count({ where });
+
+      return ok(suggestions, { page, pageSize, total });
     } catch (err) {
       this.log.error('listSuggestions failed', { error: err });
       return fail('LIST_SUGGESTIONS_FAILED', String(err));
@@ -1134,6 +1136,8 @@ export class SeoService {
       const interlinkSvc = new InterlinkService({
         post: this.deps.post as any,
         page: this.deps.page as any,
+        internalLink: (this.deps as any).internalLink ?? { findMany: async () => [], count: async () => 0, create: async () => ({}), upsert: async () => ({}), update: async () => ({}), updateMany: async () => ({}), deleteMany: async () => ({}) },
+        interlinkExclusion: (this.deps as any).interlinkExclusion ?? { findMany: async () => [], count: async () => 0, create: async () => ({}), delete: async () => ({}) },
       });
       const contentIndex = await interlinkSvc.buildIndex();
 

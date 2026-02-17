@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/server/db/prisma";
 import { Tag as TagIcon, TrendingUp, Star } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
+import { buildWebPageJsonLd, serializeJsonLd } from "@/features/seo/server/json-ld.util";
 import type { Metadata } from "next";
 import type { TagDetail } from "@/types/prisma-helpers";
 
@@ -50,8 +51,18 @@ export default async function TagsPage() {
     return "text-sm";
   }
 
+  const settings = await prisma.siteSettings.findFirst({ select: { siteName: true } });
+  const siteName = settings?.siteName || "MyBlog";
+  const tagsJsonLd = buildWebPageJsonLd({
+    name: `Tags`,
+    url: `${SITE_URL}/tags`,
+    description: `Browse all tags and topics on ${siteName}`,
+    isPartOf: { name: siteName, url: SITE_URL },
+  });
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(tagsJsonLd) }} />
       {/* Header */}
       <div className="mb-12 text-center">
         <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">

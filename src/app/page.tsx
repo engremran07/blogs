@@ -4,6 +4,7 @@ import { prisma } from "@/server/db/prisma";
 import { ArrowRight, Calendar, Clock, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/Card";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
+import { buildOrganizationJsonLd, serializeJsonLd } from "@/features/seo/server/json-ld.util";
 import type { Metadata } from "next";
 import type { PostListItem, TagDetail } from "@/types/prisma-helpers";
 
@@ -80,9 +81,25 @@ export default async function HomePage() {
 
   const siteName = settings?.siteName || "MyBlog";
   const siteDescription = settings?.siteDescription || "Exploring ideas, sharing knowledge, and building things. Dive into articles on technology, development, and more.";
+  const s = settings as Record<string, unknown> | null;
+  const socialLinks = [s?.socialFacebook, s?.socialTwitter, s?.socialInstagram, s?.socialLinkedin, s?.socialYoutube, s?.socialGithub].filter(Boolean) as string[];
+  const organizationJsonLd = buildOrganizationJsonLd({
+    name: siteName,
+    url: SITE_URL,
+    logoUrl: (s?.logoUrl as string) || undefined,
+    description: siteDescription,
+    email: (s?.contactEmail as string) || undefined,
+    phone: (s?.contactPhone as string) || undefined,
+    socialLinks: socialLinks.length > 0 ? socialLinks : undefined,
+  });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      {/* Organization JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd) }}
+      />
       {/* Hero Section */}
       <section className="mb-16 text-center">
         <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl dark:text-white">

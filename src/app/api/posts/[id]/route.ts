@@ -5,6 +5,8 @@ import { createLogger } from "@/server/observability/logger";
 import { removePageTypesFromSlots } from "@/features/ads/server/scan-pages";
 import { sanitizeContent, sanitizeText } from "@/features/blog/server/sanitization.util";
 import { countWords, calculateReadingTime } from "@/features/blog/server/constants";
+import { autoDistributePost } from "@/features/distribution";
+import { InterlinkService } from "@/features/seo/server/interlink.service";
 
 const logger = createLogger("api/posts");
 
@@ -150,6 +152,34 @@ export async function PATCH(
       },
     });
 
+    // Auto-distribute when status transitions to PUBLISHED
+    if (safeData.status === 'PUBLISHED' && existingPost.status !== 'PUBLISHED') {
+      autoDistributePost(post.id).catch((err: unknown) =>
+        logger.error("[api/posts/[id]] Auto-distribute error:", { error: err }),
+      );
+    }
+
+    // Interlink lifecycle: handle slug changes, re-scan on content/status change
+    const interlinkChanges: { slug?: { old: string; new: string }; statusChanged?: boolean; contentChanged?: boolean } = {};
+    if (safeData.slug && safeData.slug !== existingPost.slug) {
+      interlinkChanges.slug = { old: existingPost.slug, new: safeData.slug as string };
+    }
+    if (safeData.status && safeData.status !== existingPost.status) {
+      interlinkChanges.statusChanged = true;
+      // If unpublishing, trigger onContentUnpublished
+      if (existingPost.status === 'PUBLISHED' && safeData.status !== 'PUBLISHED') {
+        new InterlinkService(prisma as any).onContentUnpublished(id, 'POST', existingPost.slug).catch((err: unknown) =>
+          logger.error("[api/posts/[id]] Interlink onContentUnpublished error:", { error: err }),
+        );
+      }
+    }
+    if (safeData.content) interlinkChanges.contentChanged = true;
+    if (Object.keys(interlinkChanges).length > 0) {
+      new InterlinkService(prisma as any).onContentUpdated(id, 'POST', interlinkChanges).catch((err: unknown) =>
+        logger.error("[api/posts/[id]] Interlink onContentUpdated error:", { error: err }),
+      );
+    }
+
     return NextResponse.json({ success: true, data: post });
   } catch (error) {
     logger.error("[api/posts/[id]] PATCH error:", { error });
@@ -196,6 +226,16 @@ export async function DELETE(
         where: { id: { in: post.categories.map((c: any) => c.id) } },
         data: { postCount: { decrement: 1 } },
       });
+    }
+
+    // Interlink lifecycle: handle deleted post
+    if (post?.categories?.length || true) {
+      const deletedPost = await prisma.post.findUnique({ where: { id }, select: { slug: true } });
+      if (deletedPost) {
+        new InterlinkService(prisma as any).onContentDeleted(id, 'POST', deletedPost.slug).catch((err: unknown) =>
+          logger.error("[api/posts/[id]] Interlink onContentDeleted error:", { error: err }),
+        );
+      }
     }
 
     // Auto-exclude: check if any category now has zero published posts

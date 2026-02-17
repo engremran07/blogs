@@ -343,7 +343,7 @@ export async function GET(request: NextRequest) {
     results.push(
       await runTask("seo-auto-interlink", true, async () => {
         const interlinkSvc = new InterlinkService(prisma as any);
-        await interlinkSvc.autoLinkAll(20);
+        await interlinkSvc.autoLinkAll(50);
       }),
     );
 

@@ -585,7 +585,7 @@ async function main() {
     { model: "tagSettings", data: {} },
     { model: "captchaSettings", data: {} },
     { model: "pageSettings", data: {} },
-    { model: "adSettings", data: { adsEnabled: true, enableAutoPlacement: true, enableAnalytics: true, requireConsent: true } },
+    { model: "adSettings", data: { enableAutoPlacement: true, enableAnalytics: true, requireConsent: true } },
   ] as const;
 
   for (const s of settingsTasks) {
@@ -734,8 +734,8 @@ async function main() {
     { name: "In-Content Ad", slug: "in-content-ad", position: "IN_CONTENT", format: "DISPLAY", pageTypes: ["blog", "home", "tag:*", "about", "search", "contact", "tags-index"], renderPriority: 8 },
     { name: "In-Feed Ad", slug: "in-feed-ad", position: "IN_FEED", format: "NATIVE", pageTypes: ["blog-index", "tags-index", "tag:*", "about"], renderPriority: 6 },
     { name: "Before Comments Ad", slug: "before-comments-ad", position: "BEFORE_COMMENTS", format: "DISPLAY", pageTypes: ["blog"], renderPriority: 4 },
-    { name: "Header Banner", slug: "header-banner", position: "HEADER", format: "DISPLAY", pageTypes: ["*"], maxWidth: 728, maxHeight: 90, renderPriority: 15 },
-    { name: "Footer Banner", slug: "footer-banner", position: "FOOTER", format: "DISPLAY", pageTypes: ["*"], maxWidth: 728, maxHeight: 90, renderPriority: 2 },
+    { name: "Header Banner", slug: "header-banner", position: "HEADER", format: "DISPLAY", pageTypes: ["*"], maxHeight: 90, renderPriority: 15 },
+    { name: "Footer Banner", slug: "footer-banner", position: "FOOTER", format: "DISPLAY", pageTypes: ["*"], maxHeight: 90, renderPriority: 2 },
     { name: "In-Article Ad", slug: "in-article-ad", position: "IN_ARTICLE", format: "IN_ARTICLE", pageTypes: ["blog"], renderPriority: 7 },
     { name: "Sticky Bottom Banner", slug: "sticky-bottom-banner", position: "STICKY_BOTTOM", format: "ANCHOR", pageTypes: ["*"], maxWidth: 728, maxHeight: 90, renderPriority: 12 },
     { name: "Interstitial Overlay", slug: "interstitial-overlay", position: "INTERSTITIAL", format: "INTERSTITIAL", pageTypes: ["blog", "blog-index"], renderPriority: 1 },

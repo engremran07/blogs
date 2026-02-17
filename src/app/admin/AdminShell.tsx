@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { clsx } from "clsx";
 import { useState, useEffect, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
 import {
   LayoutDashboard,
   FileText,
@@ -30,7 +31,11 @@ import {
   Megaphone,
   Share2,
   Clock,
+  Home,
+  ChevronRight,
 } from "lucide-react";
+
+const CommandPalette = dynamic(() => import("./CommandPalette"), { ssr: false });
 
 interface SidebarLink {
   href: string;
@@ -79,7 +84,20 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [userInfo, setUserInfo] = useState<Record<string, string | null> | null>(null);
   const [moduleStatus, setModuleStatus] = useState<ModuleStatus>({ comments: true, ads: false, distribution: false, captcha: false });
+  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  // Ctrl+K keyboard shortcut for command palette
+  useEffect(() => {
+    function handleGlobalKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setCmdPaletteOpen((v) => !v);
+      }
+    }
+    window.addEventListener("keydown", handleGlobalKey);
+    return () => window.removeEventListener("keydown", handleGlobalKey);
+  }, []);
 
   // Auto-expand parent menus if a child is active
   useEffect(() => {
@@ -305,6 +323,18 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
           <div className="flex-1" />
 
+          {/* Search / Command Palette trigger */}
+          <button
+            onClick={() => setCmdPaletteOpen(true)}
+            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600 dark:border-gray-600 dark:bg-gray-700/50 dark:hover:border-gray-500 dark:hover:text-gray-300"
+          >
+            <Search className="h-4 w-4" />
+            <span className="hidden sm:inline">Search…</span>
+            <kbd className="ml-2 hidden rounded border border-gray-300 px-1 py-0.5 text-[10px] font-medium dark:border-gray-600 sm:inline-block">
+              Ctrl+K
+            </kbd>
+          </button>
+
           <Link
             href="/admin/posts/new"
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
@@ -406,9 +436,42 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          {/* Auto Breadcrumbs */}
+          {pathname !== "/admin" && (() => {
+            const segments = pathname.replace(/^\/admin\/?/, "").split("/").filter(Boolean);
+            const crumbs = segments.map((seg, idx) => ({
+              label: seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " "),
+              href: "/admin/" + segments.slice(0, idx + 1).join("/"),
+            }));
+            return (
+              <nav aria-label="Admin breadcrumb" className="mb-4">
+                <ol className="flex flex-wrap items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                  <li className="flex items-center gap-1.5">
+                    <Link href="/admin" className="flex items-center gap-1 transition-colors hover:text-blue-600 dark:hover:text-blue-400">
+                      <Home className="h-4 w-4" />
+                      <span>Dashboard</span>
+                    </Link>
+                  </li>
+                  {crumbs.map((crumb, idx) => (
+                    <li key={idx} className="flex items-center gap-1.5">
+                      <ChevronRight className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                      {idx === crumbs.length - 1 ? (
+                        <span className="font-medium text-gray-900 dark:text-white max-w-50 truncate">{crumb.label}</span>
+                      ) : (
+                        <Link href={crumb.href} className="transition-colors hover:text-blue-600 dark:hover:text-blue-400">{crumb.label}</Link>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+            );
+          })()}
           {children}
         </main>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette open={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
     </div>
   );
 }

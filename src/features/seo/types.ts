@@ -768,6 +768,7 @@ export interface PrismaTagDelegate {
 
 export interface PrismaSeoSuggestionDelegate {
   findMany(args?: Record<string, unknown>): Promise<SeoSuggestion[]>;
+  count(args?: Record<string, unknown>): Promise<number>;
   create(args: {
     data: Omit<SeoSuggestion, 'id' | 'createdAt'>;
   }): Promise<SeoSuggestion>;

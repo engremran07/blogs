@@ -113,7 +113,6 @@ export const DEFAULT_CONCURRENCY_POLICY: ConcurrencyPolicy = {
 };
 
 export const DEFAULT_ADS_CONFIG: AdsConfig = {
-  adsEnabled: false,
   positionKillSwitches: {},
   enableAutoPlacement: false,
   autoAdStrategy: "PARAGRAPH_COUNT",

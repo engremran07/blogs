@@ -54,7 +54,7 @@ A production-ready, feature-rich blog platform and content management system bui
 |---|---|
 | **Content Management** | Posts, pages, categories, tags, series, revisions, guest posts, scheduled publishing, soft delete |
 | **Admin Dashboard** | 13-section admin panel with role-based access, module kill switches, responsive sidebar |
-| **Rich Text Editor** | Custom TipTap WYSIWYG with 22 toggleable features, markdown shortcuts, drag-and-drop images, tables, code blocks, auto-save |
+| **Rich Text Editor** | Custom contentEditable WYSIWYG with 22 toggleable features, markdown shortcuts, drag-and-drop images, tables, code blocks, auto-save |
 | **SEO Engine** | Per-content scoring (0–100), 8 audit categories, JSON-LD structured data, dynamic OG image generation (Edge runtime), auto-sitemap, robots.txt, keyword tracking |
 | **Media Library** | Grid/list views, folder tree, drag-and-drop/paste/URL upload, image optimization (WebP/AVIF), bulk operations, deduplication |
 | **Comments** | Threaded comments, moderation queue, spam detection, upvoting, guest comments, per-post settings |
@@ -87,7 +87,7 @@ A production-ready, feature-rich blog platform and content management system bui
 | **Auth** | [NextAuth v5](https://authjs.dev/) (Auth.js) — Credentials provider, JWT strategy, PrismaAdapter |
 | **Caching** | [Upstash Redis](https://upstash.com/) with in-memory no-op fallback for local dev |
 | **Rate Limiting** | [@upstash/ratelimit](https://github.com/upstash/ratelimit) — sliding window, 30 req/60s per IP |
-| **Editor** | [TipTap](https://tiptap.dev/) — 15 extensions, custom config |
+| **Editor** | Custom contentEditable WYSIWYG — 22 toggleable features, zero external editor deps |
 | **Validation** | [Zod 4](https://zod.dev/) — schema validation on every API route |
 | **Security** | bcrypt 6, sanitize-html, HSTS/CSP/X-Frame headers, server-only imports |
 | **AI** | [OpenAI SDK](https://platform.openai.com/) — SEO suggestions, content assistance (optional) |
@@ -98,7 +98,7 @@ A production-ready, feature-rich blog platform and content management system bui
 ```
 next 16.1.6          react 19.2.3         prisma 7.4.0
 next-auth 5-beta.30  @upstash/redis       @upstash/ratelimit
-@tiptap/* 3.19       zod 4.3              tailwindcss 4
+zod 4.3              tailwindcss 4        sanitize-html 2.17
 bcrypt 6             sanitize-html 2.17   lucide-react 0.564
 openai 6.21          pg 8.18              tsx 4.21
 ```
@@ -588,7 +588,7 @@ All API routes are under `/api/`. Admin endpoints require authentication and rol
 
 ## Rich Text Editor
 
-A custom-built TipTap WYSIWYG editor with **22 admin-toggleable features**:
+A custom-built contentEditable WYSIWYG editor with **22 admin-toggleable features**:
 
 ### Formatting
 

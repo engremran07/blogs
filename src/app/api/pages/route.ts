@@ -5,6 +5,7 @@ import { createLogger } from "@/server/observability/logger";
 import { CreatePageSchema, PageListSchema } from "@/features/pages/server/schemas";
 import { PageError } from "@/features/pages/types";
 import { addPageTypesToSlots } from "@/features/ads/server/scan-pages";
+import { InterlinkService } from "@/features/seo/server/interlink.service";
 
 const logger = createLogger("api/pages");
 
@@ -74,6 +75,11 @@ export async function POST(req: NextRequest) {
     if (page.slug) {
       void addPageTypesToSlots(prisma as any, [`page:${page.slug}`]).catch(() => {});
     }
+
+    // Interlink lifecycle: scan for link suggestions
+    new InterlinkService(prisma as any).onContentCreated(page.id, 'PAGE', parsed.data.status || 'DRAFT').catch((err: unknown) =>
+      logger.error("[api/pages] Interlink onContentCreated error:", { error: err }),
+    );
 
     return NextResponse.json({ success: true, data: page }, { status: 201 });
   } catch (error) {

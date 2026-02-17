@@ -313,9 +313,101 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: report });
     }
 
+    if (action === "interlink-list-links") {
+      const interlinkSvc = new InterlinkService(prisma as any);
+      const sourceId = searchParams.get("sourceId") || undefined;
+      const targetId = searchParams.get("targetId") || undefined;
+      const status = searchParams.get("status") || undefined;
+      const origin = searchParams.get("origin") || undefined;
+      const limit = parseInt(searchParams.get("limit") || "50", 10);
+      const offset = parseInt(searchParams.get("offset") || "0", 10);
+      const result = await interlinkSvc.listLinks({ sourceId, targetId, status, origin, limit, offset });
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === "interlink-list-exclusions") {
+      const interlinkSvc = new InterlinkService(prisma as any);
+      const exclusions = await interlinkSvc.listExclusions();
+      return NextResponse.json({ success: true, data: exclusions });
+    }
+
     return NextResponse.json({ success: false, error: "Unknown action" }, { status: 400 });
   } catch (error) {
     logger.error("SEO API error:", { error });
+    return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
+  }
+}
+
+// POST /api/seo — Mutating interlink operations
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user || !["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes((session.user as any).role)) {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const action = body.action as string;
+    const interlinkSvc = new InterlinkService(prisma as any);
+
+    if (action === "interlink-manual-link") {
+      const { sourceId, sourceType, targetId, targetType, anchorText } = body;
+      if (!sourceId || !targetId || !anchorText) {
+        return NextResponse.json({ success: false, error: "Missing sourceId, targetId, or anchorText" }, { status: 400 });
+      }
+      const result = await interlinkSvc.createManualLink({
+        sourceId, sourceType: sourceType || "POST",
+        targetId, targetType: targetType || "POST",
+        anchorText,
+      });
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === "interlink-apply-manual") {
+      const { linkId } = body;
+      if (!linkId) return NextResponse.json({ success: false, error: "Missing linkId" }, { status: 400 });
+      const result = await interlinkSvc.applyManualLink(linkId);
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === "interlink-approve") {
+      const { linkId } = body;
+      if (!linkId) return NextResponse.json({ success: false, error: "Missing linkId" }, { status: 400 });
+      const result = await interlinkSvc.approveLink(linkId);
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === "interlink-reject") {
+      const { linkId } = body;
+      if (!linkId) return NextResponse.json({ success: false, error: "Missing linkId" }, { status: 400 });
+      const result = await interlinkSvc.rejectLink(linkId);
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === "interlink-remove") {
+      const { linkId } = body;
+      if (!linkId) return NextResponse.json({ success: false, error: "Missing linkId" }, { status: 400 });
+      const result = await interlinkSvc.removeLink(linkId);
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === "interlink-add-exclusion") {
+      const { ruleType, phrase, contentId, contentType, pairedId, pairedType, reason } = body;
+      if (!ruleType) return NextResponse.json({ success: false, error: "Missing ruleType" }, { status: 400 });
+      const result = await interlinkSvc.addExclusion({ ruleType, phrase, contentId, contentType, pairedId, pairedType, reason });
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === "interlink-remove-exclusion") {
+      const { exclusionId } = body;
+      if (!exclusionId) return NextResponse.json({ success: false, error: "Missing exclusionId" }, { status: 400 });
+      await interlinkSvc.removeExclusion(exclusionId);
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ success: false, error: "Unknown action" }, { status: 400 });
+  } catch (error) {
+    logger.error("SEO POST API error:", { error });
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
   }
 }

@@ -60,8 +60,20 @@ function writeConsent(categories: Record<CookieCategory, boolean>) {
 
 // ─── Public hook — consumed by AnalyticsScripts, ad tags, etc. ─────────────
 
+/** Default state used on server and during hydration — ensures SSR/client match. */
+const DEFAULT_CONSENT: CookieConsentState = {
+  consented: false,
+  categories: { essential: true, analytics: false, marketing: false },
+};
+
 export function useCookieConsent(): CookieConsentState {
-  const [state, setState] = useState<CookieConsentState>(readConsent);
+  // Start with static defaults so SSR and first client render match (no hydration mismatch).
+  const [state, setState] = useState<CookieConsentState>(DEFAULT_CONSENT);
+
+  // Hydrate real consent status from localStorage after mount
+  useEffect(() => {
+    setState(readConsent());
+  }, []);
 
   useEffect(() => {
     const handler = (e: Event) => {

@@ -3,8 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/layout/Providers";
 import { PublicShell } from "@/components/layout/PublicShell";
-import { GlobalAdSlots } from "@/features/ads/ui/GlobalAdSlots";
+import { HeaderAdBanner, FooterAdBanner, OverlayAdSlots } from "@/features/ads/ui/GlobalAdSlots";
 import { siteSettingsService } from "@/server/wiring";
+import { serializeJsonLd } from "@/features/seo/server/json-ld.util";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
 
@@ -22,11 +23,16 @@ export async function generateMetadata(): Promise<Metadata> {
   let siteName = "MyBlog";
   let description = "A modern blog platform built with Next.js";
   let ogImage: string | null = null;
+  let googleVerification: string | null = null;
+  let bingVerification: string | null = null;
   try {
     const s = await siteSettingsService.getSettings();
     siteName = s.siteName || siteName;
     description = s.siteDescription || description;
-    ogImage = (s as unknown as Record<string, unknown>).seoDefaultImage as string | null;
+    const raw = s as unknown as Record<string, unknown>;
+    ogImage = raw.seoDefaultImage as string | null;
+    googleVerification = raw.seoGoogleVerification as string | null;
+    bingVerification = raw.seoBingVerification as string | null;
   } catch {
     /* fallback to defaults */
   }
@@ -35,6 +41,12 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     metadataBase: new URL(SITE_URL),
     alternates: { canonical: SITE_URL },
+    ...(googleVerification || bingVerification ? {
+      verification: {
+        ...(googleVerification ? { google: googleVerification } : {}),
+        ...(bingVerification ? { other: { 'msvalidate.01': bingVerification } } : {}),
+      },
+    } : {}),
     openGraph: {
       type: "website",
       siteName,
@@ -90,11 +102,16 @@ export default async function RootLayout({
       >
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(webSiteJsonLd) }}
         />
         <Providers>
-          <PublicShell>{children}</PublicShell>
-          <GlobalAdSlots />
+          <PublicShell
+            headerAdSlot={<HeaderAdBanner />}
+            footerAdSlot={<FooterAdBanner />}
+            overlayAdSlot={<OverlayAdSlots />}
+          >
+            {children}
+          </PublicShell>
         </Providers>
       </body>
     </html>

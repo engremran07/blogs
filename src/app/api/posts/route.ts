@@ -6,6 +6,8 @@ import { sanitizeContent, sanitizeText } from "@/features/blog/server/sanitizati
 import {
   generateSlug, countWords, calculateReadingTime, generateExcerpt,
 } from "@/features/blog/server/constants";
+import { autoDistributePost } from "@/features/distribution";
+import { InterlinkService } from "@/features/seo/server/interlink.service";
 
 const logger = createLogger("api/posts");
 
@@ -207,6 +209,18 @@ export async function POST(req: NextRequest) {
         data: { postCount: { increment: 1 } },
       });
     }
+
+    // Auto-distribute to channels with autoPublish on publish
+    if (status === "PUBLISHED") {
+      autoDistributePost(post.id).catch((err: unknown) =>
+        logger.error("[api/posts] Auto-distribute error:", { error: err }),
+      );
+    }
+
+    // Interlink lifecycle: scan for link suggestions
+    new InterlinkService(prisma as any).onContentCreated(post.id, 'POST', status).catch((err: unknown) =>
+      logger.error("[api/posts] Interlink onContentCreated error:", { error: err }),
+    );
 
     return NextResponse.json({ success: true, data: post }, { status: 201 });
   } catch (error) {

@@ -307,6 +307,8 @@ export {
   scanContentForLinks,
   injectLinksIntoContent,
   detectBrokenLinks,
+  removeBrokenLinksFromHtml,
+  rewriteUrlsInHtml,
 } from './server/interlink.service';
 
 export type {
@@ -314,4 +316,7 @@ export type {
   InternalLinkRecord,
   InterlinkScanResult,
   InterlinkReport,
+  ManualLinkInput,
+  ExclusionInput,
+  ContentIndex,
 } from './server/interlink.service';

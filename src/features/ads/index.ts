@@ -41,6 +41,39 @@ export {
   AdsError,
 } from "./types";
 
+/* ── Server ──────────────────────────────────────────────────────── */
+export { AdsService } from "./server/ads.service";
+export { AdsAdminSettingsService } from "./server/admin-settings.service";
+
+export {
+  adSizeSchema,
+  responsiveSizeMapSchema,
+  widgetAdConfigSchema,
+  concurrencyPolicySchema,
+  createProviderSchema,
+  updateProviderSchema,
+  createSlotSchema,
+  updateSlotSchema,
+  createPlacementSchema,
+  updatePlacementSchema,
+  recordEventSchema,
+  updateAdsConfigSchema,
+  pageQuerySchema,
+} from "./server/schemas";
+
+export { sanitizeAdCode, sanitizeCustomHtml, escapeHtml, escapeHtmlAttr, detectDangerousPatterns, findUntrustedScripts } from "./server/sanitization.util";
+export type { DangerousMatch, UntrustedScript } from "./server/sanitization.util";
+
+export {
+  discoverPageTypes,
+  removePageTypesFromSlots,
+  addPageTypesToSlots,
+  syncAdSlotPageTypes,
+  generateScanHealthReport,
+  STATIC_PAGE_TYPES,
+} from "./server/scan-pages";
+export type { ScannedPageType, ScanHealthReport } from "./server/scan-pages";
+
 /* ── UI Components ───────────────────────────────────────────────── */
 export { AdContainer } from "./ui/AdContainer";
 export { AdRenderer } from "./ui/AdRenderer";
@@ -54,3 +87,4 @@ export { VideoAd } from "./ui/VideoAd";
 export { InArticleAd } from "./ui/InArticleAd";
 export { InFeedAdCard } from "./ui/InFeedAdCard";
 export { NativeRecommendationAd } from "./ui/NativeRecommendationAd";
+export { HeaderAdBanner, FooterAdBanner, OverlayAdSlots } from "./ui/GlobalAdSlots";

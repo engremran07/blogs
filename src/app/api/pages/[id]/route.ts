@@ -5,6 +5,7 @@ import { createLogger } from "@/server/observability/logger";
 import { UpdatePageSchema } from "@/features/pages/server/schemas";
 import { PageError } from "@/features/pages/types";
 import { removePageTypesFromSlots } from "@/features/ads/server/scan-pages";
+import { InterlinkService } from "@/features/seo/server/interlink.service";
 
 const logger = createLogger("api/pages");
 
@@ -75,6 +76,27 @@ export async function PATCH(
     }
 
     const page = await pageService.updatePage(id, parsed.data);
+
+    // Interlink lifecycle: handle slug/content/status changes
+    const interlinkChanges: { slug?: { old: string; new: string }; statusChanged?: boolean; contentChanged?: boolean } = {};
+    if (body.slug && body.slug !== existingPage.slug) {
+      interlinkChanges.slug = { old: existingPage.slug, new: body.slug };
+    }
+    if (body.status && body.status !== existingPage.status) {
+      interlinkChanges.statusChanged = true;
+      if (existingPage.status === 'PUBLISHED' && body.status !== 'PUBLISHED') {
+        new InterlinkService(prisma as any).onContentUnpublished(id, 'PAGE', existingPage.slug).catch((err: unknown) =>
+          logger.error("[api/pages/[id]] Interlink onContentUnpublished error:", { error: err }),
+        );
+      }
+    }
+    if (body.content) interlinkChanges.contentChanged = true;
+    if (Object.keys(interlinkChanges).length > 0) {
+      new InterlinkService(prisma as any).onContentUpdated(id, 'PAGE', interlinkChanges).catch((err: unknown) =>
+        logger.error("[api/pages/[id]] Interlink onContentUpdated error:", { error: err }),
+      );
+    }
+
     return NextResponse.json({ success: true, data: page });
   } catch (error) {
     if (error instanceof PageError) {
@@ -110,6 +132,13 @@ export async function DELETE(
     const existing = await pageService.findById(id);
 
     const page = await pageService.softDelete(id);
+
+    // Interlink lifecycle: handle deleted page
+    if (existing?.slug) {
+      new InterlinkService(prisma as any).onContentDeleted(id, 'PAGE', existing.slug).catch((err: unknown) =>
+        logger.error("[api/pages/[id]] Interlink onContentDeleted error:", { error: err }),
+      );
+    }
 
     // Auto-exclude this page from ad slot pageTypes
     if (existing?.slug) {

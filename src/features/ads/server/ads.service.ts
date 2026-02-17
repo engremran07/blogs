@@ -260,7 +260,7 @@ export class AdsService {
       closes,
       ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
       viewabilityRate: impressions > 0 ? (viewable / impressions) * 100 : 0,
-      revenue: 0,
+      revenue: (impressions / 1000) * 2, // Estimate at $2 CPM default until pricing model is added
     };
   }
 
@@ -397,11 +397,33 @@ export class AdsService {
 
   // ── Event Recording ──────────────────────────────────────────────────────
 
+  /** Debounce window for click deduplication (ms) */
+  private static CLICK_DEDUP_WINDOW = 30_000;
+  private clickDedup = new Map<string, number>();
+
   async recordEvent(
     placementId: string,
     eventType: string,
     metadata?: Record<string, unknown> | null,
   ): Promise<void> {
+    // Click deduplication: reject same placement + IP within 30s
+    if (eventType === "CLICK") {
+      const ip = (metadata as any)?.ip || "unknown";
+      const key = `${placementId}:${ip}`;
+      const now = Date.now();
+      const last = this.clickDedup.get(key);
+      if (last && now - last < AdsService.CLICK_DEDUP_WINDOW) {
+        return; // duplicate click — skip
+      }
+      this.clickDedup.set(key, now);
+      // Prune old entries periodically
+      if (this.clickDedup.size > 10_000) {
+        for (const [k, v] of this.clickDedup) {
+          if (now - v > AdsService.CLICK_DEDUP_WINDOW) this.clickDedup.delete(k);
+        }
+      }
+    }
+
     await this.prisma.adLog.create({
       data: { placementId, eventType, metadata: metadata ?? undefined },
     });
@@ -422,13 +444,16 @@ export class AdsService {
   // ── Global Kill Switch ───────────────────────────────────────────────────
 
   async globalKillSwitch(killed: boolean): Promise<void> {
+    // Update all providers in one batch query
     const providers = await this.prisma.adProvider.findMany();
-    for (const p of providers) {
-      await this.prisma.adProvider.update({
-        where: { id: p.id },
-        data: { killSwitch: killed },
-      });
-    }
+    await Promise.all(
+      providers.map((p: any) =>
+        this.prisma.adProvider.update({
+          where: { id: p.id },
+          data: { killSwitch: killed },
+        }),
+      ),
+    );
     await this.cache.invalidatePrefix("ads:");
   }
 }

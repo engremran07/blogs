@@ -14,6 +14,8 @@ import {
   RefreshCw,
   Eye,
   MousePointer,
+  MousePointerClick,
+  DollarSign,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -90,6 +92,11 @@ interface Overview {
   activeSlots: number;
   totalPlacements: number;
   activePlacements: number;
+  totalImpressions?: number;
+  totalClicks?: number;
+  totalRevenue?: number;
+  ctr?: number;
+  rpm?: number;
 }
 
 type Tab = "overview" | "providers" | "slots" | "placements" | "settings" | "compliance";
@@ -541,9 +548,12 @@ export default function AdsAdminPage() {
           {/* Stats Grid */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { label: "Total Providers", value: overview?.totalProviders ?? 0, active: overview?.activeProviders ?? 0, icon: <Layers className="h-5 w-5" />, color: "blue" },
-              { label: "Ad Slots", value: overview?.totalSlots ?? 0, active: overview?.activeSlots ?? 0, icon: <MonitorSmartphone className="h-5 w-5" />, color: "emerald" },
-              { label: "Placements", value: overview?.totalPlacements ?? 0, active: overview?.activePlacements ?? 0, icon: <Megaphone className="h-5 w-5" />, color: "purple" },
+              { label: "Total Providers", value: overview?.totalProviders ?? 0, sub: `${overview?.activeProviders ?? 0} active`, icon: <Layers className="h-5 w-5" />, color: "blue" },
+              { label: "Ad Slots", value: overview?.totalSlots ?? 0, sub: `${overview?.activeSlots ?? 0} active`, icon: <MonitorSmartphone className="h-5 w-5" />, color: "emerald" },
+              { label: "Placements", value: overview?.totalPlacements ?? 0, sub: `${overview?.activePlacements ?? 0} active`, icon: <Megaphone className="h-5 w-5" />, color: "purple" },
+              { label: "Impressions", value: (overview?.totalImpressions ?? 0).toLocaleString(), sub: `RPM $${(overview?.rpm ?? 0).toFixed(2)}`, icon: <Eye className="h-5 w-5" />, color: "amber" },
+              { label: "Clicks", value: (overview?.totalClicks ?? 0).toLocaleString(), sub: `CTR ${(overview?.ctr ?? 0).toFixed(2)}%`, icon: <MousePointerClick className="h-5 w-5" />, color: "rose" },
+              { label: "Est. Revenue", value: `$${(overview?.totalRevenue ?? 0).toFixed(2)}`, sub: "All time", icon: <DollarSign className="h-5 w-5" />, color: "green" },
             ].map((stat) => (
               <div key={stat.label} className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
                 <div className="flex items-center justify-between">
@@ -551,7 +561,7 @@ export default function AdsAdminPage() {
                   <span className={`text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.icon}</span>
                 </div>
                 <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{stat.active} active</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{stat.sub}</p>
               </div>
             ))}
           </div>

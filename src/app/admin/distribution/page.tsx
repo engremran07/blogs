@@ -100,6 +100,7 @@ export default function DistributionAdminPage() {
     platform: "twitter",
     enabled: true,
     autoPublish: false,
+    credentials: {} as Record<string, string>,
   });
 
   /* ─── Fetch ─── */
@@ -157,7 +158,7 @@ export default function DistributionAdminPage() {
 
   function openCreate() {
     setEditingChannel(null);
-    setForm({ name: "", platform: "twitter", enabled: true, autoPublish: false });
+    setForm({ name: "", platform: "twitter", enabled: true, autoPublish: false, credentials: {} });
     setChannelModal(true);
   }
 
@@ -168,6 +169,7 @@ export default function DistributionAdminPage() {
       platform: ch.platform,
       enabled: ch.enabled,
       autoPublish: ch.autoPublish,
+      credentials: (ch.credentials ?? {}) as Record<string, string>,
     });
     setChannelModal(true);
   }
@@ -178,10 +180,15 @@ export default function DistributionAdminPage() {
     try {
       const url = editingChannel ? `/api/distribution/channels/${editingChannel.id}` : "/api/distribution/channels";
       const method = editingChannel ? "PATCH" : "POST";
+      // Strip empty credential values so we don't overwrite existing secrets with blanks
+      const cleanedCreds = Object.fromEntries(
+        Object.entries(form.credentials).filter(([, v]) => typeof v === "string" && v.trim() !== ""),
+      );
+      const payload = { ...form, credentials: Object.keys(cleanedCreds).length ? cleanedCreds : undefined };
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success) {
@@ -515,6 +522,7 @@ export default function DistributionAdminPage() {
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Attempts</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Date</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Link</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
@@ -547,10 +555,46 @@ export default function DistributionAdminPage() {
                         <span className="text-xs text-gray-400">—</span>
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        {["FAILED", "RATE_LIMITED"].includes(r.status) && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/distribution/records/${r.id}`, { method: "POST" });
+                                const data = await res.json();
+                                if (data.success) { toast("Retrying…", "success"); fetchAll(); }
+                                else toast(data.error || "Retry failed", "error");
+                              } catch { toast("Retry failed", "error"); }
+                            }}
+                            className="rounded p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                            title="Retry"
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {["PENDING", "SCHEDULED"].includes(r.status) && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/distribution/records/${r.id}`, { method: "DELETE" });
+                                const data = await res.json();
+                                if (data.success) { toast("Cancelled", "success"); fetchAll(); }
+                                else toast(data.error || "Cancel failed", "error");
+                              } catch { toast("Cancel failed", "error"); }
+                            }}
+                            className="rounded p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
+                            title="Cancel"
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {records.length === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No distribution records yet</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No distribution records yet</td></tr>
                 )}
               </tbody>
             </table>
@@ -587,6 +631,103 @@ export default function DistributionAdminPage() {
                 {opt.label}
               </label>
             ))}
+          </div>
+
+          {/* Platform Credentials */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Credentials</h4>
+            {form.platform === "telegram" && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  label="Bot Token"
+                  type="password"
+                  value={(form.credentials.botToken as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, botToken: e.target.value } })}
+                  placeholder="123456:ABC-DEF..."
+                />
+                <Input
+                  label="Chat ID"
+                  value={(form.credentials.chatId as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, chatId: e.target.value } })}
+                  placeholder="@channel or -100..."
+                />
+              </div>
+            )}
+            {form.platform === "twitter" && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  label="API Key"
+                  type="password"
+                  value={(form.credentials.apiKey as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, apiKey: e.target.value } })}
+                />
+                <Input
+                  label="API Secret"
+                  type="password"
+                  value={(form.credentials.apiSecret as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, apiSecret: e.target.value } })}
+                />
+                <Input
+                  label="Access Token"
+                  type="password"
+                  value={(form.credentials.accessToken as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, accessToken: e.target.value } })}
+                />
+                <Input
+                  label="Access Token Secret"
+                  type="password"
+                  value={(form.credentials.accessTokenSecret as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, accessTokenSecret: e.target.value } })}
+                />
+              </div>
+            )}
+            {form.platform === "linkedin" && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  label="Access Token"
+                  type="password"
+                  value={(form.credentials.accessToken as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, accessToken: e.target.value } })}
+                />
+                <Input
+                  label="Page / Organization ID"
+                  value={(form.credentials.pageId as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, pageId: e.target.value } })}
+                />
+              </div>
+            )}
+            {form.platform === "facebook" && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  label="Page Access Token"
+                  type="password"
+                  value={(form.credentials.accessToken as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, accessToken: e.target.value } })}
+                />
+                <Input
+                  label="Page ID"
+                  value={(form.credentials.pageId as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, pageId: e.target.value } })}
+                />
+              </div>
+            )}
+            {!["telegram", "twitter", "linkedin", "facebook"].includes(form.platform) && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  label="API Key / Token"
+                  type="password"
+                  value={(form.credentials.apiKey as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, apiKey: e.target.value } })}
+                />
+                <Input
+                  label="Secret"
+                  type="password"
+                  value={(form.credentials.secret as string) || ""}
+                  onChange={(e) => setForm({ ...form, credentials: { ...form.credentials, secret: e.target.value } })}
+                />
+              </div>
+            )}
+            <p className="text-xs text-gray-400 dark:text-gray-500">Credentials are stored encrypted. Leave blank to keep existing values.</p>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

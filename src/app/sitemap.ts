@@ -7,9 +7,9 @@ const SITE_URL =
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_URL.replace(/\/$/, "");
 
-  // Fetch published posts
+  // Fetch published posts (exclude noIndex posts)
   const posts = await prisma.post.findMany({
-    where: { status: "PUBLISHED", deletedAt: null },
+    where: { status: "PUBLISHED", deletedAt: null, noIndex: { not: true } },
     select: { slug: true, updatedAt: true },
     orderBy: { updatedAt: "desc" },
   });

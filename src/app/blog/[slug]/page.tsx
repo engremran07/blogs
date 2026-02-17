@@ -11,9 +11,11 @@ import { SocialShare } from "@/components/blog/SocialShare";
 import { TableOfContents } from "@/components/blog/TableOfContents";
 import { PostNavigation } from "@/components/blog/PostNavigation";
 import { BlogSidebar } from "@/components/blog/BlogSidebar";
-import { buildArticleJsonLd, buildBreadcrumbJsonLd } from "@/features/seo/server/json-ld.util";
+import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildPersonJsonLd, buildFaqJsonLd, serializeJsonLd } from "@/features/seo/server/json-ld.util";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import { InArticleAd } from "@/features/ads/ui/InArticleAd";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { PostImageFallback } from "@/components/blog/PostImageFallback";
 import type { Metadata } from "next";
 import type { PostListItem, CategoryItem } from "@/types/prisma-helpers";
 
@@ -41,7 +43,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       where: { slug },
       select: {
         title: true, excerpt: true, seoTitle: true, seoDescription: true,
-        featuredImage: true, featuredImageAlt: true,
+        featuredImage: true, featuredImageAlt: true, noIndex: true, noFollow: true,
         ogTitle: true, ogDescription: true, ogImage: true,
         twitterCard: true, twitterTitle: true, twitterDescription: true, twitterImage: true,
         canonicalUrl: true, seoKeywords: true,
@@ -102,6 +104,9 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       description: post.twitterDescription || post.ogDescription || description,
       images: [post.twitterImage || ogImageUrl],
     },
+    ...((post as Record<string, unknown>).noIndex || (post as Record<string, unknown>).noFollow
+      ? { robots: { index: !(post as Record<string, unknown>).noIndex, follow: !(post as Record<string, unknown>).noFollow } }
+      : {}),
   };
 }
 
@@ -194,17 +199,54 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
     { name: post.title, url: fullPostUrl },
   ]);
 
+  // Person JSON-LD for the author
+  const personJsonLd = post.author ? buildPersonJsonLd({
+    name: post.author.displayName || post.author.username,
+    url: `${baseUrl}/blog?author=${post.author.username}`,
+  }) : null;
+
+  // Auto-detect FAQ patterns in content (Q&A, details/summary, headings ending with ?)
+  const faqItems: { question: string; answer: string }[] = [];
+  if (post.content) {
+    // Pattern 1: <details><summary>Question</summary>Answer</details>
+    const detailsRegex = /<details[^>]*>\s*<summary[^>]*>([^<]+)<\/summary>\s*([\s\S]*?)<\/details>/gi;
+    let match;
+    while ((match = detailsRegex.exec(post.content)) !== null) {
+      faqItems.push({ question: match[1].trim(), answer: match[2].replace(/<[^>]+>/g, '').trim() });
+    }
+    // Pattern 2: Headings ending with ? followed by paragraph content
+    if (faqItems.length === 0) {
+      const headingQRegex = /<h[2-4][^>]*>([^<]*\?)<\/h[2-4]>\s*<p[^>]*>([\s\S]*?)<\/p>/gi;
+      while ((match = headingQRegex.exec(post.content)) !== null) {
+        faqItems.push({ question: match[1].trim(), answer: match[2].replace(/<[^>]+>/g, '').trim() });
+      }
+    }
+  }
+  const faqJsonLd = faqItems.length >= 2 ? buildFaqJsonLd(faqItems) : null;
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
+      {personJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(personJsonLd) }}
+        />
+      )}
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
+        />
+      )}
       {/* Preview Banner */}
       {isPreview && (
         <div className="mb-6 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
@@ -225,14 +267,13 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
 
         {/* Main Content */}
         <article className="mx-auto max-w-4xl flex-1 min-w-0">
-          {/* Back link */}
-          <Link
-            href="/blog"
-            className="mb-8 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Blog
-          </Link>
+          {/* Visual Breadcrumbs */}
+          <Breadcrumbs items={[
+            { label: "Home", href: "/" },
+            { label: "Blog", href: "/blog" },
+            ...(post.categories?.[0] ? [{ label: post.categories[0].name, href: `/blog?category=${post.categories[0].slug}` }] : []),
+            { label: post.title },
+          ]} />
 
           {/* Header */}
           <header className="mb-8">
@@ -302,7 +343,7 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
           )}
 
           {/* Featured Image */}
-          {post.featuredImage && (
+          {post.featuredImage ? (
             <div className="relative mb-10 aspect-video overflow-hidden rounded-2xl">
               <Image
                 src={post.featuredImage}
@@ -313,6 +354,12 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
                 priority
               />
             </div>
+          ) : (
+            <PostImageFallback
+              title={post.title}
+              category={post.categories?.[0]?.name}
+              className="mb-10 aspect-video rounded-2xl"
+            />
           )}
 
           {/* Content with auto-injected in-article ads */}

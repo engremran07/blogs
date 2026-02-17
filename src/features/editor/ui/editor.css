@@ -566,27 +566,6 @@
   margin-bottom: 6px;
 }
 
-/* ProseMirror specific styles */
-.ProseMirror {
-  outline: none;
-}
-
-.ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  color: var(--rte-muted);
-  pointer-events: none;
-  height: 0;
-}
-
-.ProseMirror-focused {
-  outline: none;
-}
-
-/* Selection */
-.ProseMirror ::selection {
-  background: var(--rte-selection);
-}
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {

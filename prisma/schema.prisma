@@ -1655,7 +1655,6 @@ model AdLog {
 model AdSettings {
   id                       String   @id @default(cuid())
 
-  adsEnabled               Boolean  @default(true)
   sanitizeAdCode           Boolean  @default(true)
   allowedProviderTypes     String[] @default([])
 
@@ -1706,6 +1705,73 @@ model AdSettings {
   updatedAt                DateTime @updatedAt
 
   @@map("ad_settings")
+}
+
+// ============================================================================
+// SEO INTERLINKING MODULE
+// ============================================================================
+
+/// Persisted internal link record — tracks auto-injected AND manual links.
+model InternalLink {
+  id            String   @id @default(cuid())
+  sourceId      String
+  sourceType    String   // POST | PAGE
+  targetId      String
+  targetType    String   // POST | PAGE
+  anchorText    String
+  targetUrl     String
+  relevanceScore Int     @default(0)
+
+  /// ACTIVE  = live in content
+  /// SUGGESTED = candidate awaiting approval
+  /// APPROVED  = manually approved, will inject on next cycle
+  /// REJECTED  = admin rejected, never auto-insert
+  /// BROKEN   = target was deleted / slug changed
+  /// REMOVED  = admin manually removed
+  status        String   @default("ACTIVE")
+
+  /// AUTO = auto-injected by engine | MANUAL = admin-created | CRON = cron batch
+  origin        String   @default("AUTO")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([sourceId, targetId, anchorText])
+  @@index([sourceId, sourceType])
+  @@index([targetId, targetType])
+  @@index([status])
+  @@index([origin])
+  @@index([sourceId, status])
+  @@index([targetId, status])
+  @@map("internal_links")
+}
+
+/// Exclusion rules — admin "never link" overrides.
+model InterlinkExclusion {
+  id            String   @id @default(cuid())
+
+  /// PHRASE = never use this anchor text | TARGET = never link to this content
+  /// SOURCE = never inject links into this content | PAIR = never link source→target
+  ruleType      String   // PHRASE | TARGET | SOURCE | PAIR
+
+  /// For PHRASE rules
+  phrase        String?
+
+  /// For TARGET / SOURCE / PAIR rules
+  contentId     String?
+  contentType   String?  // POST | PAGE
+
+  /// For PAIR rules — second content
+  pairedId      String?
+  pairedType    String?  // POST | PAGE
+
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  @@index([ruleType])
+  @@index([contentId])
+  @@index([phrase])
+  @@map("interlink_exclusions")
 }
 
 // ============================================================================

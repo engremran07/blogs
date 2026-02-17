@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db/prisma";
 import { Users, BookOpen, MessageSquare, Globe } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
+import { buildWebPageJsonLd, serializeJsonLd } from "@/features/seo/server/json-ld.util";
 import type { Metadata } from "next";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
@@ -41,9 +42,17 @@ export default async function AboutPage() {
   ]);
 
   const siteName = settings?.siteName || "MyBlog";
+  const aboutDescription = settings?.siteDescription || `Learn more about ${siteName}`;
+  const aboutJsonLd = buildWebPageJsonLd({
+    name: `About ${siteName}`,
+    url: `${SITE_URL}/about`,
+    description: aboutDescription || undefined,
+    isPartOf: { name: siteName, url: SITE_URL },
+  });
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(aboutJsonLd) }} />
       {/* Hero */}
       <div className="mb-12 text-center">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white">

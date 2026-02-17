@@ -24,7 +24,6 @@ export class AdsAdminSettingsService {
     if (!row) return { ...DEFAULT_ADS_CONFIG };
 
     const config: AdsConfig = {
-      adsEnabled: row.adsEnabled ?? DEFAULT_ADS_CONFIG.adsEnabled,
       positionKillSwitches: (row.positionKillSwitches as Record<string, boolean>) ?? {},
       enableAutoPlacement: row.enableAutoPlacement ?? DEFAULT_ADS_CONFIG.enableAutoPlacement,
       autoAdStrategy: (row.autoAdStrategy as AdsConfig["autoAdStrategy"]) ?? DEFAULT_ADS_CONFIG.autoAdStrategy,

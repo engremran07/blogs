@@ -270,7 +270,6 @@ export interface AdPlacementDetail extends AdPlacement {
 /* ========================================================================== */
 
 export interface AdsConfig {
-  adsEnabled: boolean;
   positionKillSwitches: Partial<Record<AdPosition, boolean>>;
   enableAutoPlacement: boolean;
   autoAdStrategy: AutoAdStrategy;

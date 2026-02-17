@@ -1,23 +1,40 @@
 /**
- * GlobalAdSlots — Renders page-level ad positions that exist outside
- * individual page content: header banner, footer banner, sticky ads,
+ * GlobalAdSlots — Server components for page-level ad positions that exist
+ * outside individual page content: header banner, footer banner, sticky ads,
  * interstitial, exit-intent, floating, and vignette.
  *
- * Placed once in the root layout or PublicShell to provide site-wide
- * ad coverage. Each position checks for active placements via DB.
- *
- * Server component that conditionally renders client-side wrappers
- * for overlay/interactive ad types.
+ * Exports three named components (HeaderAdBanner, FooterAdBanner, OverlayAdSlots)
+ * designed to be passed as React node props to PublicShell, which positions them
+ * correctly in the layout and excludes them from admin routes.
  */
 import { prisma } from "@/server/db/prisma";
 import type { AdPlacementData } from "./AdRenderer";
 import { AdRenderer } from "./AdRenderer";
-import { ReservedAdSlot } from "./ReservedAdSlot";
 import { GlobalOverlayAds } from "./GlobalOverlayAds";
 
-interface GlobalAdSlotsProps {
+interface SectionProps {
   /** Current page type for targeting */
   pageType?: string;
+}
+
+/**
+ * Shared helper — check if ads are enabled and fetch consent setting.
+ * Returns null if ads are disabled.
+ */
+async function getAdConfig() {
+  try {
+    const siteSettings = await prisma.siteSettings.findFirst({
+      select: { adsEnabled: true },
+    });
+    if (!siteSettings?.adsEnabled) return null;
+
+    const adSettings = await (prisma as any).adSettings.findFirst({
+      select: { requireConsent: true },
+    });
+    return { requireConsent: (adSettings?.requireConsent ?? false) as boolean };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -56,64 +73,65 @@ async function fetchPositionPlacements(position: string, pageType: string): Prom
   }
 }
 
-export async function GlobalAdSlots({ pageType = "global" }: GlobalAdSlotsProps) {
-  // Check if ads are enabled
-  const siteSettings = await prisma.siteSettings.findFirst({
-    select: { adsEnabled: true },
-  });
-  if (!siteSettings?.adsEnabled) return null;
+/* ─── Header Ad Banner ─────────────────────────────────────────────────────── */
 
-  // Check if consent is required
-  const adSettings = await (prisma as any).adSettings.findFirst({
-    select: { requireConsent: true },
-  });
-  const requireConsent: boolean = adSettings?.requireConsent ?? false;
+export async function HeaderAdBanner({ pageType = "global" }: SectionProps) {
+  const config = await getAdConfig();
+  if (!config) return null;
 
-  // Fetch overlay ad placements in parallel
-  const [
-    headerAds,
-    footerAds,
-    stickyBottomAds,
-    interstitialAds,
-    exitIntentAds,
-    floatingAds,
-  ] = await Promise.all([
-    fetchPositionPlacements("HEADER", pageType),
-    fetchPositionPlacements("FOOTER", pageType),
+  const headerAds = await fetchPositionPlacements("HEADER", pageType);
+  if (headerAds.length === 0) return null;
+
+  return (
+    <div className="flex w-full items-center justify-center bg-gray-50 dark:bg-gray-900/50" data-ad-position="header">
+      <div className="w-full px-4">
+        <AdRenderer placement={headerAds[0]} requireConsent={config.requireConsent} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Footer Ad Banner ─────────────────────────────────────────────────────── */
+
+export async function FooterAdBanner({ pageType = "global" }: SectionProps) {
+  const config = await getAdConfig();
+  if (!config) return null;
+
+  const footerAds = await fetchPositionPlacements("FOOTER", pageType);
+  if (footerAds.length === 0) return null;
+
+  return (
+    <div className="flex w-full items-center justify-center border-t border-gray-200 bg-gray-50 py-2 dark:border-gray-800 dark:bg-gray-900/50" data-ad-position="footer">
+      <div className="w-full px-4">
+        <AdRenderer placement={footerAds[0]} requireConsent={config.requireConsent} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Overlay Ad Slots (interstitial, exit-intent, floating, sticky) ──────── */
+
+export async function OverlayAdSlots({ pageType = "global" }: SectionProps) {
+  const config = await getAdConfig();
+  if (!config) return null;
+
+  const [stickyBottomAds, interstitialAds, exitIntentAds, floatingAds] = await Promise.all([
     fetchPositionPlacements("STICKY_BOTTOM", pageType),
     fetchPositionPlacements("INTERSTITIAL", pageType),
     fetchPositionPlacements("EXIT_INTENT", pageType),
     fetchPositionPlacements("FLOATING", pageType),
   ]);
 
+  const hasAny = stickyBottomAds.length || interstitialAds.length || exitIntentAds.length || floatingAds.length;
+  if (!hasAny) return null;
+
   return (
-    <>
-      {/* Header Banner Ad */}
-      {headerAds.length > 0 && (
-        <div className="w-full bg-gray-50 dark:bg-gray-900/50" data-ad-position="header">
-          <div className="mx-auto max-w-7xl px-4">
-            <AdRenderer placement={headerAds[0]} requireConsent={requireConsent} />
-          </div>
-        </div>
-      )}
-
-      {/* Footer Banner Ad (rendered before footer) */}
-      {footerAds.length > 0 && (
-        <div className="w-full border-t border-gray-200 bg-gray-50 py-2 dark:border-gray-800 dark:bg-gray-900/50" data-ad-position="footer">
-          <div className="mx-auto max-w-7xl px-4">
-            <AdRenderer placement={footerAds[0]} requireConsent={requireConsent} />
-          </div>
-        </div>
-      )}
-
-      {/* Overlay ad types — rendered via client component */}
-      <GlobalOverlayAds
-        stickyPlacement={stickyBottomAds[0] || null}
-        interstitialPlacement={interstitialAds[0] || null}
-        exitIntentPlacement={exitIntentAds[0] || null}
-        floatingPlacement={floatingAds[0] || null}
-        requireConsent={requireConsent}
-      />
-    </>
+    <GlobalOverlayAds
+      stickyPlacement={stickyBottomAds[0] || null}
+      interstitialPlacement={interstitialAds[0] || null}
+      exitIntentPlacement={exitIntentAds[0] || null}
+      floatingPlacement={floatingAds[0] || null}
+      requireConsent={config.requireConsent}
+    />
   );
 }

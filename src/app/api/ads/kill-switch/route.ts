@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const { killed } = killSwitchBodySchema.parse(body);
     await adsService.globalKillSwitch(killed);
 
-    // Also sync SiteSettings.adsEnabled so module-status API stays consistent
+    // Sync SiteSettings.adsEnabled so module-status API stays consistent
     const settings = await prisma.siteSettings.findFirst();
     if (settings) {
       await prisma.siteSettings.update({

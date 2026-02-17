@@ -40,7 +40,17 @@ interface PublicSettings extends TopBarSettings {
   socialYoutube: string | null;
 }
 
-export function PublicShell({ children }: { children: React.ReactNode }) {
+export function PublicShell({
+  children,
+  headerAdSlot,
+  footerAdSlot,
+  overlayAdSlot,
+}: {
+  children: React.ReactNode;
+  headerAdSlot?: React.ReactNode;
+  footerAdSlot?: React.ReactNode;
+  overlayAdSlot?: React.ReactNode;
+}) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
   const [settings, setSettings] = useState<PublicSettings | null>(null);
@@ -86,7 +96,9 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen flex-col">
       {settings && <TopBar settings={settings} />}
       <Header siteName={siteName} />
+      {headerAdSlot}
       <main className="flex-1">{children}</main>
+      {footerAdSlot}
       <Footer siteName={siteName} socialLinks={socialLinks} />
       {consentSettings && <CookieConsentBanner settings={consentSettings} />}
       {settings && (
@@ -95,6 +107,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           gdprEnabled={settings.gdprEnabled}
         />
       )}
+      {overlayAdSlot}
     </div>
   );
 }

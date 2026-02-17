@@ -5,3 +5,4 @@ export { Card, CardHeader, CardTitle, Badge, Avatar, EmptyState, Skeleton, StatC
 export { Modal, ConfirmDialog } from "./Modal";
 export { DataTable, Pagination, type Column } from "./DataTable";
 export { toast, ToastContainer, Tabs, useFormAction } from "./Toast";
+export { Breadcrumbs, type BreadcrumbItem } from "./Breadcrumbs";

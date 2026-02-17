@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db/prisma";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import ContactForm from "./ContactForm";
+import { buildWebPageJsonLd, serializeJsonLd } from "@/features/seo/server/json-ld.util";
 import type { Metadata } from "next";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
@@ -29,9 +30,19 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const settings = await prisma.siteSettings.findFirst({ select: { siteName: true } });
+  const siteName = settings?.siteName || "MyBlog";
+  const contactJsonLd = buildWebPageJsonLd({
+    name: `Contact Us`,
+    url: `${SITE_URL}/contact`,
+    description: `Get in touch with ${siteName}. Have a question, suggestion, or want to collaborate?`,
+    isPartOf: { name: siteName, url: SITE_URL },
+  });
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(contactJsonLd) }} />
       <div className="mb-12 text-center">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Contact Us</h1>
         <p className="mt-3 text-lg text-gray-600 dark:text-gray-400">

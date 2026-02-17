@@ -19,6 +19,21 @@ import {
   Image as ImageIcon,
   Type,
   AlignLeft,
+  Link2,
+  Unlink,
+  Network,
+  Zap,
+  ArrowRight,
+  Globe,
+  LinkIcon,
+  ShieldCheck,
+  ShieldX,
+  Trash2,
+  Plus,
+  Ban,
+  ThumbsUp,
+  ThumbsDown,
+  Database,
 } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
@@ -45,6 +60,61 @@ interface SeoOverview {
     score: number;
     topIssues: string[];
   }[];
+}
+
+interface InterlinkReport {
+  totalContent: number;
+  totalLinks: number;
+  avgLinksPerContent: number;
+  orphanContent: { id: string; title: string; type: string }[];
+  hubContent: { id: string; title: string; type: string; outboundLinks: number; inboundLinks: number }[];
+  brokenLinks: { sourceId: string; sourceType: string; href: string }[];
+  linkDistribution: { range: string; count: number }[];
+  persistedLinks: { active: number; suggested: number; approved: number; rejected: number; broken: number; manual: number };
+  exclusionCount: number;
+}
+
+interface PersistedLink {
+  id: string;
+  sourceId: string;
+  sourceType: string;
+  targetId: string;
+  targetType: string;
+  anchorText: string;
+  targetUrl: string;
+  relevanceScore: number;
+  status: string;
+  origin: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ExclusionRule {
+  id: string;
+  ruleType: string;
+  phrase: string | null;
+  contentId: string | null;
+  contentType: string | null;
+  pairedId: string | null;
+  pairedType: string | null;
+  reason: string | null;
+  createdAt: string;
+}
+
+interface InterlinkScanResult {
+  sourceId: string;
+  sourceType: string;
+  existingLinks: number;
+  newCandidates: {
+    sourceId: string;
+    targetId: string;
+    targetType: string;
+    anchorText: string;
+    relevanceScore: number;
+    alreadyLinked: boolean;
+  }[];
+  brokenLinks: { href: string; anchorText: string }[];
+  autoInserted: number;
 }
 
 interface AuditItem {
@@ -109,7 +179,7 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "md"
 // ─── Main ───────────────────────────────────────────────────────────────
 
 export default function SeoAdminPage() {
-  const [tab, setTab] = useState<"overview" | "audit">("overview");
+  const [tab, setTab] = useState<"overview" | "audit" | "interlinking">("overview");
   const [overview, setOverview] = useState<SeoOverview | null>(null);
   const [auditResults, setAuditResults] = useState<AuditItem[]>([]);
   const [auditFilter, setAuditFilter] = useState<"all" | "posts" | "pages">("all");
@@ -118,6 +188,26 @@ export default function SeoAdminPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [auditPage, setAuditPage] = useState(1);
   const auditPerPage = 15;
+
+  // Interlinking state
+  const [interlinkReport, setInterlinkReport] = useState<InterlinkReport | null>(null);
+  const [interlinkLoading, setInterlinkLoading] = useState(false);
+  const [autoLinkRunning, setAutoLinkRunning] = useState(false);
+  const [autoLinkResult, setAutoLinkResult] = useState<{ scanned: number; totalInserted: number; totalBroken: number } | null>(null);
+  const [scanContentId, setScanContentId] = useState("");
+  const [scanContentType, setScanContentType] = useState<"POST" | "PAGE">("POST");
+  const [scanResult, setScanResult] = useState<InterlinkScanResult | null>(null);
+  const [scanLoading, setScanLoading] = useState(false);
+
+  // Persisted links & exclusions state
+  const [persistedLinks, setPersistedLinks] = useState<PersistedLink[]>([]);
+  const [persistedTotal, setPersistedTotal] = useState(0);
+  const [linksFilter, setLinksFilter] = useState<string>("");
+  const [linksPage, setLinksPage] = useState(0);
+  const [exclusions, setExclusions] = useState<ExclusionRule[]>([]);
+  const [newExclPhrase, setNewExclPhrase] = useState("");
+  const [newExclReason, setNewExclReason] = useState("");
+  const [interlinkSubTab, setInterlinkSubTab] = useState<"overview" | "links" | "exclusions">("overview");
   const [loading, setLoading] = useState(false);
   const [overviewPage, setOverviewPage] = useState(1);
   const overviewPerPage = 10;
@@ -140,10 +230,81 @@ export default function SeoAdminPage() {
     } catch { /* ignore */ } finally { setLoading(false); }
   }, [auditFilter]);
 
+  const fetchInterlinkReport = useCallback(async () => {
+    setInterlinkLoading(true);
+    try {
+      const res = await fetch("/api/seo?action=interlink-report");
+      const data = await res.json();
+      if (data.success) setInterlinkReport(data.data);
+    } catch { /* ignore */ } finally { setInterlinkLoading(false); }
+  }, []);
+
+  const fetchPersistedLinks = useCallback(async (status?: string, offset = 0) => {
+    try {
+      const params = new URLSearchParams({ action: "interlink-list-links", limit: "20", offset: String(offset) });
+      if (status) params.set("status", status);
+      const res = await fetch(`/api/seo?${params.toString()}`);
+      const data = await res.json();
+      if (data.success) { setPersistedLinks(data.data.links); setPersistedTotal(data.data.total); }
+    } catch { /* ignore */ }
+  }, []);
+
+  const fetchExclusions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/seo?action=interlink-list-exclusions");
+      const data = await res.json();
+      if (data.success) setExclusions(data.data);
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleLinkAction = async (linkId: string, action: "interlink-approve" | "interlink-reject" | "interlink-remove") => {
+    try {
+      const res = await fetch("/api/seo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, linkId }) });
+      const data = await res.json();
+      if (data.success) {
+        fetchPersistedLinks(linksFilter, linksPage);
+        fetchInterlinkReport();
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleApplyManualLink = async (linkId: string) => {
+    try {
+      const res = await fetch("/api/seo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "interlink-apply-manual", linkId }) });
+      const data = await res.json();
+      if (data.success) {
+        fetchPersistedLinks(linksFilter, linksPage);
+        fetchInterlinkReport();
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleAddExclusion = async () => {
+    if (!newExclPhrase.trim()) return;
+    try {
+      const res = await fetch("/api/seo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "interlink-add-exclusion", ruleType: "PHRASE", phrase: newExclPhrase.trim(), reason: newExclReason.trim() || undefined }) });
+      const data = await res.json();
+      if (data.success) { setNewExclPhrase(""); setNewExclReason(""); fetchExclusions(); fetchInterlinkReport(); }
+    } catch { /* ignore */ }
+  };
+
+  const handleRemoveExclusion = async (exclusionId: string) => {
+    try {
+      const res = await fetch("/api/seo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "interlink-remove-exclusion", exclusionId }) });
+      const data = await res.json();
+      if (data.success) { fetchExclusions(); fetchInterlinkReport(); }
+    } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     if (tab === "overview") fetchOverview();
-    else fetchAudit();
-  }, [tab, fetchOverview, fetchAudit]);
+    else if (tab === "audit") fetchAudit();
+    else if (tab === "interlinking") {
+      fetchInterlinkReport();
+      fetchPersistedLinks();
+      fetchExclusions();
+    }
+  }, [tab, fetchOverview, fetchAudit, fetchInterlinkReport, fetchPersistedLinks, fetchExclusions]);
 
   const filteredAudits = auditResults
     .filter(a => !auditSearch || a.title.toLowerCase().includes(auditSearch.toLowerCase()) || a.slug.toLowerCase().includes(auditSearch.toLowerCase()))
@@ -170,18 +331,18 @@ export default function SeoAdminPage() {
           </p>
         </div>
         <button
-          onClick={() => tab === "overview" ? fetchOverview() : fetchAudit()}
-          disabled={loading}
+          onClick={() => tab === "overview" ? fetchOverview() : tab === "audit" ? fetchAudit() : fetchInterlinkReport()}
+          disabled={loading || interlinkLoading}
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          <RefreshCw className={clsx("h-4 w-4", loading && "animate-spin")} />
+          <RefreshCw className={clsx("h-4 w-4", (loading || interlinkLoading) && "animate-spin")} />
           Refresh
         </button>
       </div>
 
       {/* Tabs */}
       <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
-        {(["overview", "audit"] as const).map(t => (
+        {(["overview", "audit", "interlinking"] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -190,7 +351,7 @@ export default function SeoAdminPage() {
               tab === t ? "bg-white text-gray-900 shadow dark:bg-gray-700 dark:text-white" : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
             )}
           >
-            {t === "overview" ? "Overview" : "Content Audit"}
+            {t === "overview" ? "Overview" : t === "audit" ? "Content Audit" : "Interlinking"}
           </button>
         ))}
       </div>
@@ -498,6 +659,597 @@ export default function SeoAdminPage() {
                 <button disabled={auditPage >= auditTotalPages} onClick={() => setAuditPage(auditPage + 1)} className="rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700">Next</button>
               </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── INTERLINKING TAB ─── */}
+      {tab === "interlinking" && (
+        <div className="space-y-6">
+          {/* Loading */}
+          {interlinkLoading && !interlinkReport && (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800" />
+              ))}
+            </div>
+          )}
+
+          {interlinkReport && (
+            <>
+              {/* Stats Row */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Globe className="h-5 w-5 text-blue-500" />
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Content</span>
+                  </div>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{interlinkReport.totalContent}</p>
+                  <p className="text-xs text-gray-400 mt-1">published items analyzed</p>
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <LinkIcon className="h-5 w-5 text-green-500" />
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Internal Links</span>
+                  </div>
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">{interlinkReport.totalLinks}</p>
+                  <p className="text-xs text-gray-400 mt-1">avg {interlinkReport.avgLinksPerContent} per page</p>
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Unlink className="h-5 w-5 text-yellow-500" />
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Orphan Pages</span>
+                  </div>
+                  <p className={clsx("text-3xl font-bold", interlinkReport.orphanContent.length > 0 ? "text-yellow-600 dark:text-yellow-400" : "text-green-600 dark:text-green-400")}>
+                    {interlinkReport.orphanContent.length}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">no inbound links (invisible to crawlers)</p>
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <XCircle className="h-5 w-5 text-red-500" />
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Broken Links</span>
+                  </div>
+                  <p className={clsx("text-3xl font-bold", interlinkReport.brokenLinks.length > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400")}>
+                    {interlinkReport.brokenLinks.length}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">pointing to missing content</p>
+                </div>
+              </div>
+
+              {/* Persisted Links Summary */}
+              {interlinkReport.persistedLinks && (
+                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  {[
+                    { label: "Active", value: interlinkReport.persistedLinks.active, icon: CheckCircle2, color: "text-green-500" },
+                    { label: "Suggested", value: interlinkReport.persistedLinks.suggested, icon: Info, color: "text-blue-500" },
+                    { label: "Approved", value: interlinkReport.persistedLinks.approved, icon: ThumbsUp, color: "text-emerald-500" },
+                    { label: "Rejected", value: interlinkReport.persistedLinks.rejected, icon: ThumbsDown, color: "text-orange-500" },
+                    { label: "Broken", value: interlinkReport.persistedLinks.broken, icon: Unlink, color: "text-red-500" },
+                    { label: "Manual", value: interlinkReport.persistedLinks.manual, icon: ShieldCheck, color: "text-purple-500" },
+                  ].map(s => (
+                    <div key={s.label} className="rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+                      <div className="flex items-center gap-1.5">
+                        <s.icon className={clsx("h-4 w-4", s.color)} />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{s.label}</span>
+                      </div>
+                      <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{s.value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Sub-tab navigation */}
+              <div className="flex gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+                {(["overview", "links", "exclusions"] as const).map(st => (
+                  <button
+                    key={st}
+                    onClick={() => {
+                      setInterlinkSubTab(st);
+                      if (st === "links") fetchPersistedLinks(linksFilter, linksPage);
+                      if (st === "exclusions") fetchExclusions();
+                    }}
+                    className={clsx("flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                      interlinkSubTab === st
+                        ? "bg-white text-gray-900 shadow dark:bg-gray-700 dark:text-white"
+                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    )}
+                  >
+                    {st === "overview" ? "Dashboard" : st === "links" ? "Persisted Links" : "Exclusion Rules"}
+                  </button>
+                ))}
+              </div>
+
+              {/* ─── Sub-tab: Overview ─── */}
+              {interlinkSubTab === "overview" && (
+                <>
+
+              {/* Auto-Link All Action */}
+              <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-yellow-500" /> Auto-Link All Content
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Scan published content and automatically insert internal links where matching phrases are found.
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setAutoLinkRunning(true);
+                      setAutoLinkResult(null);
+                      try {
+                        const res = await fetch("/api/seo?action=interlink-all&limit=100");
+                        const data = await res.json();
+                        if (data.success) {
+                          setAutoLinkResult(data.data);
+                          fetchInterlinkReport(); // refresh stats
+                        }
+                      } catch { /* ignore */ } finally { setAutoLinkRunning(false); }
+                    }}
+                    disabled={autoLinkRunning}
+                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {autoLinkRunning ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                    {autoLinkRunning ? "Running…" : "Run Auto-Link"}
+                  </button>
+                </div>
+                {autoLinkResult && (
+                  <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+                    <div className="flex items-center gap-2 text-sm text-green-800 dark:text-green-300">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Scanned <strong>{autoLinkResult.scanned}</strong> items — inserted <strong>{autoLinkResult.totalInserted}</strong> links — found <strong>{autoLinkResult.totalBroken}</strong> broken</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Scan Individual Content */}
+              <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+                <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                  <Search className="h-5 w-5 text-blue-500" /> Scan Individual Content
+                </h2>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex-1 min-w-48">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Content ID</label>
+                    <input
+                      type="text"
+                      value={scanContentId}
+                      onChange={e => setScanContentId(e.target.value)}
+                      placeholder="Paste post or page ID…"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Type</label>
+                    <select
+                      value={scanContentType}
+                      onChange={e => setScanContentType(e.target.value as "POST" | "PAGE")}
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    >
+                      <option value="POST">Post</option>
+                      <option value="PAGE">Page</option>
+                    </select>
+                  </div>
+                  <button
+                    disabled={!scanContentId.trim() || scanLoading}
+                    onClick={async () => {
+                      setScanLoading(true);
+                      setScanResult(null);
+                      try {
+                        const res = await fetch(`/api/seo?action=interlink-scan&id=${scanContentId}&type=${scanContentType.toLowerCase()}`);
+                        const data = await res.json();
+                        if (data.success) setScanResult(data.data);
+                      } catch { /* ignore */ } finally { setScanLoading(false); }
+                    }}
+                    className="inline-flex items-center gap-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50 dark:bg-gray-600 dark:hover:bg-gray-500"
+                  >
+                    {scanLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    Scan
+                  </button>
+                </div>
+                {scanResult && (
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-gray-500 dark:text-gray-400">Existing links: <strong className="text-gray-900 dark:text-white">{scanResult.existingLinks}</strong></span>
+                      <span className="text-green-600 dark:text-green-400">New opportunities: <strong>{scanResult.newCandidates.length}</strong></span>
+                      <span className="text-red-600 dark:text-red-400">Broken: <strong>{scanResult.brokenLinks.length}</strong></span>
+                    </div>
+                    {scanResult.newCandidates.length > 0 && (
+                      <div className="rounded-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
+                              <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Anchor Text</th>
+                              <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Target Type</th>
+                              <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Relevance</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                            {scanResult.newCandidates.map((c, i) => (
+                              <tr key={i}>
+                                <td className="px-3 py-2 text-gray-900 dark:text-white font-medium">{c.anchorText}</td>
+                                <td className="px-3 py-2">
+                                  <span className={clsx("rounded px-1.5 py-0.5 text-xs font-medium", c.targetType === "POST" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400")}>
+                                    {c.targetType}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-1.5 w-16 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                      <div className={clsx("h-full rounded-full", c.relevanceScore >= 70 ? "bg-green-500" : c.relevanceScore >= 40 ? "bg-yellow-500" : "bg-red-500")} style={{ width: `${c.relevanceScore}%` }} />
+                                    </div>
+                                    <span className="text-xs text-gray-500">{c.relevanceScore}</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    {scanResult.brokenLinks.length > 0 && (
+                      <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
+                        <p className="text-sm font-medium text-red-800 dark:text-red-300 mb-2">Broken Links Found:</p>
+                        <ul className="space-y-1">
+                          {scanResult.brokenLinks.map((b, i) => (
+                            <li key={i} className="text-xs text-red-700 dark:text-red-400 flex items-center gap-1">
+                              <Unlink className="h-3 w-3 shrink-0" />
+                              <code className="bg-red-100 dark:bg-red-900/30 px-1 py-0.5 rounded">{b.href}</code>
+                              {b.anchorText && <span className="text-red-500">— &ldquo;{b.anchorText}&rdquo;</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`/api/seo?action=interlink-apply&id=${scanContentId}&type=${scanContentType.toLowerCase()}`);
+                          const data = await res.json();
+                          if (data.success) {
+                            setScanResult(null);
+                            setScanContentId("");
+                            fetchInterlinkReport();
+                          }
+                        } catch { /* ignore */ }
+                      }}
+                      disabled={scanResult.newCandidates.length === 0}
+                      className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                    >
+                      <Link2 className="h-3.5 w-3.5" />
+                      Apply {scanResult.newCandidates.length} Links
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Link Distribution */}
+              <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+                <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                  <Network className="h-5 w-5 text-indigo-500" /> Link Distribution
+                </h2>
+                <div className="space-y-3">
+                  {interlinkReport.linkDistribution.map(d => {
+                    const maxCount = Math.max(...interlinkReport.linkDistribution.map(dd => dd.count), 1);
+                    return (
+                      <div key={d.range} className="flex items-center gap-3">
+                        <span className="w-24 text-sm text-gray-600 dark:text-gray-400 shrink-0">{d.range}</span>
+                        <div className="flex-1 h-6 rounded bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                          <div
+                            className="h-full rounded bg-indigo-500 dark:bg-indigo-400 flex items-center justify-end pr-2"
+                            style={{ width: `${Math.max((d.count / maxCount) * 100, d.count > 0 ? 8 : 0)}%` }}
+                          >
+                            {d.count > 0 && <span className="text-xs font-medium text-white">{d.count}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Two-column: Orphan Content + Hub Content */}
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Orphan Content */}
+                <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+                  <div className="p-5 pb-3">
+                    <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Unlink className="h-5 w-5 text-yellow-500" /> Orphan Content
+                      <span className="text-sm font-normal text-gray-400">({interlinkReport.orphanContent.length})</span>
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-1">No internal links to or from these pages — they&apos;re invisible to crawlers.</p>
+                  </div>
+                  {interlinkReport.orphanContent.length > 0 ? (
+                    <div className="divide-y divide-gray-100 border-t border-gray-100 dark:divide-gray-700/50 dark:border-gray-700 max-h-72 overflow-y-auto">
+                      {interlinkReport.orphanContent.map(c => (
+                        <div key={c.id} className="flex items-center gap-2 px-5 py-3">
+                          {c.type === "POST" ? <FileText className="h-4 w-4 text-blue-500 shrink-0" /> : <File className="h-4 w-4 text-purple-500 shrink-0" />}
+                          <span className="text-sm text-gray-900 dark:text-white truncate flex-1">{c.title}</span>
+                          <span className="rounded px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">{c.type}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border-t border-gray-100 dark:border-gray-700 px-5 py-8 text-center text-sm text-gray-400">
+                      <CheckCircle2 className="mx-auto h-8 w-8 text-green-400 mb-2" />
+                      No orphan content — great!
+                    </div>
+                  )}
+                </div>
+
+                {/* Hub Content */}
+                <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+                  <div className="p-5 pb-3">
+                    <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Network className="h-5 w-5 text-green-500" /> Hub Pages
+                      <span className="text-sm font-normal text-gray-400">(top 10)</span>
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-1">Most connected content — hubs distribute PageRank to other pages.</p>
+                  </div>
+                  {interlinkReport.hubContent.length > 0 ? (
+                    <div className="divide-y divide-gray-100 border-t border-gray-100 dark:divide-gray-700/50 dark:border-gray-700 max-h-72 overflow-y-auto">
+                      {interlinkReport.hubContent.map(c => (
+                        <div key={c.id} className="flex items-center gap-2 px-5 py-3">
+                          {c.type === "POST" ? <FileText className="h-4 w-4 text-blue-500 shrink-0" /> : <File className="h-4 w-4 text-purple-500 shrink-0" />}
+                          <span className="text-sm text-gray-900 dark:text-white truncate flex-1">{c.title}</span>
+                          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                            <span title="Outbound links" className="flex items-center gap-0.5"><ArrowRight className="h-3 w-3" /> {c.outboundLinks}</span>
+                            <span title="Inbound links" className="flex items-center gap-0.5"><Link2 className="h-3 w-3" /> {c.inboundLinks}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border-t border-gray-100 dark:border-gray-700 px-5 py-8 text-center text-sm text-gray-400">
+                      No hub pages found yet
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Broken Links Detail */}
+              {interlinkReport.brokenLinks.length > 0 && (
+                <div className="rounded-xl border border-red-200 bg-white dark:border-red-800 dark:bg-gray-800">
+                  <div className="p-5 pb-3">
+                    <h2 className="font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
+                      <XCircle className="h-5 w-5" /> Broken Internal Links
+                      <span className="text-sm font-normal text-red-400">({interlinkReport.brokenLinks.length})</span>
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-1">These links point to pages that no longer exist. Fix or remove them.</p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto divide-y divide-red-100 border-t border-red-100 dark:divide-red-900/30 dark:border-red-900/30">
+                    {interlinkReport.brokenLinks.map((b, i) => (
+                      <div key={i} className="flex items-center gap-3 px-5 py-2.5 text-sm">
+                        <Unlink className="h-4 w-4 text-red-400 shrink-0" />
+                        <code className="rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-400">{b.href}</code>
+                        <ArrowRight className="h-3 w-3 text-gray-300 shrink-0" />
+                        <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          from {b.sourceType.toLowerCase()} {b.sourceId.slice(0, 8)}…
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              </>
+              )}
+
+              {/* ─── Sub-tab: Persisted Links ─── */}
+              {interlinkSubTab === "links" && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Database className="h-5 w-5 text-blue-500" /> Persisted Links
+                        <span className="text-sm font-normal text-gray-400">({persistedTotal})</span>
+                      </h2>
+                      <div className="flex gap-2">
+                        <select
+                          value={linksFilter}
+                          onChange={e => { setLinksFilter(e.target.value); setLinksPage(0); fetchPersistedLinks(e.target.value, 0); }}
+                          className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                        >
+                          <option value="">All Statuses</option>
+                          <option value="ACTIVE">Active</option>
+                          <option value="SUGGESTED">Suggested</option>
+                          <option value="APPROVED">Approved</option>
+                          <option value="REJECTED">Rejected</option>
+                          <option value="BROKEN">Broken</option>
+                          <option value="REMOVED">Removed</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {persistedLinks.length > 0 ? (
+                      <>
+                        <div className="rounded-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
+                                <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Anchor</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Target URL</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Score</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Status</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Origin</th>
+                                <th className="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                              {persistedLinks.map(link => (
+                                <tr key={link.id}>
+                                  <td className="px-3 py-2 text-gray-900 dark:text-white font-medium max-w-32 truncate">{link.anchorText}</td>
+                                  <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 max-w-40 truncate">{link.targetUrl}</td>
+                                  <td className="px-3 py-2">
+                                    <span className="text-xs font-medium">{link.relevanceScore}</span>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span className={clsx("rounded px-1.5 py-0.5 text-[10px] font-medium",
+                                      link.status === "ACTIVE" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                                      link.status === "SUGGESTED" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                                      link.status === "APPROVED" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
+                                      link.status === "REJECTED" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" :
+                                      link.status === "BROKEN" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                                      "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400"
+                                    )}>
+                                      {link.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span className="text-[10px] text-gray-400">{link.origin}</span>
+                                  </td>
+                                  <td className="px-3 py-2 text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                      {(link.status === "SUGGESTED" || link.status === "APPROVED") && (
+                                        <button
+                                          onClick={() => handleApplyManualLink(link.id)}
+                                          className="rounded p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30" title="Apply now"
+                                        >
+                                          <Zap className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                      {link.status === "SUGGESTED" && (
+                                        <button
+                                          onClick={() => handleLinkAction(link.id, "interlink-approve")}
+                                          className="rounded p-1 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30" title="Approve"
+                                        >
+                                          <ThumbsUp className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                      {(link.status === "SUGGESTED" || link.status === "ACTIVE") && (
+                                        <button
+                                          onClick={() => handleLinkAction(link.id, "interlink-reject")}
+                                          className="rounded p-1 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30" title="Reject"
+                                        >
+                                          <ThumbsDown className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                      {link.status === "ACTIVE" && (
+                                        <button
+                                          onClick={() => handleLinkAction(link.id, "interlink-remove")}
+                                          className="rounded p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30" title="Remove"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="text-xs text-gray-400">Showing {linksPage + 1}–{Math.min(linksPage + 20, persistedTotal)} of {persistedTotal}</span>
+                          <div className="flex gap-2">
+                            <button
+                              disabled={linksPage === 0}
+                              onClick={() => { const p = Math.max(0, linksPage - 20); setLinksPage(p); fetchPersistedLinks(linksFilter, p); }}
+                              className="rounded px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 disabled:opacity-40"
+                            >Previous</button>
+                            <button
+                              disabled={linksPage + 20 >= persistedTotal}
+                              onClick={() => { const p = linksPage + 20; setLinksPage(p); fetchPersistedLinks(linksFilter, p); }}
+                              className="rounded px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 disabled:opacity-40"
+                            >Next</button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-sm text-gray-400">
+                        <Database className="mx-auto h-8 w-8 mb-2 opacity-40" />
+                        No persisted links found. Run auto-link to generate them.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ─── Sub-tab: Exclusion Rules ─── */}
+              {interlinkSubTab === "exclusions" && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+                    <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                      <Ban className="h-5 w-5 text-red-500" /> Exclusion Rules
+                      <span className="text-sm font-normal text-gray-400">({exclusions.length})</span>
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                      Add phrases that should never be auto-linked. Useful for brand names, abbreviations, or common words.
+                    </p>
+
+                    {/* Add Phrase Exclusion */}
+                    <div className="flex flex-wrap items-end gap-3 mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-900">
+                      <div className="flex-1 min-w-40">
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Phrase</label>
+                        <input
+                          type="text"
+                          value={newExclPhrase}
+                          onChange={e => setNewExclPhrase(e.target.value)}
+                          placeholder="e.g. WordPress, CSS, API…"
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-40">
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Reason (optional)</label>
+                        <input
+                          type="text"
+                          value={newExclReason}
+                          onChange={e => setNewExclReason(e.target.value)}
+                          placeholder="Why exclude this?"
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                        />
+                      </div>
+                      <button
+                        onClick={handleAddExclusion}
+                        disabled={!newExclPhrase.trim()}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Exclusion
+                      </button>
+                    </div>
+
+                    {exclusions.length > 0 ? (
+                      <div className="divide-y divide-gray-100 dark:divide-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700">
+                        {exclusions.map(ex => (
+                          <div key={ex.id} className="flex items-center justify-between px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <span className={clsx("rounded px-1.5 py-0.5 text-[10px] font-medium",
+                                ex.ruleType === "PHRASE" ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" :
+                                ex.ruleType === "TARGET" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                                ex.ruleType === "SOURCE" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                                "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400"
+                              )}>
+                                {ex.ruleType}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                {ex.phrase || ex.contentId?.slice(0, 8)}
+                              </span>
+                              {ex.reason && (
+                                <span className="text-xs text-gray-400">— {ex.reason}</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleRemoveExclusion(ex.id)}
+                              className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
+                              title="Remove exclusion"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-sm text-gray-400">
+                        <ShieldCheck className="mx-auto h-8 w-8 mb-2 opacity-40" />
+                        No exclusion rules defined. Auto-linking is unrestricted.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -6,6 +6,7 @@ import { Calendar, Clock, Search, Eye, User } from "lucide-react";
 import { Badge } from "@/components/ui/Card";
 import { BlogSidebar } from "@/components/blog/BlogSidebar";
 import { PostCardShareOverlay } from "@/components/blog/PostCardShareOverlay";
+import { PostImageFallback } from "@/components/blog/PostImageFallback";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import { InFeedAdCard } from "@/features/ads/ui/InFeedAdCard";
 import type { Metadata } from "next";
@@ -144,7 +145,14 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   const sidebar = sidebarSettings.sidebarEnabled ? (
     <div className="w-full lg:w-80 shrink-0">
-      <BlogSidebar settings={sidebarSettings} pageType="blog-index" />
+      <BlogSidebar
+        settings={{
+          ...sidebarSettings,
+          // Hide sidebar search when page-level search bar is already shown
+          sidebarShowSearch: sidebarSettings.sidebarShowSearch && !searchEnabled,
+        }}
+        pageType="blog-index"
+      />
     </div>
   ) : null;
 
@@ -216,11 +224,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                       />
                     </div>
                   ) : showFeaturedImage ? (
-                    <div className="flex h-48 w-full items-center justify-center bg-linear-to-br from-gray-100 to-gray-200 sm:h-auto sm:w-56 shrink-0 dark:from-gray-700 dark:to-gray-600">
-                      <span className="text-3xl font-bold text-gray-300 dark:text-gray-500">
-                        {post.title.charAt(0)}
-                      </span>
-                    </div>
+                    <PostImageFallback
+                      title={post.title}
+                      category={post.categories?.[0]?.name}
+                      className="h-48 w-full sm:h-auto sm:w-56 shrink-0"
+                    />
                   ) : null}
                   <div className="flex flex-1 flex-col p-5">
                     {showTags && post.tags.length > 0 && (
@@ -296,11 +304,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                       />
                     </div>
                   ) : showFeaturedImage ? (
-                    <div className="flex aspect-video items-center justify-center bg-linear-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
-                      <span className="text-3xl font-bold text-gray-300 dark:text-gray-500">
-                        {post.title.charAt(0)}
-                      </span>
-                    </div>
+                    <PostImageFallback
+                      title={post.title}
+                      category={post.categories?.[0]?.name}
+                      className="aspect-video"
+                    />
                   ) : null}
                   <div className="flex flex-1 flex-col p-5">
                     {showTags && post.tags.length > 0 && (
