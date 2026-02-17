@@ -80,10 +80,22 @@ export const ALLOWED_IMAGE_TYPES = [
   'image/gif',
   'image/webp',
   'image/avif',
-  'image/svg+xml',
+  // 'image/svg+xml' — intentionally excluded: SVG can contain embedded scripts
   'image/bmp',
   'image/tiff',
 ] as const;
+
+/** Extensions that must never be accepted regardless of MIME type. */
+export const BLOCKED_EXTENSIONS = new Set([
+  'exe', 'bat', 'cmd', 'com', 'msi', 'scr', 'pif', 'hta',
+  'cpl', 'inf', 'reg', 'rgs', 'ws', 'wsf', 'wsc', 'wsh',
+  'ps1', 'ps2', 'psc1', 'psc2', 'msh', 'msh1', 'msh2',
+  'vbs', 'vbe', 'js', 'jse', 'lnk', 'url', 'dll', 'sys',
+  'php', 'phtml', 'php3', 'php4', 'php5', 'phps',
+  'asp', 'aspx', 'cgi', 'pl', 'py', 'rb', 'sh', 'bash',
+  'svg', 'htm', 'html', 'xhtml', 'shtml', 'xht',
+  'swf', 'jar', 'action', 'class',
+]);
 
 export const ALLOWED_VIDEO_TYPES = [
   'video/mp4',

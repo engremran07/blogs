@@ -5,7 +5,7 @@
 // **Zero external dependencies** — pure string processing.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { MEDIA_LIMITS } from './constants';
+import { MEDIA_LIMITS, BLOCKED_EXTENSIONS } from './constants';
 import type { UpdateMediaInput, UploadFromUrlInput } from '../types';
 
 /* ====================================================================== *
@@ -19,6 +19,7 @@ import type { UpdateMediaInput, UploadFromUrlInput } from '../types';
  * - Remove path components (directory traversal)
  * - Strip null bytes and control characters
  * - Replace unsafe characters with dashes
+ * - Reject blocked / dangerous extensions (including double‑extension tricks)
  * - Collapse consecutive separators
  * - Truncate to `MAX_FILENAME_LENGTH`
  * - Preserve extension
@@ -32,6 +33,14 @@ export function sanitizeFilename(name: string): string {
 
   // 3. Normalise unicode and strip diacritics
   safe = safe.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // 3b. Block dangerous extensions (check ALL dot segments for double‑extension tricks)
+  const segments = safe.split('.');
+  for (let i = 1; i < segments.length; i++) {
+    if (BLOCKED_EXTENSIONS.has(segments[i].toLowerCase())) {
+      throw new Error(`Blocked file extension: .${segments[i].toLowerCase()}`);
+    }
+  }
 
   // 4. Separate extension to preserve it
   const dotIdx = safe.lastIndexOf('.');

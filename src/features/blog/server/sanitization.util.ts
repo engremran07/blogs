@@ -65,10 +65,13 @@ export function sanitizeHtml(html: string): string {
 /* ========================================================================== */
 
 /**
- * Sanitize a plain text string: trim, collapse whitespace, remove control chars.
+ * Sanitize a plain text string: strip HTML tags, trim, collapse whitespace,
+ * remove control chars. Use for titles, excerpts, category names — any field
+ * that must never contain markup.
  */
 export function sanitizeText(text: string): string {
   return text
+    .replace(/<[^>]*>/g, '')                                // strip HTML tags
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // control chars (keep \n \r \t)
     .replace(/\s+/g, ' ')
     .trim();
@@ -76,11 +79,14 @@ export function sanitizeText(text: string): string {
 
 /**
  * Sanitize a slug: lowercase, alphanumeric + hyphens only.
+ * Strips accented characters via NFD normalization.
  */
 export function sanitizeSlug(slug: string): string {
   return slug
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')   // strip diacritical marks
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')      // only alphanumeric, spaces, hyphens
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')

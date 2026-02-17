@@ -483,13 +483,11 @@ export class MediaService {
     const totalPages = Math.ceil(total / effectivePageSize);
 
     return ok({
-      items,
+      data: items,
       total,
       page,
-      pageSize: effectivePageSize,
+      limit: effectivePageSize,
       totalPages,
-      hasNext:     page < totalPages,
-      hasPrevious: page > 1,
     });
   }
 

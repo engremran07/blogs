@@ -65,7 +65,7 @@ export async function PATCH(
     const comment = await commentService.update(id, parsed.data, userId);
     return NextResponse.json({ success: true, data: comment });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update comment";
+    const message = "Failed to update comment";
     const status = message.includes("not found") ? 404
       : message.includes("Not authorised") ? 403
       : message.includes("window") ? 400
@@ -89,7 +89,7 @@ export async function DELETE(
     await commentService.softDelete(id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delete comment";
+    const message = "Failed to delete comment";
     logger.error("[api/comments/[id]] DELETE error:", { error });
     return NextResponse.json(
       { success: false, error: message },

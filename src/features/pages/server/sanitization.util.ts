@@ -42,9 +42,10 @@ export function sanitizeHtml(html: string): string {
 /*  TEXT / SLUG                                                               */
 /* ========================================================================== */
 
-/** Sanitize plain text: trim, collapse whitespace, remove control chars. */
+/** Sanitize plain text: strip HTML tags, trim, collapse whitespace, remove control chars. */
 export function sanitizeText(text: string): string {
   return text
+    .replace(/<[^>]*>/g, '')                                // strip HTML tags
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -53,8 +54,10 @@ export function sanitizeText(text: string): string {
 /** Sanitize a slug: lowercase, alphanumeric + hyphens only. */
 export function sanitizeSlug(slug: string): string {
   return slug
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')

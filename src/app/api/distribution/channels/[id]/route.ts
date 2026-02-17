@@ -23,7 +23,7 @@ export async function GET(_req: NextRequest, ctx: Params) {
     return NextResponse.json({ success: true, data: channel });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
+      { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest, ctx: Params) {
     }
     const status = (error as any)?.statusCode ?? 500;
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
+      { success: false, error: "Internal server error" },
       { status },
     );
   }
@@ -69,7 +69,7 @@ export async function DELETE(_req: NextRequest, ctx: Params) {
   } catch (error) {
     const status = (error as any)?.statusCode ?? 500;
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
+      { success: false, error: "Internal server error" },
       { status },
     );
   }

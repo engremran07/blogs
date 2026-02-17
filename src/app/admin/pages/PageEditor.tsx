@@ -12,7 +12,7 @@ import dynamic from "next/dynamic";
 const RichTextEditor = dynamic(() => import("@/features/editor/ui/RichTextEditor"), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" /> });
 
 function slugify(text: string) {
-  return text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
 }
 
 interface PageForm {

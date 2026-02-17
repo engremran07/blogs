@@ -69,7 +69,7 @@ export class UserAdminSettingsService {
         success: false,
         error: {
           code: 'SETTINGS_READ_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to read settings',
+          message: 'Failed to read settings',
           statusCode: 500,
         },
         timestamp: new Date().toISOString(),
@@ -112,7 +112,7 @@ export class UserAdminSettingsService {
         success: false,
         error: {
           code: 'SETTINGS_UPDATE_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to update settings',
+          message: 'Failed to update settings',
           statusCode: 400,
         },
         timestamp: new Date().toISOString(),

@@ -96,9 +96,9 @@ export default function AdminUsersPage() {
       const res = await fetch(`/api/users?${params.toString()}`);
       const data = await res.json();
       setUsers(data.data || []);
-      if (data.pagination) {
-        setTotalUsers(data.pagination.total);
-        setTotalPages(data.pagination.totalPages);
+      if (data.total !== undefined) {
+        setTotalUsers(data.total);
+        setTotalPages(data.totalPages);
       }
     } catch { toast("Failed to fetch users", "error"); }
     finally { setLoading(false); }

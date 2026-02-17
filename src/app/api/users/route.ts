@@ -154,7 +154,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: users,
-      pagination: { page, limit, total, totalPages, hasNext: page < totalPages, hasPrev: page > 1 },
+      total,
+      page,
+      limit,
+      totalPages,
     });
   } catch (error) {
     logger.error("[api/users] GET error:", { error });

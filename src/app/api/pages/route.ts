@@ -25,12 +25,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: result.data,
-      meta: {
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: result.totalPages,
-      },
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
     });
   } catch (error) {
     logger.error("[api/pages] GET error:", { error });

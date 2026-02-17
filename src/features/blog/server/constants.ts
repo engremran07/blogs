@@ -106,8 +106,10 @@ export const BLOG_DEFAULTS = {
 /** Generate a URL-friendly slug from text. */
 export function generateSlug(text: string): string {
   return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')   // strip diacritical marks
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')      // only alphanumeric, spaces, hyphens
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')

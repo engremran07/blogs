@@ -66,7 +66,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, data: tag });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update tag";
+    const message = "Failed to update tag";
     logger.error("[api/tags/[id]] PATCH error:", { error });
     return NextResponse.json(
       { success: false, error: message },
@@ -102,7 +102,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delete tag";
+    const message = "Failed to delete tag";
     logger.error("[api/tags/[id]] DELETE error:", { error });
     return NextResponse.json(
       { success: false, error: message },

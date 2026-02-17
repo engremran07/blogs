@@ -986,7 +986,7 @@ export class BlogService {
       data: {
         name,
         slug,
-        description: input.description ?? null,
+        description: input.description ? sanitizeText(input.description) : null,
         color: input.color ?? null,
         icon: input.icon ?? null,
         image: input.image ?? null,
@@ -1026,7 +1026,7 @@ export class BlogService {
         );
       }
     }
-    if (input.description !== undefined) data.description = input.description;
+    if (input.description !== undefined) data.description = input.description ? sanitizeText(input.description) : null;
     if (input.color !== undefined) data.color = input.color;
     if (input.icon !== undefined) data.icon = input.icon;
     if (input.image !== undefined) data.image = input.image;
@@ -1164,7 +1164,7 @@ export class BlogService {
       data: {
         title,
         slug,
-        description: input.description ?? null,
+        description: input.description ? sanitizeText(input.description) : null,
         coverImage: input.coverImage ?? null,
         status: input.status ?? 'ACTIVE',
         sortOrder: input.sortOrder ?? 0,
@@ -1186,7 +1186,7 @@ export class BlogService {
       data.title = sanitizeText(input.title);
       data.slug = generateSlug(data.title as string);
     }
-    if (input.description !== undefined) data.description = input.description;
+    if (input.description !== undefined) data.description = input.description ? sanitizeText(input.description) : null;
     if (input.coverImage !== undefined) data.coverImage = input.coverImage;
     if (input.status !== undefined) data.status = input.status;
     if (input.sortOrder !== undefined) data.sortOrder = input.sortOrder;

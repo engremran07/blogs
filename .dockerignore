@@ -12,8 +12,10 @@ out
 
 # Environment (secrets never go in image)
 .env
-.env.*
+.env.production
+.env.staging
 !.env.example
+!.env.local
 
 # IDE / Editor
 .vscode
@@ -32,8 +34,11 @@ coverage
 *.spec.ts
 *.spec.tsx
 __tests__
+k6/
 
-# Docs
-README.md
+# Python venv
+.venv
+
+# Docs (keep README — needed for context)
 CHANGELOG.md
 LICENSE

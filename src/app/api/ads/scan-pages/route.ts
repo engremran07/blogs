@@ -50,7 +50,7 @@ export async function GET() {
     });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
+      { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }
@@ -76,7 +76,7 @@ export async function POST() {
     });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
+      { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }

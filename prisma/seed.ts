@@ -14,7 +14,7 @@ const prisma = new PrismaClient({ adapter });
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 function slug(text: string) {
-  return text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
 }
 
 function rand<T>(arr: T[]): T {
@@ -499,6 +499,7 @@ const PAGE_DATA = [
   { title: "Contribute", slug: "contribute", content: "<h1>Contribute</h1><p>Want to share your expertise? We accept guest posts from developers of all experience levels.</p><h2>Guidelines</h2><p>Posts should be original, well-researched, and include practical examples. We prefer a conversational tone with clear explanations.</p><h2>Topics</h2><p>We cover web development, cloud computing, DevOps, programming languages, and software engineering practices.</p>", status: "PUBLISHED" as const, template: "SIDEBAR_RIGHT" },
   { title: "Resources", slug: "resources", content: "<h1>Developer Resources</h1><p>A curated list of tools, libraries, and learning resources for web developers.</p><h2>Learning Platforms</h2><p>Frontend Masters, Egghead.io, Pluralsight, Udemy</p><h2>Tools</h2><p>VS Code, GitHub Copilot, Figma, Notion</p>", status: "DRAFT" as const, template: "DEFAULT" },
   { title: "Sponsors", slug: "sponsors", content: "<h1>Our Sponsors</h1><p>Thank you to our amazing sponsors who help keep this blog running.</p>", status: "DRAFT" as const, template: "LANDING" },
+  { title: "Wall Painting Service in Dubai", slug: "wall-painting", content: "<h1>Expert Wall Painting Service in Dubai – 30% Off</h1><p>Transform your living spaces with expert wall painting services. A professional coat of paint can totally transform your space, giving it a classy look and a fresh feel.</p><h2>Our Services</h2><p>Interior Wall Painting, Exterior Wall Painting, Textured Wall Painting, Accent Wall, Specialty Painting, Decorative &amp; Faux Painting.</p><h2>Why Choose Us?</h2><p>2-Year Guarantee on all work. 150+ colors with custom matching. Flexible scheduling. Premium quality paints. Hassle-free service.</p>", status: "PUBLISHED" as const, template: "LANDING" },
 ];
 
 const COMMENT_TEMPLATES = [

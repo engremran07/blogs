@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: tag }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create tag";
+    const message = "Failed to create tag";
     logger.error("[api/tags] POST error:", { error });
     return NextResponse.json(
       { success: false, error: message },

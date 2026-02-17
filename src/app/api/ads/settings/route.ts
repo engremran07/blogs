@@ -19,7 +19,7 @@ export async function GET() {
     return NextResponse.json({ success: true, data: config });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
+      { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }
@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest) {
     }
     const status = (error as any)?.statusCode ?? 500;
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
+      { success: false, error: "Internal server error" },
       { status },
     );
   }

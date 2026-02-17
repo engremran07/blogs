@@ -66,18 +66,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const captchaType = credentials.captchaType as string | undefined;
         const captchaId = credentials.captchaId as string | undefined;
 
-        // Verify CAPTCHA — direct service call (no self-fetch HTTP)
+        // Check CaptchaSettings — respect the global kill-switch & per-form toggle
+        let captchaRequired = true;
         try {
-          const captchaResult = await captchaService.verify({
-            token: captchaToken || "",
-            clientIp: "127.0.0.1", // IP not available in authorize(); middleware handles rate-limiting
-            captchaType: captchaType as any,
-            captchaId,
-          });
-          if (!captchaResult.success) return null;
+          const captchaSettings = await prisma.captchaSettings.findFirst();
+          if (captchaSettings) {
+            if (!captchaSettings.captchaEnabled || !captchaSettings.requireCaptchaForLogin) {
+              captchaRequired = false;
+            }
+          }
         } catch {
-          // If captcha service is unavailable, deny login
-          return null;
+          // If we can't read settings, default to requiring captcha
+        }
+
+        // Verify CAPTCHA — direct service call (no self-fetch HTTP)
+        if (captchaRequired) {
+          try {
+            const captchaResult = await captchaService.verify({
+              token: captchaToken || "",
+              clientIp: "127.0.0.1", // IP not available in authorize(); middleware handles rate-limiting
+              captchaType: captchaType as any,
+              captchaId,
+            });
+            if (!captchaResult.success) return null;
+          } catch {
+            // If captcha service is unavailable, deny login
+            return null;
+          }
         }
 
         const user = await prisma.user.findUnique({

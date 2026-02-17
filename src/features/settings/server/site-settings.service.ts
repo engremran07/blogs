@@ -85,7 +85,7 @@ export class SiteSettingsService {
         success: false,
         error: {
           code: 'SITE_SETTINGS_READ_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to read site settings',
+          message: 'Failed to read site settings',
           statusCode: 500,
         },
         timestamp: new Date().toISOString(),
@@ -124,7 +124,7 @@ export class SiteSettingsService {
         success: false,
         error: {
           code: 'SITE_SETTINGS_UPDATE_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to update site settings',
+          message: 'Failed to update site settings',
           statusCode: 400,
         },
         timestamp: new Date().toISOString(),
@@ -169,7 +169,7 @@ export class SiteSettingsService {
         success: false,
         error: {
           code: 'TOP_BAR_READ_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to read top bar config',
+          message: 'Failed to read top bar config',
           statusCode: 500,
         },
         timestamp: new Date().toISOString(),
@@ -300,7 +300,7 @@ export class SiteSettingsService {
         success: false,
         error: {
           code: 'CAPTCHA_CONFIG_READ_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to read captcha config',
+          message: 'Failed to read captcha config',
           statusCode: 500,
         },
         timestamp: new Date().toISOString(),

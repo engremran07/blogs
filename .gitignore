@@ -30,12 +30,18 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files — track .env.example (template) and .env.local (local dev defaults)
+.env
+.env.production
+.env.staging
+!.env.example
+!.env.local
 
 # vercel
 .vercel
 
-# typescript
+# python venv
+.venv/
+
+# typescript build info
 *.tsbuildinfo
-next-env.d.ts

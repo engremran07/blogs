@@ -67,8 +67,8 @@ export default function AdminPagesPage() {
       const res = await fetch(`/api/pages?${params}`);
       const data = await res.json();
       setPages(data.data || []);
-      setTotalPages(data.meta?.totalPages ?? 1);
-      setTotalCount(data.meta?.total ?? 0);
+      setTotalPages(data.totalPages ?? 1);
+      setTotalCount(data.total ?? 0);
     } catch { toast("Failed to fetch pages", "error"); }
     finally { setLoading(false); }
   }

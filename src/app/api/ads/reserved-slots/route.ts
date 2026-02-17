@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, data: reserved });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
+      { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }

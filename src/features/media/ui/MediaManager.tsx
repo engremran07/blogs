@@ -1921,7 +1921,7 @@ export function MediaManager(props: MediaManagerProps) {
       const result = await onList(filter, state.sort, state.page, state.pageSize);
       dispatch({
         type: 'SET_ITEMS',
-        payload: { items: result.items, total: result.total },
+        payload: { items: result.data, total: result.total },
       });
     } catch (err) {
       dispatch({

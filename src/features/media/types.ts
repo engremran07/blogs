@@ -209,13 +209,11 @@ export interface MediaSort {
 
 /** Generic paginated result wrapper. */
 export interface PaginatedResult<T> {
-  items: T[];
+  data: T[];
   total: number;
   page: number;
-  pageSize: number;
+  limit: number;
   totalPages: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
 }
 
 /* ====================================================================== *

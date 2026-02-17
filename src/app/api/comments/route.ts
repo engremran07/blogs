@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: comment }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create comment";
+    const message = "Failed to create comment";
     const status = message.includes("disabled") || message.includes("blocked") || message.includes("closed")
       ? 403
       : message.includes("Rate limit") || message.includes("Max")

@@ -25,7 +25,7 @@ export async function GET() {
   } catch (error) {
     const status = (error as any)?.statusCode ?? 500;
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
+      { success: false, error: "Internal server error" },
       { status },
     );
   }
@@ -37,7 +37,7 @@ export async function POST() {
   } catch (error) {
     const status = (error as any)?.statusCode ?? 500;
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Internal error" },
+      { success: false, error: "Internal server error" },
       { status },
     );
   }

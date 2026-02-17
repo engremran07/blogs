@@ -348,7 +348,7 @@ export class AutocompleteService {
       if (tag) {
         resolved.push({ ...(tag as any), isExisting: true });
       } else if (opts.createMissing) {
-        const slug = name.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+        const slug = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
         const appliedName = this.cfg.forceLowercase ? name.toLowerCase() : name;
         const created = await this.prisma.tag.create({
           data: {

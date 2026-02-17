@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Bulk action failed";
+    const message = "Bulk action failed";
     logger.error("[api/tags/bulk] POST error:", { error });
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
