@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
-import { siteSettingsService, commentAdminSettings } from "@/server/wiring";
+import { siteSettingsService, commentAdminSettings, captchaAdminSettings } from "@/server/wiring";
 import { updateSiteSettingsSchema } from "@/features/settings/server/schemas";
 import { createLogger } from "@/server/observability/logger";
 
@@ -70,6 +70,18 @@ export async function PATCH(req: NextRequest) {
       parsed.data as Record<string, unknown>,
       updatedBy,
     );
+
+    // Sync captchaEnabled → CaptchaSettings.captchaEnabled (single source of truth)
+    if ('captchaEnabled' in parsed.data && parsed.data.captchaEnabled !== undefined) {
+      try {
+        await captchaAdminSettings.updateSettings(
+          { captchaEnabled: parsed.data.captchaEnabled as boolean },
+          updatedBy ?? "system",
+        );
+      } catch (err) {
+        logger.error("[api/settings] Failed to sync captchaEnabled to CaptchaSettings", { error: err });
+      }
+    }
 
     // Sync enableComments → CommentSettings.commentsEnabled (single source of truth)
     if ('enableComments' in parsed.data && parsed.data.enableComments !== undefined) {

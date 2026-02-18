@@ -936,10 +936,10 @@ export default function AdminSettingsPage() {
         {activeTab === "security" && (
           <>
             <Section title="CAPTCHA System" icon={<Shield className="h-5 w-5 text-red-500" />} description="Protect your forms from spam and abuse">
-              <ToggleCard label="Enable CAPTCHA globally" description="When disabled, all forms skip verification (kill switch)" checked={settings.captchaEnabled ?? true} onChange={(v) => update("captchaEnabled", v)} />
+              <ToggleCard label="Enable CAPTCHA globally" description="When disabled, all forms skip verification (kill switch)" checked={settings.captchaEnabled ?? false} onChange={(v) => update("captchaEnabled", v)} />
             </Section>
 
-            {(settings.captchaEnabled ?? true) && (
+            {(settings.captchaEnabled ?? false) && (
               <>
                 <Section title="Default Provider" icon={<Settings2 className="h-5 w-5 text-gray-500" />} description="Primary CAPTCHA provider — falls back to next enabled provider on failure">
                   <Select label="Default CAPTCHA Provider" value={settings.captchaType || "turnstile"} onChange={(e) => update("captchaType", e.target.value)}>
