@@ -25,12 +25,12 @@ export async function GET(request: NextRequest) {
 
   try {
     const [logs, total] = await Promise.all([
-      (prisma as any).cronLog.findMany({
+      prisma.cronLog.findMany({
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
-      (prisma as any).cronLog.count(),
+      prisma.cronLog.count(),
     ]);
 
     return NextResponse.json({

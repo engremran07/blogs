@@ -21,7 +21,6 @@ import type {
   MenuSlot,
   MenuStructure,
   MenuVersion,
-  MenuPreset,
   MenuItemType,
   MenuItemAppearance,
   MenuItemTemplate,
@@ -41,9 +40,7 @@ import { buildMenuTree } from '../server/menu-structure';
 import {
   DEFAULT_MENU_STRUCTURE,
   MENU_ICON_OPTIONS,
-  MENU_ROLE_OPTIONS,
   MENU_DEVICE_OPTIONS,
-  MAX_MENU_DEPTH,
 } from '../server/constants';
 
 // ─── API Interface ──────────────────────────────────────────────────────────
@@ -276,6 +273,7 @@ export function MenuManagementPage({ api, className }: MenuManagementPageProps) 
           {/* Item Editor */}
           {selectedMenu && selectedItem && (
             <MenuItemEditor
+              key={selectedItem.id}
               item={selectedItem}
               menu={selectedMenu}
               onUpdate={(data) => handleUpdateItem(selectedMenu.id, selectedItem.id, data)}
@@ -285,6 +283,7 @@ export function MenuManagementPage({ api, className }: MenuManagementPageProps) 
           {/* Menu Settings */}
           {selectedMenu && !selectedItem && (
             <MenuSettingsPanel
+              key={selectedMenu.id}
               menu={selectedMenu}
               onUpdate={(data) => handleUpdateMenu(selectedMenu.id, data)}
             />
@@ -433,7 +432,7 @@ function MenuItemTree({
         ))}
       </ul>
       {tree.length === 0 && (
-        <p className="menu-admin__empty">No items. Click "+ Add Item" to get started.</p>
+        <p className="menu-admin__empty">No items. Click &quot;+ Add Item&quot; to get started.</p>
       )}
     </div>
   );
@@ -509,9 +508,6 @@ function MenuItemEditor({
   onUpdate: (data: Partial<MenuItem>) => void;
 }) {
   const [form, setForm] = useState<Partial<MenuItem>>({ ...item });
-
-  // Sync form when selected item changes
-  useEffect(() => { setForm({ ...item }); }, [item]);
 
   const updateField = <K extends keyof MenuItem>(key: K, value: MenuItem[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -763,7 +759,6 @@ function MenuSettingsPanel({
   onUpdate: (data: Partial<Menu>) => void;
 }) {
   const [form, setForm] = useState<Partial<Menu>>({ ...menu });
-  useEffect(() => { setForm({ ...menu }); }, [menu]);
 
   return (
     <div className="menu-admin__panel menu-admin__menu-settings">

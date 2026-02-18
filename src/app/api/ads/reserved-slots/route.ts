@@ -7,11 +7,19 @@ import { prisma } from "@/server/db/prisma";
 
 export async function GET(req: NextRequest) {
   try {
+    // Global kill switch — return empty when ads are disabled
+    const siteSettings = await prisma.siteSettings.findFirst({
+      select: { adsEnabled: true },
+    });
+    if (!siteSettings?.adsEnabled) {
+      return NextResponse.json({ success: true, data: [] });
+    }
+
     const pageType = req.nextUrl.searchParams.get("pageType");
 
     // Find active slots
     const where: Record<string, unknown> = { isActive: true };
-    const slots = await (prisma as any).adSlot.findMany({
+    const slots = await prisma.adSlot.findMany({
       where,
       include: {
         placements: {
@@ -27,8 +35,8 @@ export async function GET(req: NextRequest) {
 
     // Filter to slots with no active placements
     const reserved = slots
-      .filter((slot: any) => slot.placements.length === 0)
-      .filter((slot: any) => {
+      .filter((slot) => slot.placements.length === 0)
+      .filter((slot) => {
         if (!pageType) return true;
         const types = (slot.pageTypes as string[]) ?? [];
         if (types.length === 0 || types.includes("*")) return true;
@@ -40,7 +48,7 @@ export async function GET(req: NextRequest) {
           return false;
         });
       })
-      .map((slot: any) => ({
+      .map((slot) => ({
         id: slot.id,
         name: slot.name,
         position: slot.position,
@@ -49,7 +57,7 @@ export async function GET(req: NextRequest) {
       }));
 
     return NextResponse.json({ success: true, data: reserved });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },

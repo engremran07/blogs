@@ -4,10 +4,12 @@ import { prisma } from "@/server/db/prisma";
 import { TagService } from "@/features/tags/server/tag.service";
 import { createTagSchema } from "@/features/tags/server/schemas";
 import { addPageTypesToSlots } from "@/features/ads/server/scan-pages";
+import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 import { createLogger } from "@/server/observability/logger";
+import type { TagSortField, TagsPrismaClient } from "@/features/tags/types";
 
 const logger = createLogger("api/tags");
-const tagService = new TagService(prisma as any);
+const tagService = new TagService(prisma as unknown as TagsPrismaClient);
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,7 +24,7 @@ export async function GET(req: NextRequest) {
       page: Math.max(1, page),
       limit: Math.min(100, Math.max(1, limit)),
       search,
-      sortBy: sortBy as any,
+      sortBy: sortBy as TagSortField,
       sortOrder,
     });
 
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
     }
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
     }
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
     const tag = await tagService.create(parsed.data);
 
     // Auto-include this tag in ad slot page types
-    void addPageTypesToSlots(prisma as any, [`tag:${tag.slug}`]).catch(() => {});
+    void addPageTypesToSlots(prisma as unknown as ScanPrisma, [`tag:${tag.slug}`]).catch(() => {});
 
     return NextResponse.json({ success: true, data: tag }, { status: 201 });
   } catch (error) {

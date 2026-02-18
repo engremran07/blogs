@@ -13,14 +13,15 @@ import {
   ArrowUp,
   ArrowDown,
   CornerDownRight,
-  X,
-  Check,
   Palette,
   Save,
+  CheckSquare,
+  Square,
+  MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/FormFields";
-import { Modal } from "@/components/ui/Modal";
+import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 
 /* ───────────────────────── Types ───────────────────────── */
@@ -83,6 +84,12 @@ export default function CategoriesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
+  /* ─── Bulk selection ─── */
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
+  const [bulkConfirm, setBulkConfirm] = useState<{ action: string; label: string } | null>(null);
+  const bulkMenuRef = useRef<HTMLDivElement>(null);
+
   /* ─── Drag & drop state ─── */
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; position: DropPosition } | null>(null);
@@ -112,6 +119,42 @@ export default function CategoriesPage() {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  /* ─── Close bulk menu on click outside ─── */
+  useEffect(() => {
+    if (!bulkMenuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (bulkMenuRef.current && !bulkMenuRef.current.contains(e.target as Node)) setBulkMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [bulkMenuOpen]);
+
+  /* ─── Bulk selection helpers ─── */
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }
+
+  function toggleSelectAll() {
+    const allIds = flat.map((c) => c.id);
+    setSelected(selected.size === allIds.length ? new Set() : new Set(allIds));
+  }
+
+  async function executeBulkAction() {
+    if (!bulkConfirm) return;
+    try {
+      const res = await fetch("/api/categories/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: bulkConfirm.action, ids: Array.from(selected) }),
+      });
+      const data = await res.json();
+      if (data.success) { toast(data.message, "success"); setSelected(new Set()); fetchCategories(); }
+      else toast(data.error || "Bulk action failed", "error");
+    } catch { toast("Bulk action failed", "error"); }
+    finally { setBulkConfirm(null); setBulkMenuOpen(false); }
+  }
 
   /* ─── Expand / Collapse ─── */
 
@@ -249,7 +292,7 @@ export default function CategoriesPage() {
     setDropTarget({ id: targetId, position });
   }
 
-  function handleDragLeave(e: React.DragEvent) {
+  function handleDragLeave(_e: React.DragEvent) {
     dragCounter.current--;
     if (dragCounter.current <= 0) {
       setDropTarget(null);
@@ -566,6 +609,15 @@ export default function CategoriesPage() {
               : ""
           }`}
         >
+          {/* Bulk checkbox */}
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleSelect(cat.id); }}
+            className="shrink-0 rounded p-0.5 text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400"
+            title={selected.has(cat.id) ? "Deselect" : "Select"}
+          >
+            {selected.has(cat.id) ? <CheckSquare className="h-4 w-4 text-blue-600" /> : <Square className="h-4 w-4" />}
+          </button>
+
           {/* Drag handle */}
           <button
             className="shrink-0 cursor-grab touch-none rounded p-0.5 text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400 active:cursor-grabbing"
@@ -702,6 +754,37 @@ export default function CategoriesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Select All / Deselect All */}
+          <button
+            onClick={toggleSelectAll}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+            title={selected.size === flat.length ? "Deselect All" : "Select All"}
+          >
+            {selected.size === flat.length && flat.length > 0 ? (
+              <CheckSquare className="h-4 w-4 text-blue-600" />
+            ) : (
+              <Square className="h-4 w-4" />
+            )}
+            {selected.size === flat.length && flat.length > 0 ? "Deselect All" : "Select All"}
+          </button>
+
+          {/* Bulk actions dropdown */}
+          {selected.size > 0 && (
+            <div className="relative" ref={bulkMenuRef}>
+              <Button variant="secondary" onClick={() => setBulkMenuOpen(!bulkMenuOpen)} icon={<MoreHorizontal className="h-4 w-4" />}>
+                Bulk ({selected.size}) <ChevronDown className="ml-1 h-3 w-3" />
+              </Button>
+              {bulkMenuOpen && (
+                <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                  <button onClick={() => setBulkConfirm({ action: "feature", label: "feature" })} className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"><Star className="h-4 w-4 text-yellow-500" /> Feature</button>
+                  <button onClick={() => setBulkConfirm({ action: "unfeature", label: "unfeature" })} className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"><Star className="h-4 w-4 text-gray-400" /> Unfeature</button>
+                  <hr className="my-1 border-gray-200 dark:border-gray-700" />
+                  <button onClick={() => setBulkConfirm({ action: "delete", label: "delete" })} className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"><Trash2 className="h-4 w-4" /> Delete</button>
+                </div>
+              )}
+            </div>
+          )}
+
           {reorderDirty && (
             <Button
               onClick={saveReorder}
@@ -887,6 +970,17 @@ export default function CategoriesPage() {
           </div>
         </div>
       </Modal>
+
+      {/* ─── Bulk Confirm Dialog ─── */}
+      <ConfirmDialog
+        open={!!bulkConfirm}
+        title={`Bulk ${bulkConfirm?.label || "action"}`}
+        message={`Are you sure you want to ${bulkConfirm?.label} ${selected.size} category${selected.size === 1 ? "" : "ies"}?${bulkConfirm?.action === "delete" ? " This cannot be undone." : ""}`}
+        confirmText={bulkConfirm?.label === "delete" ? "Delete" : "Confirm"}
+        variant={bulkConfirm?.action === "delete" ? "danger" : "primary"}
+        onConfirm={executeBulkAction}
+        onClose={() => setBulkConfirm(null)}
+      />
 
       {/* ─── Delete Confirmation ─── */}
       <Modal

@@ -2,8 +2,9 @@
 import type {
   AdsPrismaClient, CacheProvider, AdsConfig, SafeAdProvider,
   AdsOverviewStats, PlacementStats, ComplianceScanResult, ComplianceIssue,
+  AdProviderType, AdPosition, AdPlacementRecord,
 } from "../types";
-import { CACHE_KEYS, PROVIDER_SENSITIVE_FIELDS, DEFAULT_ADS_TXT, generateSlug } from "./constants";
+import { PROVIDER_SENSITIVE_FIELDS, DEFAULT_ADS_TXT, generateSlug } from "./constants";
 import { sanitizeAdCode } from "./sanitization.util";
 
 export interface AdsServiceDeps {
@@ -152,8 +153,8 @@ export class AdsService {
 
   async findPlacementsForPage(
     pageType?: string,
-    category?: string,
-    containerWidth?: number,
+    _category?: string,
+    _containerWidth?: number,
   ): Promise<any[]> {
     const now = new Date();
     const where: any = {
@@ -291,10 +292,11 @@ export class AdsService {
       },
     });
     const byProvider = providers.map((p) => {
-      const impressions = p.placements.reduce((sum: number, pl: any) => sum + (pl.impressions ?? 0), 0);
-      const clicks = p.placements.reduce((sum: number, pl: any) => sum + (pl.clicks ?? 0), 0);
+      const pls = (p.placements ?? []) as AdPlacementRecord[];
+      const impressions = pls.reduce((sum, pl) => sum + (pl.impressions ?? 0), 0);
+      const clicks = pls.reduce((sum, pl) => sum + (pl.clicks ?? 0), 0);
       return {
-        type: p.type as any,
+        type: p.type as AdProviderType,
         name: p.name,
         impressions,
         clicks,
@@ -313,14 +315,14 @@ export class AdsService {
     const positionMap = new Map<string, { impressions: number; clicks: number }>();
     for (const slot of slots) {
       const existing = positionMap.get(slot.position) ?? { impressions: 0, clicks: 0 };
-      for (const pl of slot.placements as any[]) {
+      for (const pl of (slot.placements ?? []) as AdPlacementRecord[]) {
         existing.impressions += pl.impressions ?? 0;
         existing.clicks += pl.clicks ?? 0;
       }
       positionMap.set(slot.position, existing);
     }
     const byPosition = Array.from(positionMap.entries()).map(([position, stats]) => ({
-      position: position as any,
+      position: position as AdPosition,
       impressions: stats.impressions,
       clicks: stats.clicks,
       ctr: stats.impressions > 0 ? (stats.clicks / stats.impressions) * 100 : 0,
@@ -349,7 +351,7 @@ export class AdsService {
     const placements = await this.prisma.adPlacement.findMany({
       where: { isActive: true },
       include: { provider: true, slot: true },
-    } as any);
+    });
 
     const issues: ComplianceIssue[] = [];
     for (const p of placements) {

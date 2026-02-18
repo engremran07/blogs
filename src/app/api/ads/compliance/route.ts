@@ -11,7 +11,7 @@ import { adsService } from "@/server/wiring";
 
 async function runComplianceScan() {
   const session = await auth();
-  if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes((session.user as any).role)) {
+  if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
@@ -23,7 +23,7 @@ export async function GET() {
   try {
     return await runComplianceScan();
   } catch (error) {
-    const status = (error as any)?.statusCode ?? 500;
+    const status = (error as { statusCode?: number })?.statusCode ?? 500;
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status },
@@ -35,7 +35,7 @@ export async function POST() {
   try {
     return await runComplianceScan();
   } catch (error) {
-    const status = (error as any)?.statusCode ?? 500;
+    const status = (error as { statusCode?: number })?.statusCode ?? 500;
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status },

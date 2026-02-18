@@ -383,43 +383,176 @@ export interface AiComplianceProvider {
   scanTemplates(templates: Array<{ id: string; code: string }>): Promise<ComplianceScanResult>;
 }
 
+/* ── Lightweight DB-record shapes (mirroring Prisma models) ──────────────── */
+
+export interface AdProviderRecord {
+  id: string;
+  name: string;
+  slug: string;
+  type: string;
+  isActive: boolean;
+  priority: number;
+  clientId: string | null;
+  publisherId: string | null;
+  apiKey: string | null;
+  scriptUrl: string | null;
+  dataAttributes: Record<string, unknown>;
+  config: Record<string, unknown> | null;
+  killSwitch: boolean;
+  supportedFormats: string[];
+  allowConcurrent: boolean;
+  exclusiveWith: string[];
+  maxPerPage: number;
+  loadStrategy: string;
+  createdAt: Date;
+  updatedAt: Date;
+  placements?: AdPlacementRecord[];
+}
+
+export interface AdSlotRecord {
+  id: string;
+  name: string;
+  slug: string;
+  position: string;
+  format: string;
+  description: string | null;
+  responsiveSizes: Record<string, unknown>;
+  maxWidth: number | null;
+  maxHeight: number | null;
+  responsive: boolean;
+  containerSelector: string | null;
+  excludeSelectors: string[];
+  pageTypes: string[];
+  categories: string[];
+  excludePages: string[];
+  isActive: boolean;
+  multiProvider: boolean;
+  renderPriority: number;
+  createdAt: Date;
+  updatedAt: Date;
+  placements?: AdPlacementRecord[];
+}
+
+export interface AdPlacementRecord {
+  id: string;
+  providerId: string;
+  provider?: AdProviderRecord;
+  slotId: string;
+  slot?: AdSlotRecord;
+  adUnitId: string | null;
+  adCode: string | null;
+  customHtml: string | null;
+  autoResize: boolean;
+  minContainerWidth: number;
+  maxContainerWidth: number;
+  visibleBreakpoints: string[];
+  autoPlace: boolean;
+  autoStrategy: string;
+  minParagraphs: number;
+  paragraphGap: number;
+  maxAdsPerPage: number;
+  lazyOffset: number;
+  refreshIntervalSec: number;
+  closeable: boolean;
+  startDate: Date | null;
+  endDate: Date | null;
+  isActive: boolean;
+  impressions: number;
+  clicks: number;
+  revenue: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AdLogRecord {
+  id: string;
+  placementId: string;
+  eventType: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+}
+
+export interface AdSettingsRecord {
+  id: string;
+  sanitizeAdCode: boolean;
+  allowedProviderTypes: string[];
+  lazyLoadAds: boolean;
+  defaultLazyOffset: number;
+  globalMaxAdsPerPage: number;
+  defaultMinParagraphs: number;
+  defaultParagraphGap: number;
+  skipCodeBlocks: boolean;
+  respectSectionBreaks: boolean;
+  enableAutoPlacement: boolean;
+  autoAdStrategy: string;
+  enableAnalytics: boolean;
+  enableComplianceScanning: boolean;
+  cacheTtlSeconds: number;
+  eventRateLimitMax: number;
+  eventRateLimitWindowMs: number;
+  minContentLength: number;
+  positionKillSwitches: Record<string, boolean>;
+  enableWidgetAds: boolean;
+  widgetAdConfig: Record<string, unknown>;
+  enableResponsive: boolean;
+  breakpoints: Record<string, unknown>;
+  concurrencyPolicy: Record<string, unknown>;
+  maxViewportAdCoverage: number;
+  minAdSpacingPx: number;
+  deferUntilLcp: boolean;
+  enableAdsTxt: boolean;
+  adsTxtCustomEntries: string[];
+  requireConsent: boolean;
+  consentModes: string[];
+  enableAdRefresh: boolean;
+  minRefreshInterval: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AdsAggregateResult {
+  _sum?: { impressions?: number | null; clicks?: number | null; revenue?: number | null };
+}
+
+/* ── Prisma client interface ─────────────────────────────────────────────── */
+
 export interface AdsPrismaClient {
   adProvider: {
-    create(a: { data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<any>;
-    findMany(a?: Record<string, unknown>): Promise<any[]>;
-    findUnique(a: { where: Record<string, unknown>; include?: Record<string, unknown> }): Promise<any | null>;
-    update(a: { where: Record<string, unknown>; data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<any>;
-    delete(a: { where: Record<string, unknown> }): Promise<any>;
+    create(a: { data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdProviderRecord>;
+    findMany(a?: Record<string, unknown>): Promise<AdProviderRecord[]>;
+    findUnique(a: { where: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdProviderRecord | null>;
+    update(a: { where: Record<string, unknown>; data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdProviderRecord>;
+    delete(a: { where: Record<string, unknown> }): Promise<AdProviderRecord>;
     count(a?: Record<string, unknown>): Promise<number>;
   };
   adSlot: {
-    create(a: { data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<any>;
-    findMany(a?: Record<string, unknown>): Promise<any[]>;
-    findUnique(a: { where: Record<string, unknown>; include?: Record<string, unknown> }): Promise<any | null>;
-    update(a: { where: Record<string, unknown>; data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<any>;
-    delete(a: { where: Record<string, unknown> }): Promise<any>;
+    create(a: { data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdSlotRecord>;
+    findMany(a?: Record<string, unknown>): Promise<AdSlotRecord[]>;
+    findUnique(a: { where: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdSlotRecord | null>;
+    update(a: { where: Record<string, unknown>; data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdSlotRecord>;
+    delete(a: { where: Record<string, unknown> }): Promise<AdSlotRecord>;
     count(a?: Record<string, unknown>): Promise<number>;
   };
   adPlacement: {
-    create(a: { data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<any>;
-    findMany(a?: Record<string, unknown>): Promise<any[]>;
-    findUnique(a: { where: Record<string, unknown>; include?: Record<string, unknown> }): Promise<any | null>;
-    update(a: { where: Record<string, unknown>; data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<any>;
-    delete(a: { where: Record<string, unknown> }): Promise<any>;
+    create(a: { data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdPlacementRecord>;
+    findMany(a?: Record<string, unknown>): Promise<AdPlacementRecord[]>;
+    findUnique(a: { where: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdPlacementRecord | null>;
+    update(a: { where: Record<string, unknown>; data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdPlacementRecord>;
+    delete(a: { where: Record<string, unknown> }): Promise<AdPlacementRecord>;
     count(a?: Record<string, unknown>): Promise<number>;
-    aggregate(a: Record<string, unknown>): Promise<any>;
+    aggregate(a: Record<string, unknown>): Promise<AdsAggregateResult>;
   };
   adLog: {
-    create(a: { data: Record<string, unknown> }): Promise<any>;
-    findMany(a?: Record<string, unknown>): Promise<any[]>;
-    groupBy(a: Record<string, unknown>): Promise<any[]>;
+    create(a: { data: Record<string, unknown> }): Promise<AdLogRecord>;
+    findMany(a?: Record<string, unknown>): Promise<AdLogRecord[]>;
+    groupBy(a: Record<string, unknown>): Promise<Record<string, unknown>[]>;
     count(a?: Record<string, unknown>): Promise<number>;
   };
   adSettings: {
-    findFirst(a?: Record<string, unknown>): Promise<any | null>;
-    create(a: { data: Record<string, unknown> }): Promise<any>;
-    update(a: { where: Record<string, unknown>; data: Record<string, unknown> }): Promise<any>;
-    delete(a: { where: Record<string, unknown> }): Promise<any>;
+    findFirst(a?: Record<string, unknown>): Promise<AdSettingsRecord | null>;
+    create(a: { data: Record<string, unknown> }): Promise<AdSettingsRecord>;
+    update(a: { where: Record<string, unknown>; data: Record<string, unknown> }): Promise<AdSettingsRecord>;
+    delete(a: { where: Record<string, unknown> }): Promise<AdSettingsRecord>;
   };
 }
 

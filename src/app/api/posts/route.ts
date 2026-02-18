@@ -8,12 +8,14 @@ import {
 } from "@/features/blog/server/constants";
 import { autoDistributePost } from "@/features/distribution";
 import { InterlinkService } from "@/features/seo/server/interlink.service";
+import type { InterlinkPrisma } from "@/features/seo/server/interlink.service";
 
 const logger = createLogger("api/posts");
 
 /** Fields returned in list endpoints — excludes heavy `content` & sensitive `password`. */
 const POST_LIST_SELECT = {
   id: true,
+  postNumber: true,
   title: true,
   slug: true,
   excerpt: true,
@@ -111,7 +113,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
     }
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (!["AUTHOR", "EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
     }
@@ -125,7 +127,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const authorId = (session.user as any).id || body.authorId;
+    const authorId = session.user.id || body.authorId;
 
     // Sanitize inputs
     const title = sanitizeText(body.title);
@@ -218,7 +220,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Interlink lifecycle: scan for link suggestions
-    new InterlinkService(prisma as any).onContentCreated(post.id, 'POST', status).catch((err: unknown) =>
+    new InterlinkService(prisma as unknown as InterlinkPrisma).onContentCreated(post.id, 'POST', status).catch((err: unknown) =>
       logger.error("[api/posts] Interlink onContentCreated error:", { error: err }),
     );
 

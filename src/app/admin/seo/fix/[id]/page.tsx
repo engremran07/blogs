@@ -13,10 +13,8 @@ import {
   Save,
   RefreshCw,
   Eye,
-  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Input, Textarea } from "@/components/ui/FormFields";
 import { toast } from "@/components/ui/Toast";
 import { clsx } from "clsx";
 

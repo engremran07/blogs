@@ -11,14 +11,17 @@ import {
   Tag,
   Calendar,
   Globe,
-  Lock,
   Users,
+  ChevronDown,
+  ChevronUp,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/FormFields";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import type { MediaItem } from "@/features/media/types";
 
 const RichTextEditor = dynamic(() => import("@/features/editor/ui/RichTextEditor"), { ssr: false, loading: () => <div className="h-80 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" /> });
@@ -45,6 +48,7 @@ interface PostForm {
   featuredImageAlt: string;
   seoTitle: string;
   seoDescription: string;
+  seoKeywords: string;
   allowComments: boolean;
   isFeatured: boolean;
   isPinned: boolean;
@@ -56,6 +60,21 @@ interface PostForm {
   guestAuthorBio: string;
   guestAuthorAvatar: string;
   guestAuthorUrl: string;
+  // OG fields
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+  // SEO directives
+  noIndex: boolean;
+  noFollow: boolean;
+  canonicalUrl: string;
+  // Scheduling
+  scheduledFor: string;
+  // Access control
+  password: string;
+  // Metrics (computed)
+  wordCount: number;
+  readingTime: number;
 }
 
 interface TagOption {
@@ -86,6 +105,8 @@ export default function PostEditor({
   const [tags, setTags] = useState<TagOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [seoOpen, setSeoOpen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const [form, setForm] = useState<PostForm>({
     title: "",
@@ -97,6 +118,7 @@ export default function PostEditor({
     featuredImageAlt: "",
     seoTitle: "",
     seoDescription: "",
+    seoKeywords: "",
     allowComments: true,
     isFeatured: false,
     isPinned: false,
@@ -108,6 +130,16 @@ export default function PostEditor({
     guestAuthorBio: "",
     guestAuthorAvatar: "",
     guestAuthorUrl: "",
+    ogTitle: "",
+    ogDescription: "",
+    ogImage: "",
+    noIndex: false,
+    noFollow: false,
+    canonicalUrl: "",
+    scheduledFor: "",
+    password: "",
+    wordCount: 0,
+    readingTime: 0,
   });
 
   useEffect(() => {
@@ -141,11 +173,22 @@ export default function PostEditor({
               guestAuthorUrl: p.guestAuthorUrl || "",
               seoTitle: p.seoTitle || "",
               seoDescription: p.seoDescription || "",
+              seoKeywords: (p.seoKeywords || []).join(", "),
               allowComments: p.allowComments ?? true,
               isFeatured: p.isFeatured ?? false,
               isPinned: p.isPinned ?? false,
               tagIds: (p.tags || []).map((t: TagOption) => t.id),
               categoryIds: (p.categories || []).map((c: CategoryOption) => c.id),
+              ogTitle: p.ogTitle || "",
+              ogDescription: p.ogDescription || "",
+              ogImage: p.ogImage || "",
+              noIndex: p.noIndex ?? false,
+              noFollow: p.noFollow ?? false,
+              canonicalUrl: p.canonicalUrl || "",
+              scheduledFor: p.scheduledFor ? new Date(p.scheduledFor).toISOString().slice(0, 16) : "",
+              password: p.password || "",
+              wordCount: p.wordCount ?? 0,
+              readingTime: p.readingTime ?? 0,
             });
             setAutoSlug(false);
           }
@@ -206,12 +249,30 @@ export default function PostEditor({
         featuredImageAlt: form.featuredImageAlt || undefined,
         seoTitle: form.seoTitle || undefined,
         seoDescription: form.seoDescription || undefined,
+        seoKeywords: form.seoKeywords ? form.seoKeywords.split(",").map((k: string) => k.trim()).filter(Boolean) : [],
         allowComments: form.allowComments,
         isFeatured: form.isFeatured,
         isPinned: form.isPinned,
         tagIds: form.tagIds,
         categoryIds: form.categoryIds,
+        // OG fields
+        ogTitle: form.ogTitle || null,
+        ogDescription: form.ogDescription || null,
+        ogImage: form.ogImage || null,
+        // SEO directives
+        noIndex: form.noIndex,
+        noFollow: form.noFollow,
+        canonicalUrl: form.canonicalUrl || null,
+        // Access control
+        password: form.password || null,
+        // Metrics
+        wordCount: form.wordCount,
+        readingTime: form.readingTime,
       };
+
+      if (form.scheduledFor) {
+        body.scheduledFor = new Date(form.scheduledFor).toISOString();
+      }
 
       if (status === "PUBLISHED" && !form.content.trim()) {
         toast("Content is required to publish", "error");
@@ -226,18 +287,12 @@ export default function PostEditor({
       let res: Response;
       if (isNew) {
         body.authorId = (session?.user as { id?: string })?.id;
-        body.wordCount = form.content.split(/\s+/).filter(Boolean).length;
-        body.readingTime = Math.max(1, Math.ceil((body.wordCount as number) / 200));
-
         res = await fetch("/api/posts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
       } else {
-        body.wordCount = form.content.split(/\s+/).filter(Boolean).length;
-        body.readingTime = Math.max(1, Math.ceil((body.wordCount as number) / 200));
-
         res = await fetch(`/api/posts/${postId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -248,8 +303,8 @@ export default function PostEditor({
       const data = await res.json();
       if (data.success) {
         toast(isNew ? "Post created!" : "Post saved!", "success");
-        if (isNew && data.data?.id) {
-          router.push(`/admin/posts/${data.data.id}/edit`);
+        if (isNew && data.data?.postNumber) {
+          router.push(`/admin/posts/${data.data.postNumber}/edit`);
         }
       } else {
         toast(data.error || "Failed to save", "error");
@@ -275,8 +330,18 @@ export default function PostEditor({
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             {isNew ? "New Post" : "Edit Post"}
           </h1>
+          {!isNew && (
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+              {form.wordCount} words &middot; {form.readingTime} min read
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
+          {!isNew && (
+            <Button variant="outline" onClick={() => setShowPreview(true)} icon={<Eye className="h-4 w-4" />}>
+              Preview
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => handleSave("DRAFT")}
@@ -325,7 +390,12 @@ export default function PostEditor({
             </label>
             <RichTextEditor
               content={form.content}
-              onChange={(html) => update("content", html)}
+              onChange={(html, _text, wc) => {
+                update("content", html);
+                const wordCount = wc ?? 0;
+                const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+                setForm(prev => ({ ...prev, wordCount, readingTime }));
+              }}
               onImageUpload={async (file: File) => {
                 const fd = new FormData();
                 fd.append("file", file);
@@ -367,6 +437,26 @@ export default function PostEditor({
               <option value="SCHEDULED">Scheduled</option>
               <option value="ARCHIVED">Archived</option>
             </Select>
+            {form.status === "SCHEDULED" && (
+              <div className="mt-3">
+                <Input
+                  label="Scheduled For"
+                  type="datetime-local"
+                  value={form.scheduledFor}
+                  onChange={(e) => update("scheduledFor", e.target.value)}
+                />
+              </div>
+            )}
+            <div className="mt-3">
+              <Input
+                label="Password"
+                type="password"
+                value={form.password}
+                onChange={(e) => update("password", e.target.value)}
+                placeholder="Optional access password"
+                hint="Leave empty for no password"
+              />
+            </div>
             <div className="mt-4 space-y-2">
               <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                 <input
@@ -431,7 +521,7 @@ export default function PostEditor({
                   placeholder="https://example.com/avatar.jpg"
                 />
                 {form.guestAuthorAvatar && (
-                  <img src={form.guestAuthorAvatar} alt="Guest avatar" className="mt-1 h-12 w-12 rounded-full object-cover" />
+                  <Image src={form.guestAuthorAvatar} alt="Guest avatar" className="mt-1 h-12 w-12 rounded-full object-cover" width={48} height={48} unoptimized />
                 )}
                 <Textarea
                   label="Bio"
@@ -467,10 +557,13 @@ export default function PostEditor({
               </Button>
             </div>
             {form.featuredImage && (
-              <img
+              <Image
                 src={form.featuredImage}
                 alt="Preview"
                 className="mt-3 max-h-48 rounded-lg object-cover"
+                width={400}
+                height={192}
+                unoptimized
               />
             )}
             <div className="mt-3">
@@ -540,40 +633,89 @@ export default function PostEditor({
             </div>
           </div>
 
-          {/* SEO */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-            <h3 className="mb-3 font-semibold text-gray-900 dark:text-white">SEO</h3>
-            <div className="space-y-3">
-              <Input
-                label="SEO Title"
-                value={form.seoTitle}
-                onChange={(e) => update("seoTitle", e.target.value)}
-                placeholder={form.title || "SEO title..."}
-              />
-              <Textarea
-                label="SEO Description"
-                value={form.seoDescription}
-                onChange={(e) => update("seoDescription", e.target.value)}
-                placeholder="Meta description for search engines..."
-                rows={3}
-              />
-            </div>
-            {/* Preview */}
-            <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900">
-              <p className="text-xs text-gray-400">Search Preview</p>
-              <p className="mt-1 text-sm font-medium text-blue-700 dark:text-blue-400">
-                {form.seoTitle || form.title || "Post Title"}
-              </p>
-              <p className="text-xs text-green-700 dark:text-green-400">
-                myblog.com/blog/{form.slug || "post-slug"}
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                {form.seoDescription || form.excerpt || "Post description will appear here..."}
-              </p>
-            </div>
+          {/* SEO & OG */}
+          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+            <button
+              onClick={() => setSeoOpen(!seoOpen)}
+              className="flex w-full items-center justify-between p-5"
+            >
+              <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                <Search className="h-4 w-4" /> SEO & Open Graph
+              </h3>
+              {seoOpen ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+            </button>
+            {seoOpen && (
+              <div className="space-y-4 border-t border-gray-200 p-5 dark:border-gray-700">
+                <Input label="SEO Title" value={form.seoTitle} onChange={(e) => update("seoTitle", e.target.value)} placeholder={form.title || "SEO title..."} maxLength={100} />
+                <Textarea label="SEO Description" value={form.seoDescription} onChange={(e) => update("seoDescription", e.target.value)} placeholder="Meta description for search engines..." rows={3} maxLength={200} />
+                <Input label="SEO Keywords" value={form.seoKeywords} onChange={(e) => update("seoKeywords", e.target.value)} placeholder="keyword1, keyword2, keyword3" hint="Comma-separated keywords" />
+                <Input label="Canonical URL" value={form.canonicalUrl} onChange={(e) => update("canonicalUrl", e.target.value)} placeholder="https://..." />
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input type="checkbox" checked={form.noIndex} onChange={(e) => update("noIndex", e.target.checked)} className="rounded" />
+                    noindex
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input type="checkbox" checked={form.noFollow} onChange={(e) => update("noFollow", e.target.checked)} className="rounded" />
+                    nofollow
+                  </label>
+                </div>
+                <hr className="border-gray-200 dark:border-gray-700" />
+                <p className="text-xs font-medium text-gray-500">Open Graph</p>
+                <Input label="OG Title" value={form.ogTitle} onChange={(e) => update("ogTitle", e.target.value)} placeholder="Open Graph title" maxLength={100} />
+                <Textarea label="OG Description" value={form.ogDescription} onChange={(e) => update("ogDescription", e.target.value)} placeholder="Open Graph description" rows={2} maxLength={200} />
+                <Input label="OG Image URL" value={form.ogImage} onChange={(e) => update("ogImage", e.target.value)} placeholder="https://..." />
+                {/* Search Preview */}
+                <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900">
+                  <p className="text-xs text-gray-400">Search Preview</p>
+                  <p className="mt-1 text-sm font-medium text-blue-700 dark:text-blue-400">
+                    {form.seoTitle || form.title || "Post Title"}
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-400">
+                    myblog.com/blog/{form.slug || "post-slug"}
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                    {form.seoDescription || form.excerpt || "Post description will appear here..."}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Post Info */}
+          {!isNew && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+              <h3 className="mb-3 font-semibold text-gray-900 dark:text-white">Post Info</h3>
+              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex justify-between">
+                  <span>Words</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{form.wordCount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Reading time</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{form.readingTime} min</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Preview Modal */}
+      <Modal
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        title={`Preview: ${form.title || "Untitled"}`}
+        size="full"
+      >
+        <div className="mx-auto max-w-3xl p-8">
+          <article className="prose prose-lg prose-blue dark:prose-invert max-w-none">
+            <h1>{form.title}</h1>
+            {form.excerpt && <p className="lead text-gray-500">{form.excerpt}</p>}
+            <div dangerouslySetInnerHTML={{ __html: form.content }} />
+          </article>
+        </div>
+      </Modal>
 
       {/* Media Picker Modal */}
       <Modal

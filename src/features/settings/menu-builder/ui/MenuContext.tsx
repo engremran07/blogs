@@ -12,7 +12,6 @@
 import React, { createContext, useContext, useMemo, useCallback, type ReactNode } from 'react';
 import type {
   Menu,
-  MenuItem,
   MenuSlot,
   MenuVisibilityContext,
   MenuRegistryItem,

@@ -35,14 +35,14 @@ export interface ScanHealthReport {
 }
 
 /** Minimal Prisma client interface used by these helpers */
-interface ScanPrisma {
-  category: { findMany: (args: any) => Promise<any[]> };
-  tag: { findMany: (args: any) => Promise<any[]> };
-  page: { findMany: (args: any) => Promise<any[]> };
-  post: { count: (args?: any) => Promise<number>; findMany: (args?: any) => Promise<any[]> };
+export interface ScanPrisma {
+  category: { findMany: (args: Record<string, unknown>) => Promise<Array<{ slug: string; name: string; _count?: { posts: number } }>> };
+  tag: { findMany: (args: Record<string, unknown>) => Promise<Array<{ slug: string; name: string; _count?: { posts: number } }>> };
+  page: { findMany: (args: Record<string, unknown>) => Promise<Array<{ slug: string; title: string; updatedAt: Date | null }>> };
+  post: { count: (args?: Record<string, unknown>) => Promise<number>; findMany: (args?: Record<string, unknown>) => Promise<unknown[]> };
   adSlot: {
-    findMany: (args?: any) => Promise<any[]>;
-    update: (args: any) => Promise<any>;
+    findMany: (args?: Record<string, unknown>) => Promise<Array<{ id: string; pageTypes: string[] }>>;
+    update: (args: Record<string, unknown>) => Promise<unknown>;
   };
 }
 
@@ -75,8 +75,8 @@ export async function discoverPageTypes(prisma: ScanPrisma): Promise<ScannedPage
   });
 
   function getSlotCoverage(key: string): number {
-    return allSlots.filter((slot: any) => {
-      const types = (slot.pageTypes as string[]) ?? [];
+    return allSlots.filter((slot) => {
+      const types = slot.pageTypes ?? [];
       if (types.includes("*")) return true;
       if (types.includes(key)) return true;
       return types.some((t: string) => t.endsWith(":*") && key.startsWith(t.replace(":*", ":")));
@@ -110,9 +110,9 @@ export async function discoverPageTypes(prisma: ScanPrisma): Promise<ScannedPage
   const categories = await prisma.category.findMany({
     select: { slug: true, name: true, _count: { select: { posts: true } } },
     orderBy: { name: "asc" },
-  } as any);
+  });
   for (const cat of categories) {
-    const catCount = (cat as any)._count?.posts ?? 0;
+    const catCount = cat._count?.posts ?? 0;
     types.push({
       key: `category:${cat.slug}`,
       label: `Category: ${cat.name}`,
@@ -128,9 +128,9 @@ export async function discoverPageTypes(prisma: ScanPrisma): Promise<ScannedPage
     select: { slug: true, name: true, _count: { select: { posts: true } } },
     where: { posts: { some: {} } },
     orderBy: { name: "asc" },
-  } as any);
+  });
   for (const tag of tags) {
-    const tagCount = (tag as any)._count?.posts ?? 0;
+    const tagCount = tag._count?.posts ?? 0;
     types.push({
       key: `tag:${tag.slug}`,
       label: `Tag: ${tag.name}`,

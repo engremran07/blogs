@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/prisma";
-import { auditContent, aggregateSiteAudit, generateRecommendations } from "@/features/seo/server/seo-audit.util";
+import { auditContent } from "@/features/seo/server/seo-audit.util";
 import { generateSeoTitle, generateSeoDescription, scoreTitleQuality, extractKeywords } from "@/features/seo/server/seo-text.util";
 import { InterlinkService } from "@/features/seo/server/interlink.service";
-import type { AuditableContent, AuditResult, SiteAuditResult, SeoTargetType } from "@/features/seo/types";
+import type { InterlinkPrisma } from "@/features/seo/server/interlink.service";
+import type { AuditableContent, AuditResult } from "@/features/seo/types";
 import { createLogger } from "@/server/observability/logger";
 
 const logger = createLogger("api/seo");
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const session = await auth();
-    if (!session?.user || !["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes((session.user as any).role)) {
+    if (!session?.user || !["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
     if (action === "overview") {
@@ -285,7 +286,7 @@ export async function GET(request: NextRequest) {
       const type = (searchParams.get("type") || "post").toUpperCase() as "POST" | "PAGE";
       if (!id) return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
 
-      const interlinkSvc = new InterlinkService(prisma as any);
+      const interlinkSvc = new InterlinkService(prisma as unknown as InterlinkPrisma);
       const result = await interlinkSvc.scanSingle(id, type);
       return NextResponse.json({ success: true, data: result });
     }
@@ -295,26 +296,26 @@ export async function GET(request: NextRequest) {
       const type = (searchParams.get("type") || "post").toUpperCase() as "POST" | "PAGE";
       if (!id) return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
 
-      const interlinkSvc = new InterlinkService(prisma as any);
+      const interlinkSvc = new InterlinkService(prisma as unknown as InterlinkPrisma);
       const result = await interlinkSvc.autoLinkContent(id, type);
       return NextResponse.json({ success: true, data: result });
     }
 
     if (action === "interlink-all") {
       const limitParam = parseInt(searchParams.get("limit") || "50", 10);
-      const interlinkSvc = new InterlinkService(prisma as any);
+      const interlinkSvc = new InterlinkService(prisma as unknown as InterlinkPrisma);
       const result = await interlinkSvc.autoLinkAll(limitParam);
       return NextResponse.json({ success: true, data: result });
     }
 
     if (action === "interlink-report") {
-      const interlinkSvc = new InterlinkService(prisma as any);
+      const interlinkSvc = new InterlinkService(prisma as unknown as InterlinkPrisma);
       const report = await interlinkSvc.generateReport();
       return NextResponse.json({ success: true, data: report });
     }
 
     if (action === "interlink-list-links") {
-      const interlinkSvc = new InterlinkService(prisma as any);
+      const interlinkSvc = new InterlinkService(prisma as unknown as InterlinkPrisma);
       const sourceId = searchParams.get("sourceId") || undefined;
       const targetId = searchParams.get("targetId") || undefined;
       const status = searchParams.get("status") || undefined;
@@ -326,7 +327,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === "interlink-list-exclusions") {
-      const interlinkSvc = new InterlinkService(prisma as any);
+      const interlinkSvc = new InterlinkService(prisma as unknown as InterlinkPrisma);
       const exclusions = await interlinkSvc.listExclusions();
       return NextResponse.json({ success: true, data: exclusions });
     }
@@ -342,13 +343,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || !["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes((session.user as any).role)) {
+    if (!session?.user || !["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
     const action = body.action as string;
-    const interlinkSvc = new InterlinkService(prisma as any);
+    const interlinkSvc = new InterlinkService(prisma as unknown as InterlinkPrisma);
 
     if (action === "interlink-manual-link") {
       const { sourceId, sourceType, targetId, targetType, anchorText } = body;

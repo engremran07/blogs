@@ -1,7 +1,7 @@
 "use client";
 
 import { Facebook, Twitter, Linkedin, Link2, Check, Mail, MessageCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 interface SocialShareProps {
   title: string;
@@ -9,18 +9,16 @@ interface SocialShareProps {
   compact?: boolean;
 }
 
+const noopSubscribe = () => () => {};
+
 export function SocialShare({ title, url, compact = false }: SocialShareProps) {
   const [copied, setCopied] = useState(false);
 
-  // Resolve the absolute URL only after mount so SSR and the first client
-  // render produce identical markup (both use the raw `url` prop).
-  const [absoluteUrl, setAbsoluteUrl] = useState(url);
-
-  useEffect(() => {
-    if (!url.startsWith("http")) {
-      setAbsoluteUrl(`${window.location.origin}${url}`);
-    }
-  }, [url]);
+  const absoluteUrl = useSyncExternalStore(
+    noopSubscribe,
+    () => url.startsWith("http") ? url : `${window.location.origin}${url}`,
+    () => url,
+  );
 
   const encodedTitle = encodeURIComponent(title);
   const encodedUrl = encodeURIComponent(absoluteUrl);

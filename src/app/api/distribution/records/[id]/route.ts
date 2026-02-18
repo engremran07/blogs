@@ -11,7 +11,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(_req: NextRequest, ctx: Params) {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes((session.user as any).role)) {
+    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest, ctx: Params) {
       return NextResponse.json({ success: false, error: "Record not found" }, { status: 404 });
     }
     return NextResponse.json({ success: true, data: record });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },
@@ -33,7 +33,7 @@ export async function GET(_req: NextRequest, ctx: Params) {
 export async function POST(_req: NextRequest, ctx: Params) {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes((session.user as any).role)) {
+    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -41,7 +41,7 @@ export async function POST(_req: NextRequest, ctx: Params) {
     const record = await distributionService.retryDistribution({ recordId: id });
     return NextResponse.json({ success: true, data: record });
   } catch (error) {
-    const status = (error as any)?.statusCode ?? 500;
+    const status = (error as { statusCode?: number })?.statusCode ?? 500;
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status },
@@ -53,7 +53,7 @@ export async function POST(_req: NextRequest, ctx: Params) {
 export async function DELETE(_req: NextRequest, ctx: Params) {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes((session.user as any).role)) {
+    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -61,7 +61,7 @@ export async function DELETE(_req: NextRequest, ctx: Params) {
     const record = await distributionService.cancelDistribution({ recordId: id });
     return NextResponse.json({ success: true, data: record });
   } catch (error) {
-    const status = (error as any)?.statusCode ?? 500;
+    const status = (error as { statusCode?: number })?.statusCode ?? 500;
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status },

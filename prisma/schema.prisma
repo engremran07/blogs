@@ -217,6 +217,7 @@ enum SeriesStatus {
 
 model Post {
   id               String     @id @default(cuid())
+  postNumber       Int        @unique @default(autoincrement())
   title            String
   slug             String     @unique
   content          String     @db.Text
@@ -310,6 +311,7 @@ model Post {
   @@index([isGuestPost])
   @@index([createdAt])
   @@index([deletedAt])
+  @@index([postNumber])
   @@map("posts")
 }
 
@@ -763,6 +765,23 @@ model EditorSettings {
   enableMarkdownShortcuts Boolean @default(true)
   enableDragDropUpload   Boolean @default(true)
 
+  // Enhanced toolbar features
+  enableInlineCodeButton Boolean @default(true)
+  enableRemoveLink       Boolean @default(true)
+  enableClearFormatting  Boolean @default(true)
+  enableSuperscript      Boolean @default(true)
+  enableSubscript        Boolean @default(true)
+  enableIndentButtons    Boolean @default(true)
+  enableFontSize         Boolean @default(true)
+  enableLineHeight       Boolean @default(true)
+  enableBlockTypeDropdown Boolean @default(true)
+  enableFindReplace      Boolean @default(true)
+  enableSourceView       Boolean @default(true)
+  enableEmoji            Boolean @default(true)
+  enableSpecialChars     Boolean @default(true)
+  enablePrint            Boolean @default(true)
+  enableTableOfContents  Boolean @default(true)
+
   maxWordCount Int @default(0)
   maxCharCount Int @default(0)
 
@@ -779,12 +798,18 @@ model EditorSettings {
   colorPalette     String[] @default(["#000000", "#333333", "#666666", "#999999", "#cccccc", "#ffffff", "#e74c3c", "#e67e22", "#f1c40f", "#2ecc71", "#3498db", "#9b59b6", "#c0392b", "#d35400", "#f39c12", "#27ae60", "#2980b9", "#8e44ad", "#fadbd8", "#fdebd0", "#fef9e7", "#d5f5e3", "#d6eaf8", "#ebdef0"])
   defaultTextColor String @default("#000000")
 
+  // Font & spacing presets
+  fontSizePresets   Int[]   @default([12, 14, 16, 18, 20, 24, 28, 32, 36, 48])
+  lineHeightPresets Float[] @default([1.0, 1.25, 1.5, 1.75, 2.0])
+
   maxHistorySize     Int    @default(50)
   autoSaveDebounceMs Int    @default(2000)
   readingWpm         Int    @default(200)
   defaultPlaceholder String @default("Start writing your content here...")
   defaultMinHeight   String @default("300px")
   defaultMaxHeight   String @default("600px")
+
+  sanitizeOnSave Boolean @default(true)
 
   updatedBy String?
   updatedAt DateTime @default(now()) @updatedAt

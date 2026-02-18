@@ -133,6 +133,16 @@ export const updateSiteSettingsSchema = z.object({
   enableRss: optBool,
   rssFeedTitle: nullableStr(200),
   enableComments: optBool,
+  enableCommentModeration: optBool,
+  autoApproveComments: optBool,
+  enableCommentVoting: optBool,
+  enableCommentThreading: optBool,
+  allowGuestComments: optBool,
+  maxReplyDepth: z.number().int().min(1).max(20).optional(),
+  closeCommentsAfterDays: z.number().int().min(0).max(3650).optional(),
+  editWindowMinutes: z.number().int().min(0).max(10080).optional(),
+  enableRegistration: optBool,
+  defaultPostStatus: z.string().optional(),
   enableSearch: optBool,
 
   // Privacy & Legal
@@ -262,6 +272,16 @@ export const updateReadingSchema = z.object({
   enableRss: optBool,
   rssFeedTitle: nullableStr(200),
   enableComments: optBool,
+  enableCommentModeration: optBool,
+  autoApproveComments: optBool,
+  enableCommentVoting: optBool,
+  enableCommentThreading: optBool,
+  allowGuestComments: optBool,
+  maxReplyDepth: z.number().int().min(1).max(20).optional(),
+  closeCommentsAfterDays: z.number().int().min(0).max(3650).optional(),
+  editWindowMinutes: z.number().int().min(0).max(10080).optional(),
+  enableRegistration: optBool,
+  defaultPostStatus: z.string().optional(),
   enableSearch: optBool,
 });
 export type UpdateReadingInput = z.infer<typeof updateReadingSchema>;

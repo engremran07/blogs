@@ -158,9 +158,9 @@ export class UserService implements UserConfigConsumer {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: users.map((u: any) => ({
+      data: users.map((u: SafeUser & { _count?: { posts: number } }) => ({
         ...u,
-        postsCount: (u._count as { posts: number })?.posts ?? 0,
+        postsCount: u._count?.posts ?? 0,
         displayNameFormatted: this.getFormattedDisplayName(u),
       })),
       pagination: {
@@ -810,16 +810,15 @@ export class UserService implements UserConfigConsumer {
 
   // ─── Private Helpers ──────────────────────────────────────────────────
 
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  private stripSensitiveFields(user: any): SafeUser {
+  private stripSensitiveFields(user: Record<string, unknown>): SafeUser {
     const safe = { ...user };
     delete safe.password;
     delete safe.resetPasswordToken;
     delete safe.resetPasswordExpires;
-    return safe as SafeUser;
+    return safe as unknown as SafeUser;
   }
 
-  private getFormattedDisplayName(user: Record<string, any>): string {
+  private getFormattedDisplayName(user: Pick<SafeUser, 'displayName' | 'firstName' | 'lastName' | 'nickname' | 'email' | 'username'>): string {
     const displayType = user.displayName || 'username';
     switch (displayType) {
       case 'firstName':
@@ -834,7 +833,6 @@ export class UserService implements UserConfigConsumer {
         return user.username;
     }
   }
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   private normalizeIds(ids: string[]): string[] {
     if (!Array.isArray(ids)) return [];

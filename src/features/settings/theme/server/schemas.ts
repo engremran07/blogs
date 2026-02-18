@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { COLOR_MODES, THEME_PRESET_CATEGORIES } from '../types';
+import { COLOR_MODES } from '../types';
 
 // ─── Shared Fragments ───────────────────────────────────────────────────────
 

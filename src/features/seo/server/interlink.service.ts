@@ -95,38 +95,89 @@ export interface ExclusionInput {
   reason?: string;
 }
 
+/** Lightweight DB record shape for post/page data as used by this service */
+export interface ContentDbRecord {
+  id: string;
+  title: string;
+  slug: string;
+  content: string | null;
+  status: string;
+  seoKeywords?: string[];
+  viewCount?: number;
+  wordCount?: number;
+  publishedAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+  deletedAt?: Date | string | null;
+  tags?: { name: string }[];
+  categories?: { name: string }[];
+}
+
+/** DB record shape for InternalLink rows */
+export interface InternalLinkDbRecord {
+  id: string;
+  sourceId: string;
+  sourceType: string;
+  targetId: string;
+  targetType: string;
+  anchorText: string;
+  targetUrl: string;
+  relevanceScore: number;
+  status: string;
+  origin: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+/** DB record shape for InterlinkExclusion rows */
+export interface ExclusionDbRecord {
+  id: string;
+  ruleType: string;
+  phrase?: string | null;
+  contentId?: string | null;
+  contentType?: string | null;
+  pairedId?: string | null;
+  pairedType?: string | null;
+  reason?: string | null;
+  createdAt: Date | string;
+}
+
+/** Prisma batch operation result */
+interface BatchPayload {
+  count: number;
+}
+
 /** Minimal Prisma interface for DI */
 export interface InterlinkPrisma {
   post: {
-    findMany: (args?: any) => Promise<any[]>;
-    findUnique: (args: any) => Promise<any | null>;
-    update: (args: any) => Promise<any>;
-    count: (args?: any) => Promise<number>;
+    findMany: (args?: Record<string, unknown>) => Promise<ContentDbRecord[]>;
+    findUnique: (args: Record<string, unknown>) => Promise<ContentDbRecord | null>;
+    update: (args: Record<string, unknown>) => Promise<ContentDbRecord>;
+    count: (args?: Record<string, unknown>) => Promise<number>;
   };
   page: {
-    findMany: (args?: any) => Promise<any[]>;
-    findUnique: (args: any) => Promise<any | null>;
-    update: (args: any) => Promise<any>;
-    count: (args?: any) => Promise<number>;
+    findMany: (args?: Record<string, unknown>) => Promise<ContentDbRecord[]>;
+    findUnique: (args: Record<string, unknown>) => Promise<ContentDbRecord | null>;
+    update: (args: Record<string, unknown>) => Promise<ContentDbRecord>;
+    count: (args?: Record<string, unknown>) => Promise<number>;
   };
   internalLink: {
-    findMany: (args?: any) => Promise<any[]>;
-    findFirst: (args?: any) => Promise<any | null>;
-    findUnique: (args?: any) => Promise<any | null>;
-    create: (args: any) => Promise<any>;
-    update: (args: any) => Promise<any>;
-    updateMany: (args: any) => Promise<any>;
-    delete: (args: any) => Promise<any>;
-    deleteMany: (args: any) => Promise<any>;
-    count: (args?: any) => Promise<number>;
-    upsert: (args: any) => Promise<any>;
+    findMany: (args?: Record<string, unknown>) => Promise<InternalLinkDbRecord[]>;
+    findFirst: (args?: Record<string, unknown>) => Promise<InternalLinkDbRecord | null>;
+    findUnique: (args?: Record<string, unknown>) => Promise<InternalLinkDbRecord | null>;
+    create: (args: Record<string, unknown>) => Promise<InternalLinkDbRecord>;
+    update: (args: Record<string, unknown>) => Promise<InternalLinkDbRecord>;
+    updateMany: (args: Record<string, unknown>) => Promise<BatchPayload>;
+    delete: (args: Record<string, unknown>) => Promise<InternalLinkDbRecord>;
+    deleteMany: (args: Record<string, unknown>) => Promise<BatchPayload>;
+    count: (args?: Record<string, unknown>) => Promise<number>;
+    upsert: (args: Record<string, unknown>) => Promise<InternalLinkDbRecord>;
   };
   interlinkExclusion: {
-    findMany: (args?: any) => Promise<any[]>;
-    create: (args: any) => Promise<any>;
-    delete: (args: any) => Promise<any>;
-    deleteMany: (args: any) => Promise<any>;
-    count: (args?: any) => Promise<number>;
+    findMany: (args?: Record<string, unknown>) => Promise<ExclusionDbRecord[]>;
+    create: (args: Record<string, unknown>) => Promise<ExclusionDbRecord>;
+    delete: (args: Record<string, unknown>) => Promise<ExclusionDbRecord>;
+    deleteMany: (args: Record<string, unknown>) => Promise<BatchPayload>;
+    count: (args?: Record<string, unknown>) => Promise<number>;
   };
 }
 
@@ -192,17 +243,17 @@ export interface ContentIndex {
  * Build a rich content index using body-keyword extraction, tags, categories,
  * and SEO keywords — leveraging extractKeywords() for TF-IDF-like ranking.
  */
-function buildContentIndex(posts: any[], pages: any[]): ContentIndex[] {
+function buildContentIndex(posts: ContentDbRecord[], pages: ContentDbRecord[]): ContentIndex[] {
   const index: ContentIndex[] = [];
 
   for (const post of posts) {
     const seoKw = (post.seoKeywords || []) as string[];
-    const tagNames = (post.tags || []).map((t: any) => t.name);
-    const catNames = (post.categories || []).map((c: any) => c.name);
+    const tagNames = (post.tags || []).map((t) => t.name);
+    const catNames = (post.categories || []).map((c) => c.name);
 
     // Extract top keywords from body content using TF-IDF style analysis
     const bodyKw = post.content
-      ? extractKeywords(post.content, 15).map((k: any) => k.term)
+      ? extractKeywords(post.content, 15).map((k) => k.term)
       : [];
 
     const allPhrases = [
@@ -236,7 +287,7 @@ function buildContentIndex(posts: any[], pages: any[]): ContentIndex[] {
   for (const page of pages) {
     // Pages also get body keyword extraction
     const bodyKw = page.content
-      ? extractKeywords(page.content, 15).map((k: any) => k.term)
+      ? extractKeywords(page.content, 15).map((k) => k.term)
       : [];
 
     const allPhrases = [page.title, ...bodyKw].filter(Boolean);
@@ -770,7 +821,7 @@ export class InterlinkService {
       where: { sourceId: contentId, status: 'REJECTED' },
       select: { targetId: true },
     });
-    const rejectedTargets = new Set(rejectedLinks.map((r: any) => r.targetId));
+    const rejectedTargets = new Set(rejectedLinks.map((r) => r.targetId));
 
     const existingLinks = extractLinks(content.content || '').filter((l: { href: string }) => l.href.startsWith('/')).length;
 
@@ -822,7 +873,7 @@ export class InterlinkService {
       this.prisma.internalLink.findMany({ where: { sourceId: contentId, status: 'REJECTED' }, select: { targetId: true } }),
       this.prisma.internalLink.findMany({ where: { sourceId: contentId, status: 'APPROVED' } }),
     ]);
-    const rejectedTargets = new Set(rejectedLinks.map((r: any) => r.targetId));
+    const rejectedTargets = new Set(rejectedLinks.map((r) => r.targetId));
 
     const candidates = scanContentForLinks(
       {
@@ -1036,8 +1087,8 @@ export class InterlinkService {
     ]);
 
     const allContent = [
-      ...posts.map((p: any) => ({ ...p, type: 'POST' })),
-      ...pages.map((p: any) => ({ ...p, type: 'PAGE' })),
+      ...posts.map((p) => ({ ...p, type: 'POST' as const })),
+      ...pages.map((p) => ({ ...p, type: 'PAGE' as const })),
     ];
 
     const outbound = new Map<string, number>();
@@ -1120,7 +1171,7 @@ export class InterlinkService {
         relevanceScore: 100, status: 'APPROVED', origin: 'MANUAL',
       },
       update: { status: 'APPROVED', origin: 'MANUAL', relevanceScore: 100 },
-    });
+    }) as Promise<InternalLinkRecord>;
   }
 
   /** Apply a specific manual/approved link — inject it into source content immediately. */
@@ -1142,8 +1193,8 @@ export class InterlinkService {
     }
 
     const candidate: LinkCandidate = {
-      sourceId: link.sourceId, sourceType: link.sourceType,
-      targetId: link.targetId, targetType: link.targetType,
+      sourceId: link.sourceId, sourceType: link.sourceType as 'POST' | 'PAGE',
+      targetId: link.targetId, targetType: link.targetType as 'POST' | 'PAGE',
       anchorText: link.anchorText, matchOffset: 0,
       relevanceScore: 100, alreadyLinked: false,
     };
@@ -1158,12 +1209,12 @@ export class InterlinkService {
 
   /** Approve a suggested link — will inject on next auto-link cycle. */
   async approveLink(linkId: string): Promise<InternalLinkRecord> {
-    return this.prisma.internalLink.update({ where: { id: linkId }, data: { status: 'APPROVED' } });
+    return this.prisma.internalLink.update({ where: { id: linkId }, data: { status: 'APPROVED' } }) as Promise<InternalLinkRecord>;
   }
 
   /** Reject a link — prevents auto-insertion of this source→target pair permanently. */
   async rejectLink(linkId: string): Promise<InternalLinkRecord> {
-    return this.prisma.internalLink.update({ where: { id: linkId }, data: { status: 'REJECTED' } });
+    return this.prisma.internalLink.update({ where: { id: linkId }, data: { status: 'REJECTED' } }) as Promise<InternalLinkRecord>;
   }
 
   /** Remove an active link from content HTML and mark as REMOVED. */
@@ -1190,7 +1241,7 @@ export class InterlinkService {
     sourceId?: string; targetId?: string; status?: string; origin?: string;
     limit?: number; offset?: number;
   }): Promise<{ links: InternalLinkRecord[]; total: number }> {
-    const where: Record<string, any> = {};
+    const where: Record<string, unknown> = {};
     if (filters?.sourceId) where.sourceId = filters.sourceId;
     if (filters?.targetId) where.targetId = filters.targetId;
     if (filters?.status) where.status = filters.status;
@@ -1200,12 +1251,12 @@ export class InterlinkService {
       this.prisma.internalLink.findMany({ where, orderBy: { updatedAt: 'desc' as const }, take: filters?.limit ?? 50, skip: filters?.offset ?? 0 }),
       this.prisma.internalLink.count({ where }),
     ]);
-    return { links, total };
+    return { links: links as InternalLinkRecord[], total };
   }
 
   /* ── Exclusion Management ── */
 
-  async addExclusion(input: ExclusionInput): Promise<any> {
+  async addExclusion(input: ExclusionInput): Promise<ExclusionDbRecord> {
     return this.prisma.interlinkExclusion.create({
       data: {
         ruleType: input.ruleType,
@@ -1223,7 +1274,7 @@ export class InterlinkService {
     await this.prisma.interlinkExclusion.delete({ where: { id: exclusionId } });
   }
 
-  async listExclusions(): Promise<any[]> {
+  async listExclusions(): Promise<ExclusionDbRecord[]> {
     return this.prisma.interlinkExclusion.findMany({ orderBy: { createdAt: 'desc' as const } });
   }
 
@@ -1259,7 +1310,7 @@ export class InterlinkService {
     const rejectedLinks = await this.prisma.internalLink.findMany({
       where: { sourceId: contentId, status: 'REJECTED' }, select: { targetId: true },
     });
-    const rejectedTargets = new Set(rejectedLinks.map((r: any) => r.targetId));
+    const rejectedTargets = new Set(rejectedLinks.map((r) => r.targetId));
 
     const outbound = scanContentForLinks(
       { id: content.id, type: contentType, content: content.content, seoKeywords: content.seoKeywords || [], tags: content.tags || [], categories: content.categories || [], wordCount: content.wordCount ?? 0 },
@@ -1294,8 +1345,8 @@ export class InterlinkService {
       ]);
 
       const allExisting = [
-        ...existingPosts.map((p: any) => ({ ...p, type: 'POST' as const })),
-        ...existingPages.map((p: any) => ({ ...p, type: 'PAGE' as const })),
+        ...existingPosts.map((p) => ({ ...p, type: 'POST' as const })),
+        ...existingPages.map((p) => ({ ...p, type: 'PAGE' as const })),
       ];
 
       for (const item of allExisting) {

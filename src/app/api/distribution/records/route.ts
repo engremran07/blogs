@@ -10,15 +10,15 @@ import { queryDistributionsSchema } from "@/features/distribution/server/schemas
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes((session.user as any).role)) {
+    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const params = Object.fromEntries(req.nextUrl.searchParams);
     const query = queryDistributionsSchema.parse(params);
-    const result = await distributionService.getDistributions(query as any);
+    const result = await distributionService.getDistributions(query);
     return NextResponse.json({ success: true, data: result });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },

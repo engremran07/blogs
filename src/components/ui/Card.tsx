@@ -1,6 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
+import Image from "next/image";
 
 /* ── Card ──────────────────────────────────────────────────────────────────── */
 
@@ -116,10 +117,13 @@ export function Avatar({ src, alt, fallback, size = "md", className }: AvatarPro
 
   if (src) {
     return (
-      <img
+      <Image
         src={src}
         alt={alt || ""}
+        width={size === "sm" ? 32 : size === "md" ? 40 : 48}
+        height={size === "sm" ? 32 : size === "md" ? 40 : 48}
         className={clsx("rounded-full object-cover", avatarSizes[size], className)}
+        unoptimized
       />
     );
   }

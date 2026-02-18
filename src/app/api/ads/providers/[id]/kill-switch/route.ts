@@ -15,7 +15,7 @@ const killSwitchBodySchema = z.object({
 export async function POST(req: NextRequest, ctx: Params) {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes((session.user as any).role)) {
+    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -27,11 +27,11 @@ export async function POST(req: NextRequest, ctx: Params) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: { code: "VALIDATION_ERROR", message: error.issues.map((e: any) => e.message).join(", ") } },
+        { success: false, error: { code: "VALIDATION_ERROR", message: error.issues.map((e) => e.message).join(", ") } },
         { status: 400 },
       );
     }
-    const status = (error as any)?.statusCode ?? 500;
+    const status = (error as { statusCode?: number })?.statusCode ?? 500;
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status },

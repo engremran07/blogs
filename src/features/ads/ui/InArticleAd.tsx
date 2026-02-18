@@ -9,6 +9,19 @@
 import { prisma } from "@/server/db/prisma";
 import { AdContainer } from "./AdContainer";
 
+/** Typed ad-settings Prisma table not on the default client type */
+interface AdSettingsPrismaExt {
+  adSettings: {
+    findFirst(args: Record<string, unknown>): Promise<{
+      enableAutoPlacement?: boolean;
+      defaultMinParagraphs?: number;
+      defaultParagraphGap?: number;
+      globalMaxAdsPerPage?: number;
+      skipCodeBlocks?: boolean;
+    } | null>;
+  };
+}
+
 interface InArticleAdProps {
   /** Raw HTML content of the blog post */
   content: string;
@@ -108,7 +121,7 @@ export async function InArticleAd({ content, pageType, className = "" }: InArtic
   }
 
   // Fetch ad settings
-  const adSettings = await (prisma as any).adSettings.findFirst({
+  const adSettings = await (prisma as unknown as AdSettingsPrismaExt).adSettings.findFirst({
     select: {
       enableAutoPlacement: true,
       defaultMinParagraphs: true,

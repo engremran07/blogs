@@ -30,6 +30,7 @@ export function TableOfContents({ content }: { content: string }) {
       });
     });
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronizes with DOM
     setHeadings(items);
 
     // Add IDs to actual rendered headings

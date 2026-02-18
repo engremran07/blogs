@@ -25,19 +25,20 @@ import {
   syncAdSlotPageTypes,
   generateScanHealthReport,
 } from "@/features/ads/server/scan-pages";
+import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 
 // ─── GET — read-only scan with health report ───────────────────────────────
 
 export async function GET() {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes((session.user as any).role)) {
+    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const [pageTypes, healthReport] = await Promise.all([
-      discoverPageTypes(prisma as any),
-      generateScanHealthReport(prisma as any),
+      discoverPageTypes(prisma as unknown as ScanPrisma),
+      generateScanHealthReport(prisma as unknown as ScanPrisma),
     ]);
 
     return NextResponse.json({
@@ -48,7 +49,7 @@ export async function GET() {
         health: healthReport,
       },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },
@@ -61,11 +62,11 @@ export async function GET() {
 export async function POST() {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes((session.user as any).role)) {
+    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const result = await syncAdSlotPageTypes(prisma as any);
+    const result = await syncAdSlotPageTypes(prisma as unknown as ScanPrisma);
 
     return NextResponse.json({
       success: true,
@@ -74,7 +75,7 @@ export async function POST() {
         message: `Discovered ${result.discovered} page types. Pruned stale types from ${result.pruned} slots, added new types to ${result.added} slots.`,
       },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },

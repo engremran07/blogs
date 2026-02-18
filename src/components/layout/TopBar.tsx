@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
 import { Phone, Mail, MapPin, X, Clock } from "lucide-react";
 
 interface TopBarSettings {
@@ -18,23 +18,29 @@ interface TopBarSettings {
   topBarDismissible: boolean;
 }
 
-export function TopBar({ settings }: { settings: TopBarSettings }) {
-  const [dismissed, setDismissed] = useState(false);
+function subscribeTopBarDismissed(callback: () => void) {
+  window.addEventListener("topbar-dismissed", callback);
+  return () => window.removeEventListener("topbar-dismissed", callback);
+}
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setDismissed(sessionStorage.getItem("topBarDismissed") === "1");
-    }
-  }, []);
+function getTopBarDismissedSnapshot() {
+  return sessionStorage.getItem("topBarDismissed") === "1";
+}
+
+const getTopBarDismissedServerSnapshot = () => false;
+
+export function TopBar({ settings }: { settings: TopBarSettings }) {
+  const dismissed = useSyncExternalStore(
+    subscribeTopBarDismissed,
+    getTopBarDismissedSnapshot,
+    getTopBarDismissedServerSnapshot,
+  );
 
   if (!settings.topBarEnabled || dismissed) return null;
 
-  const hasLeft = settings.topBarPhone || settings.topBarEmail || settings.topBarAddress;
-  const hasRight = settings.topBarText || settings.topBarBusinessHours || settings.topBarCtaText;
-
   function handleDismiss() {
-    setDismissed(true);
     sessionStorage.setItem("topBarDismissed", "1");
+    window.dispatchEvent(new Event("topbar-dismissed"));
   }
 
   return (

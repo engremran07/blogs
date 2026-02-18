@@ -220,6 +220,8 @@ export interface SiteConfig {
   enableComments: boolean;
   /** Enable site-wide search (CORE — default: true) */
   enableSearch: boolean;
+  /** Allow new users to register accounts (CORE — default: true) */
+  enableRegistration: boolean;
 
   // ── Privacy & Legal ───────────────────────────────────────────────────
   /** Show cookie consent banner (CORE — default: false) */
@@ -413,6 +415,7 @@ export interface ReadingConfig {
   rssFeedTitle: string | null;
   enableComments: boolean;
   enableSearch: boolean;
+  enableRegistration: boolean;
 }
 
 /** Extracts privacy / legal fields. */

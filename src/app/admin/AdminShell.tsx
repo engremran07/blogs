@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { clsx } from "clsx";
 import { useState, useEffect, useRef, useCallback } from "react";
-import dynamic from "next/dynamic";
 import {
   LayoutDashboard,
   FileText,
@@ -14,7 +13,6 @@ import {
   Tag,
   Users,
   Settings,
-  Search,
   ChevronLeft,
   Menu,
   ExternalLink,
@@ -34,8 +32,6 @@ import {
   Home,
   ChevronRight,
 } from "lucide-react";
-
-const CommandPalette = dynamic(() => import("./CommandPalette"), { ssr: false });
 
 interface SidebarLink {
   href: string;
@@ -57,22 +53,28 @@ interface ModuleStatus {
 const sidebarLinks: SidebarLink[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   {
-    href: "/admin/posts", label: "Posts", icon: FileText,
+    href: "/admin/posts", label: "Blog", icon: FileText,
     children: [
+      { href: "/admin/posts", label: "Posts", icon: FileText, exact: true },
       { href: "/admin/categories", label: "Categories", icon: FolderTree },
+      { href: "/admin/tags", label: "Tags", icon: Tag },
     ],
   },
   { href: "/admin/pages", label: "Pages", icon: File },
   { href: "/admin/media", label: "Media", icon: Image },
   { href: "/admin/comments", label: "Comments", icon: MessageSquare, moduleKey: "comments" },
-  { href: "/admin/tags", label: "Tags", icon: Tag },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/seo", label: "SEO", icon: BarChart3 },
   { href: "/admin/ads", label: "Ads", icon: Megaphone, moduleKey: "ads" },
   { href: "/admin/distribution", label: "Distribution", icon: Share2, moduleKey: "distribution" },
-  { href: "/admin/menus", label: "Menus", icon: Navigation },
   { href: "/admin/cron", label: "Cron Tasks", icon: Clock },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  {
+    href: "/admin/settings", label: "Settings", icon: Settings,
+    children: [
+      { href: "/admin/settings", label: "General", icon: Settings, exact: true },
+      { href: "/admin/menus", label: "Menus", icon: Navigation },
+    ],
+  },
 ];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
@@ -83,21 +85,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const [profileOpen, setProfileOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [userInfo, setUserInfo] = useState<Record<string, string | null> | null>(null);
-  const [moduleStatus, setModuleStatus] = useState<ModuleStatus>({ comments: true, ads: false, distribution: false, captcha: false });
-  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
+  const [moduleStatus, setModuleStatus] = useState<ModuleStatus>({ comments: true, ads: true, distribution: true, captcha: true });
   const profileRef = useRef<HTMLDivElement>(null);
-
-  // Ctrl+K keyboard shortcut for command palette
-  useEffect(() => {
-    function handleGlobalKey(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault();
-        setCmdPaletteOpen((v) => !v);
-      }
-    }
-    window.addEventListener("keydown", handleGlobalKey);
-    return () => window.removeEventListener("keydown", handleGlobalKey);
-  }, []);
 
   // Auto-expand parent menus if a child is active
   useEffect(() => {
@@ -107,13 +96,16 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         expanded.add(link.href);
       }
     }
-    if (expanded.size > 0) setExpandedMenus((prev) => new Set([...prev, ...expanded]));
+    if (expanded.size > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- responds to route change
+      setExpandedMenus((prev) => new Set([...prev, ...expanded]));
+    }
   }, [pathname]);
 
   // Fetch full user info for the profile dropdown
   useEffect(() => {
     if (session?.user?.id) {
-      fetch(`/api/users?id=${(session.user as any).id}`)
+      fetch(`/api/users?id=${session.user.id}`)
         .then((r) => r.json())
         .then((data) => {
           if (data.success && data.data) {
@@ -172,8 +164,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       </div>
     );
   }
-
-  const role = (session.user as { role?: string })?.role;
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
@@ -323,18 +313,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
           <div className="flex-1" />
 
-          {/* Search / Command Palette trigger */}
-          <button
-            onClick={() => setCmdPaletteOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600 dark:border-gray-600 dark:bg-gray-700/50 dark:hover:border-gray-500 dark:hover:text-gray-300"
-          >
-            <Search className="h-4 w-4" />
-            <span className="hidden sm:inline">Search…</span>
-            <kbd className="ml-2 hidden rounded border border-gray-300 px-1 py-0.5 text-[10px] font-medium dark:border-gray-600 sm:inline-block">
-              Ctrl+K
-            </kbd>
-          </button>
-
           <Link
             href="/admin/posts/new"
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
@@ -356,7 +334,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                   {session.user?.name || session.user?.email}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight">
-                  {(session.user as any)?.role?.replace("_", " ") || "User"}
+                  {session.user?.role?.replace("_", " ") || "User"}
                 </p>
               </div>
               <ChevronDown className={clsx("h-4 w-4 text-gray-400 transition-transform hidden sm:block", profileOpen && "rotate-180")} />
@@ -375,11 +353,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         {userInfo?.displayName || userInfo?.firstName ? `${userInfo.firstName || ""} ${userInfo.lastName || ""}`.trim() : session.user?.name}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        @{(session.user as any)?.username || session.user?.email?.split("@")[0]}
+                        @{session.user?.username || session.user?.email?.split("@")[0]}
                       </p>
                     </div>
                     <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                      {(session.user as any)?.role?.replace("_", " ") || "User"}
+                      {session.user?.role?.replace("_", " ") || "User"}
                     </span>
                   </div>
                 </div>
@@ -470,8 +448,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </main>
       </div>
 
-      {/* Command Palette */}
-      <CommandPalette open={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
     </div>
   );
 }

@@ -161,6 +161,7 @@ function RecaptchaV2Inner({
     if (lastResetSignalRef.current === resetSignal) return;
     lastResetSignalRef.current = resetSignal;
     onVerify('');
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Responds to external resetSignal prop change; resetting widget requires state update
     setWidgetState('ready');
     resetWidgetRef.current?.(true);
   }, [resetSignal, onVerify]);

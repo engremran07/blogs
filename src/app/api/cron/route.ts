@@ -34,7 +34,9 @@ import {
   distributionService,
 } from "@/server/wiring";
 import { syncAdSlotPageTypes } from "@/features/ads/server/scan-pages";
+import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 import { InterlinkService } from "@/features/seo/server/interlink.service";
+import type { InterlinkPrisma } from "@/features/seo/server/interlink.service";
 
 const logger = createLogger("cron");
 
@@ -113,12 +115,12 @@ async function acquireLock(): Promise<string | null> {
 
   try {
     // Delete any expired locks first
-    await (prisma as any).cronLock.deleteMany({
+    await prisma.cronLock.deleteMany({
       where: { expiresAt: { lt: now } },
     });
 
     // Try to create — unique constraint on id will reject if already held
-    await (prisma as any).cronLock.create({
+    await prisma.cronLock.create({
       data: { id: "cron-global", lockedAt: now, expiresAt, holder },
     });
     return holder;
@@ -130,7 +132,7 @@ async function acquireLock(): Promise<string | null> {
 
 async function releaseLock(holder: string): Promise<void> {
   try {
-    await (prisma as any).cronLock.deleteMany({
+    await prisma.cronLock.deleteMany({
       where: { id: "cron-global", holder },
     });
   } catch {
@@ -149,8 +151,8 @@ async function persistLog(
   try {
     const status =
       summary.errors === 0 ? "ok" : summary.ok > 0 ? "partial" : "error";
-    await (prisma as any).cronLog.create({
-      data: { status, summary, results, durationMs, triggeredBy },
+    await prisma.cronLog.create({
+      data: { status, summary, results: results as unknown as import('@prisma/client').Prisma.InputJsonValue, durationMs, triggeredBy },
     });
   } catch (err) {
     logger.error("Failed to persist cron log", {
@@ -293,7 +295,7 @@ export async function GET(request: NextRequest) {
     results.push(
       await runTask("purge-old-ad-logs", adsEnabled, async () => {
         const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-        await (prisma as any).adLog.deleteMany({ where: { createdAt: { lt: cutoff } } });
+        await prisma.adLog.deleteMany({ where: { createdAt: { lt: cutoff } } });
       }),
     );
 
@@ -301,7 +303,7 @@ export async function GET(request: NextRequest) {
     results.push(
       await runTask("deactivate-expired-ad-placements", adsEnabled, async () => {
         const now = new Date();
-        await (prisma as any).adPlacement.updateMany({
+        await prisma.adPlacement.updateMany({
           where: { endDate: { lt: now }, isActive: true },
           data: { isActive: false },
         });
@@ -326,7 +328,7 @@ export async function GET(request: NextRequest) {
     // 5p. Ads: sync ad slot page types
     results.push(
       await runTask("sync-ad-slot-page-types", adsEnabled, async () => {
-        await syncAdSlotPageTypes(prisma as any);
+        await syncAdSlotPageTypes(prisma as unknown as ScanPrisma);
       }),
     );
 
@@ -342,7 +344,7 @@ export async function GET(request: NextRequest) {
     // 5r-seo. Auto-interlink content (scan & inject internal links)
     results.push(
       await runTask("seo-auto-interlink", true, async () => {
-        const interlinkSvc = new InterlinkService(prisma as any);
+        const interlinkSvc = new InterlinkService(prisma as unknown as InterlinkPrisma);
         await interlinkSvc.autoLinkAll(50);
       }),
     );
@@ -360,7 +362,7 @@ export async function GET(request: NextRequest) {
     results.push(
       await runTask("cleanup-expired-sessions", true, async () => {
         const now = new Date();
-        await (prisma as any).userSession.deleteMany({
+        await prisma.userSession.deleteMany({
           where: { expiresAt: { lt: now } },
         });
       }),
@@ -370,10 +372,10 @@ export async function GET(request: NextRequest) {
     results.push(
       await runTask("cleanup-expired-tokens", true, async () => {
         const now = new Date();
-        await (prisma as any).emailVerificationToken.deleteMany({
+        await prisma.emailVerificationToken.deleteMany({
           where: { expiresAt: { lt: now } },
         });
-        await (prisma as any).emailChangeRequest.deleteMany({
+        await prisma.emailChangeRequest.deleteMany({
           where: { expiresAt: { lt: now } },
         });
       }),
@@ -383,7 +385,7 @@ export async function GET(request: NextRequest) {
     results.push(
       await runTask("cleanup-old-cron-logs", true, async () => {
         const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-        await (prisma as any).cronLog.deleteMany({
+        await prisma.cronLog.deleteMany({
           where: { createdAt: { lt: cutoff } },
         });
       }),

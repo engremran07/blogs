@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useSyncExternalStore } from "react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -58,6 +58,32 @@ function writeConsent(categories: Record<CookieCategory, boolean>) {
   window.dispatchEvent(new CustomEvent("cookie-consent-change", { detail: payload.categories }));
 }
 
+// ─── Cached snapshot + subscription for useSyncExternalStore ────────────────
+
+/** Cached snapshot for useSyncExternalStore (returns referentially stable values). */
+let _consentCacheRaw: string | null | undefined;
+let _consentCacheResult: CookieConsentState | null = null;
+
+function getConsentSnapshot(): CookieConsentState {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw === _consentCacheRaw && _consentCacheResult !== null) {
+    return _consentCacheResult;
+  }
+  _consentCacheRaw = raw;
+  _consentCacheResult = readConsent();
+  return _consentCacheResult;
+}
+
+/** Subscribe to cookie consent changes (localStorage + custom event). */
+function subscribeToCookieConsent(callback: () => void) {
+  window.addEventListener("cookie-consent-change", callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener("cookie-consent-change", callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
 // ─── Public hook — consumed by AnalyticsScripts, ad tags, etc. ─────────────
 
 /** Default state used on server and during hydration — ensures SSR/client match. */
@@ -67,30 +93,21 @@ const DEFAULT_CONSENT: CookieConsentState = {
 };
 
 export function useCookieConsent(): CookieConsentState {
-  // Start with static defaults so SSR and first client render match (no hydration mismatch).
-  const [state, setState] = useState<CookieConsentState>(DEFAULT_CONSENT);
-
-  // Hydrate real consent status from localStorage after mount
-  useEffect(() => {
-    setState(readConsent());
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const cats = (e as CustomEvent).detail as Record<CookieCategory, boolean>;
-      setState({ consented: true, categories: { ...cats, essential: true } });
-    };
-    window.addEventListener("cookie-consent-change", handler);
-    return () => window.removeEventListener("cookie-consent-change", handler);
-  }, []);
-
-  return state;
+  return useSyncExternalStore(
+    subscribeToCookieConsent,
+    getConsentSnapshot,
+    () => DEFAULT_CONSENT,
+  );
 }
 
 // ─── Banner Component ───────────────────────────────────────────────────────
 
 export function CookieConsentBanner({ settings }: { settings: CookieConsentSettings }) {
-  const [state, setState] = useState<CookieConsentState | null>(null);
+  const state = useSyncExternalStore<CookieConsentState | null>(
+    subscribeToCookieConsent,
+    getConsentSnapshot,
+    () => null,
+  );
   const [showPrefs, setShowPrefs] = useState(false);
   const [draft, setDraft] = useState<Record<CookieCategory, boolean>>({
     essential: true,
@@ -98,16 +115,9 @@ export function CookieConsentBanner({ settings }: { settings: CookieConsentSetti
     marketing: false,
   });
 
-  // Hydrate from localStorage after mount
-  useEffect(() => {
-    const initial = readConsent();
-    setState(initial);
-    setDraft(initial.categories);
-  }, []);
-
   const save = useCallback((cats: Record<CookieCategory, boolean>) => {
     writeConsent(cats);
-    setState({ consented: true, categories: { ...cats, essential: true } });
+    // state updates automatically via useSyncExternalStore subscription
   }, []);
 
   const acceptAll = useCallback(() => save({ essential: true, analytics: true, marketing: true }), [save]);
@@ -188,7 +198,10 @@ export function CookieConsentBanner({ settings }: { settings: CookieConsentSetti
                       Reject All
                     </button>
                     <button
-                      onClick={() => setShowPrefs(true)}
+                      onClick={() => {
+                        if (state) setDraft(state.categories);
+                        setShowPrefs(true);
+                      }}
                       className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                     >
                       Manage Preferences

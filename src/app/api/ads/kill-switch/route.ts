@@ -1,13 +1,14 @@
 /**
  * /api/ads/kill-switch — Global ads kill switch
- * GET  — Check current global kill switch status
+ * GET  — Check current global kill switch status (reads SiteSettings.adsEnabled)
  * POST — Instantly enables/disables all ads site-wide
+ *
+ * Uses siteSettingsService so the in-memory cache stays consistent.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/server/auth";
-import { adsService } from "@/server/wiring";
-import { prisma } from "@/server/db/prisma";
+import { adsService, siteSettingsService } from "@/server/wiring";
 
 const killSwitchBodySchema = z.object({
   killed: z.boolean(),
@@ -16,17 +17,18 @@ const killSwitchBodySchema = z.object({
 export async function GET() {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes((session.user as any).role)) {
+    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const providers = await adsService.findAllProviders();
-    const allKilled = providers.length > 0 && providers.every((p: any) => p.killSwitch);
+    // Single source of truth: SiteSettings.adsEnabled (not per-provider killSwitch)
+    const settings = await siteSettingsService.getSettings();
+    const adsEnabled = settings.adsEnabled ?? false;
     return NextResponse.json({
       success: true,
-      data: { killed: allKilled, totalProviders: providers.length },
+      data: { killed: !adsEnabled, adsEnabled },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },
@@ -37,21 +39,27 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes((session.user as any).role)) {
+    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const body = await req.json();
     const { killed } = killSwitchBodySchema.parse(body);
+
+    // Kill all providers at the provider level too
     await adsService.globalKillSwitch(killed);
 
-    // Sync SiteSettings.adsEnabled so module-status API stays consistent
-    const settings = await prisma.siteSettings.findFirst();
-    if (settings) {
-      await prisma.siteSettings.update({
-        where: { id: settings.id },
-        data: { adsEnabled: !killed } as any,
-      });
+    // Update SiteSettings.adsEnabled via service so cache stays in sync
+    const result = await siteSettingsService.updateSettings(
+      { adsEnabled: !killed },
+      session.user.id ?? session.user.email ?? "admin",
+    );
+
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: "Failed to update ads setting" },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({
@@ -61,11 +69,11 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: { code: "VALIDATION_ERROR", message: error.issues.map((e: any) => e.message).join(", ") } },
+        { success: false, error: { code: "VALIDATION_ERROR", message: error.issues.map((e) => e.message).join(", ") } },
         { status: 400 },
       );
     }
-    const status = (error as any)?.statusCode ?? 500;
+    const status = (error as { statusCode?: number })?.statusCode ?? 500;
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status },

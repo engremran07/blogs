@@ -104,10 +104,24 @@ export class EditorAdminSettingsService {
     }
 
     try {
+      // Strip Phase 3 fields that don't exist in Prisma schema yet
+      /* eslint-disable @typescript-eslint/no-unused-vars */
+      const {
+        enableSlashCommands, enableCaseChange, enableFormatPainter,
+        enableFocusMode, enableContentTemplates, enableAutosaveIndicator,
+        enableButtonBlock, enableSpacerBlock, enableGallery,
+        enableBookmarkCard, enableAudioEmbed, enableFileAttach,
+        enableDropCap, enableFootnotes, enableMathBlocks,
+        enableAnchorLinks, enableKeyboardShortcutsHelp,
+        enableAdBlock, enableSeoScore,
+        ...prismaInput
+      } = input;
+      /* eslint-enable @typescript-eslint/no-unused-vars */
+
       this.row = await this.prisma.editorSettings.update({
         where: { id: this.row.id },
         data: {
-          ...input,
+          ...prismaInput,
           updatedBy: adminUserId,
           updatedAt: new Date(),
         },
@@ -206,6 +220,16 @@ export class EditorAdminSettingsService {
         enableHorizontalRule: false,
         enableTaskLists: false,
         enableFullscreen: false,
+        enableFontSize: false,
+        enableLineHeight: false,
+        enableBlockTypeDropdown: false,
+        enableFindReplace: false,
+        enableSourceView: false,
+        enableSpecialChars: false,
+        enablePrint: false,
+        enableTableOfContents: false,
+        enableSuperscript: false,
+        enableSubscript: false,
       },
       adminUserId,
     );
@@ -239,6 +263,39 @@ export class EditorAdminSettingsService {
         enableUndoRedo: true,
         enableMarkdownShortcuts: true,
         enableDragDropUpload: true,
+        enableInlineCodeButton: true,
+        enableRemoveLink: true,
+        enableClearFormatting: true,
+        enableSuperscript: true,
+        enableSubscript: true,
+        enableIndentButtons: true,
+        enableFontSize: true,
+        enableLineHeight: true,
+        enableBlockTypeDropdown: true,
+        enableFindReplace: true,
+        enableSourceView: true,
+        enableEmoji: true,
+        enableSpecialChars: true,
+        enablePrint: true,
+        enableTableOfContents: true,
+        // Phase 3
+        enableSlashCommands: true,
+        enableCaseChange: true,
+        enableFormatPainter: true,
+        enableFocusMode: true,
+        enableContentTemplates: true,
+        enableAutosaveIndicator: true,
+        enableButtonBlock: true,
+        enableSpacerBlock: true,
+        enableGallery: true,
+        enableBookmarkCard: true,
+        enableAudioEmbed: true,
+        enableFileAttach: true,
+        enableDropCap: true,
+        enableFootnotes: true,
+        enableMathBlocks: true,
+        enableAnchorLinks: true,
+        enableKeyboardShortcutsHelp: true,
       },
       adminUserId,
     );
@@ -253,6 +310,9 @@ export class EditorAdminSettingsService {
    */
   getFrontendSettings(): EditorAdminProps {
     return {
+      // Global
+      editorEnabled: this.config.editorEnabled,
+
       // Feature toggles
       enableBold: this.config.enableBold,
       enableItalic: this.config.enableItalic,
@@ -276,6 +336,42 @@ export class EditorAdminSettingsService {
       enableUndoRedo: this.config.enableUndoRedo,
       enableMarkdownShortcuts: this.config.enableMarkdownShortcuts,
       enableDragDropUpload: this.config.enableDragDropUpload,
+      enableInlineCodeButton: this.config.enableInlineCodeButton,
+      enableRemoveLink: this.config.enableRemoveLink,
+      enableClearFormatting: this.config.enableClearFormatting,
+      enableSuperscript: this.config.enableSuperscript,
+      enableSubscript: this.config.enableSubscript,
+      enableIndentButtons: this.config.enableIndentButtons,
+      enableFontSize: this.config.enableFontSize,
+      enableLineHeight: this.config.enableLineHeight,
+      enableBlockTypeDropdown: this.config.enableBlockTypeDropdown,
+      enableFindReplace: this.config.enableFindReplace,
+      enableSourceView: this.config.enableSourceView,
+      enableEmoji: this.config.enableEmoji,
+      enableSpecialChars: this.config.enableSpecialChars,
+      enablePrint: this.config.enablePrint,
+      enableTableOfContents: this.config.enableTableOfContents,
+
+      // Phase 3: Competitive / Advanced features
+      enableSlashCommands: this.config.enableSlashCommands,
+      enableCaseChange: this.config.enableCaseChange,
+      enableFormatPainter: this.config.enableFormatPainter,
+      enableFocusMode: this.config.enableFocusMode,
+      enableContentTemplates: this.config.enableContentTemplates,
+      enableAutosaveIndicator: this.config.enableAutosaveIndicator,
+      enableButtonBlock: this.config.enableButtonBlock,
+      enableSpacerBlock: this.config.enableSpacerBlock,
+      enableGallery: this.config.enableGallery,
+      enableBookmarkCard: this.config.enableBookmarkCard,
+      enableAudioEmbed: this.config.enableAudioEmbed,
+      enableFileAttach: this.config.enableFileAttach,
+      enableDropCap: this.config.enableDropCap,
+      enableFootnotes: this.config.enableFootnotes,
+      enableMathBlocks: this.config.enableMathBlocks,
+      enableAnchorLinks: this.config.enableAnchorLinks,
+      enableKeyboardShortcutsHelp: this.config.enableKeyboardShortcutsHelp,
+      enableAdBlock: this.config.enableAdBlock,
+      enableSeoScore: this.config.enableSeoScore,
 
       // Content limits
       maxWordCount: this.config.maxWordCount,
@@ -301,10 +397,15 @@ export class EditorAdminSettingsService {
       colorPalette: [...this.config.colorPalette],
       defaultTextColor: this.config.defaultTextColor,
 
+      // Font & spacing presets
+      fontSizePresets: [...this.config.fontSizePresets],
+      lineHeightPresets: [...this.config.lineHeightPresets],
+
       // Behaviour
       maxHistorySize: this.config.maxHistorySize,
       autoSaveDebounceMs: this.config.autoSaveDebounceMs,
       readingWpm: this.config.readingWpm,
+      sanitizeOnSave: this.config.sanitizeOnSave,
     };
   }
 
@@ -341,7 +442,19 @@ export class EditorAdminSettingsService {
       'enableVideoEmbeds', 'enableTables', 'enableHorizontalRule',
       'enableTextColor', 'enableBackgroundColor', 'enableAlignment',
       'enableFullscreen', 'enableUndoRedo', 'enableMarkdownShortcuts',
-      'enableDragDropUpload',
+      'enableDragDropUpload', 'enableInlineCodeButton', 'enableRemoveLink',
+      'enableClearFormatting', 'enableSuperscript', 'enableSubscript',
+      'enableIndentButtons', 'enableFontSize', 'enableLineHeight',
+      'enableBlockTypeDropdown', 'enableFindReplace', 'enableSourceView',
+      'enableEmoji', 'enableSpecialChars', 'enablePrint', 'enableTableOfContents',
+      // Phase 3
+      'enableSlashCommands', 'enableCaseChange', 'enableFormatPainter',
+      'enableFocusMode', 'enableContentTemplates', 'enableAutosaveIndicator',
+      'enableButtonBlock', 'enableSpacerBlock', 'enableGallery',
+      'enableBookmarkCard', 'enableAudioEmbed', 'enableFileAttach',
+      'enableDropCap', 'enableFootnotes', 'enableMathBlocks',
+      'enableAnchorLinks', 'enableKeyboardShortcutsHelp',
+      'enableAdBlock', 'enableSeoScore',
     ];
 
     const enabledCount = featureFlags.filter(
@@ -385,6 +498,8 @@ export class EditorAdminSettingsService {
   /** Apply DB row values onto the in-memory config. */
   private applyRow(row: EditorSystemSettings): void {
     this.config = {
+      // Spread defaults first for Phase 3+ fields not yet in DB
+      ...DEFAULT_EDITOR_CONFIG,
       editorEnabled: row.editorEnabled,
       enableBold: row.enableBold,
       enableItalic: row.enableItalic,
@@ -409,6 +524,21 @@ export class EditorAdminSettingsService {
       enableUndoRedo: row.enableUndoRedo,
       enableMarkdownShortcuts: row.enableMarkdownShortcuts,
       enableDragDropUpload: row.enableDragDropUpload,
+      enableInlineCodeButton: row.enableInlineCodeButton,
+      enableRemoveLink: row.enableRemoveLink,
+      enableClearFormatting: row.enableClearFormatting,
+      enableSuperscript: row.enableSuperscript,
+      enableSubscript: row.enableSubscript,
+      enableIndentButtons: row.enableIndentButtons,
+      enableFontSize: row.enableFontSize,
+      enableLineHeight: row.enableLineHeight,
+      enableBlockTypeDropdown: row.enableBlockTypeDropdown,
+      enableFindReplace: row.enableFindReplace,
+      enableSourceView: row.enableSourceView,
+      enableEmoji: row.enableEmoji,
+      enableSpecialChars: row.enableSpecialChars,
+      enablePrint: row.enablePrint,
+      enableTableOfContents: row.enableTableOfContents,
       maxWordCount: row.maxWordCount,
       maxCharCount: row.maxCharCount,
       maxImageSizeBytes: row.maxImageSizeBytes,
@@ -420,12 +550,15 @@ export class EditorAdminSettingsService {
       maxTableCols: row.maxTableCols,
       colorPalette: [...row.colorPalette],
       defaultTextColor: row.defaultTextColor,
+      fontSizePresets: [...row.fontSizePresets],
+      lineHeightPresets: [...row.lineHeightPresets],
       maxHistorySize: row.maxHistorySize,
       autoSaveDebounceMs: row.autoSaveDebounceMs,
       readingWpm: row.readingWpm,
       defaultPlaceholder: row.defaultPlaceholder,
       defaultMinHeight: row.defaultMinHeight,
       defaultMaxHeight: row.defaultMaxHeight,
+      sanitizeOnSave: row.sanitizeOnSave,
     };
   }
 
@@ -456,6 +589,21 @@ export class EditorAdminSettingsService {
       enableUndoRedo: DEFAULT_EDITOR_CONFIG.enableUndoRedo,
       enableMarkdownShortcuts: DEFAULT_EDITOR_CONFIG.enableMarkdownShortcuts,
       enableDragDropUpload: DEFAULT_EDITOR_CONFIG.enableDragDropUpload,
+      enableInlineCodeButton: DEFAULT_EDITOR_CONFIG.enableInlineCodeButton,
+      enableRemoveLink: DEFAULT_EDITOR_CONFIG.enableRemoveLink,
+      enableClearFormatting: DEFAULT_EDITOR_CONFIG.enableClearFormatting,
+      enableSuperscript: DEFAULT_EDITOR_CONFIG.enableSuperscript,
+      enableSubscript: DEFAULT_EDITOR_CONFIG.enableSubscript,
+      enableIndentButtons: DEFAULT_EDITOR_CONFIG.enableIndentButtons,
+      enableFontSize: DEFAULT_EDITOR_CONFIG.enableFontSize,
+      enableLineHeight: DEFAULT_EDITOR_CONFIG.enableLineHeight,
+      enableBlockTypeDropdown: DEFAULT_EDITOR_CONFIG.enableBlockTypeDropdown,
+      enableFindReplace: DEFAULT_EDITOR_CONFIG.enableFindReplace,
+      enableSourceView: DEFAULT_EDITOR_CONFIG.enableSourceView,
+      enableEmoji: DEFAULT_EDITOR_CONFIG.enableEmoji,
+      enableSpecialChars: DEFAULT_EDITOR_CONFIG.enableSpecialChars,
+      enablePrint: DEFAULT_EDITOR_CONFIG.enablePrint,
+      enableTableOfContents: DEFAULT_EDITOR_CONFIG.enableTableOfContents,
       maxWordCount: DEFAULT_EDITOR_CONFIG.maxWordCount,
       maxCharCount: DEFAULT_EDITOR_CONFIG.maxCharCount,
       maxImageSizeBytes: DEFAULT_EDITOR_CONFIG.maxImageSizeBytes,
@@ -467,12 +615,15 @@ export class EditorAdminSettingsService {
       maxTableCols: DEFAULT_EDITOR_CONFIG.maxTableCols,
       colorPalette: DEFAULT_EDITOR_CONFIG.colorPalette,
       defaultTextColor: DEFAULT_EDITOR_CONFIG.defaultTextColor,
+      fontSizePresets: DEFAULT_EDITOR_CONFIG.fontSizePresets,
+      lineHeightPresets: DEFAULT_EDITOR_CONFIG.lineHeightPresets,
       maxHistorySize: DEFAULT_EDITOR_CONFIG.maxHistorySize,
       autoSaveDebounceMs: DEFAULT_EDITOR_CONFIG.autoSaveDebounceMs,
       readingWpm: DEFAULT_EDITOR_CONFIG.readingWpm,
       defaultPlaceholder: DEFAULT_EDITOR_CONFIG.defaultPlaceholder,
       defaultMinHeight: DEFAULT_EDITOR_CONFIG.defaultMinHeight,
       defaultMaxHeight: DEFAULT_EDITOR_CONFIG.defaultMaxHeight,
+      sanitizeOnSave: DEFAULT_EDITOR_CONFIG.sanitizeOnSave,
       updatedBy: null,
       updatedAt: new Date(),
     };

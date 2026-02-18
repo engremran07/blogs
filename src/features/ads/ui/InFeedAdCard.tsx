@@ -4,8 +4,9 @@
  * the surrounding card style.
  *
  * Server component — fetches ad placement data and renders within
- * the post listing layout.
+ * the post listing layout. Returns null when ads are globally disabled.
  */
+import { prisma } from "@/server/db/prisma";
 import { AdContainer } from "./AdContainer";
 
 interface InFeedAdCardProps {
@@ -18,12 +19,17 @@ interface InFeedAdCardProps {
   className?: string;
 }
 
-export function InFeedAdCard({
+export async function InFeedAdCard({
   layout,
   pageType,
   index = 0,
   className = "",
 }: InFeedAdCardProps) {
+  // Global kill switch — render nothing at all
+  const siteSettings = await prisma.siteSettings.findFirst({
+    select: { adsEnabled: true },
+  });
+  if (!siteSettings?.adsEnabled) return null;
   if (layout === "list") {
     return (
       <div

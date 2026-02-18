@@ -18,7 +18,7 @@ export class ConnectorError extends Error {
 function makeStubConnector(platform: SocialPlatform): SocialConnector {
   return {
     platform,
-    async post(payload: SocialPostPayload): Promise<SocialPostResult> {
+    async post(_payload: SocialPostPayload): Promise<SocialPostResult> {
       // Real implementation would call platform API
       return {
         success: true,

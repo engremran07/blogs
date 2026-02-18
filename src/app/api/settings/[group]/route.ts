@@ -46,7 +46,7 @@ async function requireAdmin() {
   if (!session?.user) {
     return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
   }
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!["ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
@@ -131,12 +131,12 @@ export async function PATCH(
     const parsed = spec.schema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "Validation failed", details: (parsed as any).error.flatten().fieldErrors },
+        { success: false, error: "Validation failed", details: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
 
-    const updatedBy = (guard.user as any)?.id ?? (guard.user as any)?.email ?? undefined;
+    const updatedBy = guard.user.id ?? guard.user.email ?? undefined;
     const result = await siteSettingsService.updateSettings(
       parsed.data as Record<string, unknown>,
       updatedBy,
@@ -144,7 +144,7 @@ export async function PATCH(
 
     if (!result.success) {
       const statusCode = 'error' in result && typeof result.error === 'object' && result.error !== null && 'statusCode' in result.error
-        ? (result.error as any).statusCode
+        ? (result.error as { statusCode: number }).statusCode
         : 500;
       return NextResponse.json(result, { status: statusCode });
     }

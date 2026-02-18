@@ -46,7 +46,7 @@ export function Navbar({ logo, className, renderActions, renderMobileMenu }: Nav
         {/* Desktop Nav */}
         <ul className="menu-navbar__desktop-list">
           {navItems.map((item) => (
-            <NavbarMenuItem key={item.id} item={item} allItems={menu.items} />
+            <NavbarMenuItem key={item.id} item={item} />
           ))}
         </ul>
 
@@ -85,7 +85,7 @@ export function Navbar({ logo, className, renderActions, renderMobileMenu }: Nav
 
 // ─── Desktop Menu Item ──────────────────────────────────────────────────────
 
-function NavbarMenuItem({ item, allItems }: { item: MenuItem; allItems: MenuItem[] }) {
+function NavbarMenuItem({ item }: { item: MenuItem }) {
   const icon = useMenuIcon(item.icon);
   const children = item.children ?? [];
   const [open, setOpen] = useState(false);

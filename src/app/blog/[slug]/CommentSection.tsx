@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { MessageSquare, ThumbsUp, Send, Loader2 } from "lucide-react";
@@ -35,11 +35,7 @@ export function CommentSection({ postId }: { postId: string }) {
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaNonce, setCaptchaNonce] = useState(0);
 
-  useEffect(() => {
-    fetchComments();
-  }, [postId]);
-
-  async function fetchComments() {
+  const fetchComments = useCallback(async () => {
     try {
       const res = await fetch(`/api/comments?postId=${postId}`);
       const data = await res.json();
@@ -64,7 +60,11 @@ export function CommentSection({ postId }: { postId: string }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [postId]);
+
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
 
   async function handleSubmit(e: React.FormEvent, parentId?: string | null) {
     e.preventDefault();

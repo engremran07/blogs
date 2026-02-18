@@ -57,7 +57,7 @@ export class ThemeService {
   /** Update the full palette or specific palette keys. */
   async updatePalette(
     updates: Partial<ColorPalette>,
-    updatedBy?: string,
+    _updatedBy?: string,
   ): Promise<ApiResponse<ThemeConfig>> {
     try {
       const theme = await this.getTheme();

@@ -124,7 +124,7 @@ export function extractKeywords(
  */
 export function extractKeywordsFromTerms(
   terms: string[],
-  source: string = 'terms',
+  _source: string = 'terms',
 ): KeywordAnalysis[] {
   const freq = new Map<string, number>();
   for (const term of terms) {

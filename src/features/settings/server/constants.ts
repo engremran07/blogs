@@ -117,6 +117,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   rssFeedTitle: null,
   enableComments: true,
   enableSearch: true,
+  enableRegistration: true,
 
   // Privacy & Legal
   cookieConsentEnabled: false,

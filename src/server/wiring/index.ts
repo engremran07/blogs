@@ -54,6 +54,7 @@ import { EditorAdminSettingsService } from "@/features/editor/server/admin-setti
 import { CaptchaAdminSettingsService } from "@/features/captcha/server/admin-settings.service";
 import { CaptchaVerificationService } from "@/features/captcha/server/verification.service";
 import type { CaptchaProvider } from "@/features/auth/types";
+import type { CaptchaProviderType } from "@/features/captcha/types";
 
 // Media
 import { MediaService } from "@/features/media/server/media.service";
@@ -70,6 +71,27 @@ import { AdsAdminSettingsService } from "@/features/ads/server/admin-settings.se
 // Distribution
 import { DistributionService } from "@/features/distribution/server/distribution.service";
 import { DistributionEventBus } from "@/features/distribution/server/events";
+
+// ─── Feature Prisma Client Types ────────────────────────────────────────────
+import type { UsersPrismaClient } from "@/features/auth/types";
+import type { CommentsPrismaClient } from "@/features/comments/types";
+import type { TagsPrismaClient } from "@/features/tags/types";
+import type { EditorPrismaClient } from "@/features/editor/types";
+import type { CaptchaPrismaClient } from "@/features/captcha/types";
+import type { PagesPrismaClient } from "@/features/pages/types";
+import type { SiteSettingsPrismaClient } from "@/features/settings/types";
+import type { ThemePrismaClient } from "@/features/settings/theme/types";
+import type { MenuBuilderPrismaClient } from "@/features/settings/menu-builder/types";
+import type { BlogPrismaClient } from "@/features/blog/types";
+import type { MediaPrismaClient } from "@/features/media/types";
+import type { AdsPrismaClient } from "@/features/ads/types";
+import type { DistributionPrismaClient } from "@/features/distribution/types";
+import type {
+  PrismaPostDelegate, PrismaPageDelegate, PrismaCategoryDelegate,
+  PrismaTagDelegate, PrismaSeoSuggestionDelegate, PrismaSeoKeywordDelegate,
+  PrismaSeoEntityDelegate, PrismaSeoEntityEdgeDelegate, PrismaBatchOperationDelegate,
+  PrismaTransactionFn, PrismaRawQueryFn,
+} from "@/features/seo/types";
 
 // ─── Loggers ────────────────────────────────────────────────────────────────
 const authLogger = createLogger("auth");
@@ -166,12 +188,12 @@ const commentEventBus = new CommentEventBus();
 // ─── Service Instances ──────────────────────────────────────────────────────
 
 // Admin settings services (these read/write singleton settings rows)
-export const userAdminSettings = new UserAdminSettingsService(prisma as any);
-export const commentAdminSettings = new CommentAdminSettingsService(prisma as any);
-export const tagAdminSettings = new TagAdminSettingsService(prisma as any);
-export const editorAdminSettings = new EditorAdminSettingsService(prisma as any);
-export const captchaAdminSettings = new CaptchaAdminSettingsService(prisma as any);
-export const captchaVerificationService = new CaptchaVerificationService(prisma as any);
+export const userAdminSettings = new UserAdminSettingsService(prisma as unknown as UsersPrismaClient);
+export const commentAdminSettings = new CommentAdminSettingsService(prisma as unknown as CommentsPrismaClient);
+export const tagAdminSettings = new TagAdminSettingsService(prisma as unknown as TagsPrismaClient);
+export const editorAdminSettings = new EditorAdminSettingsService(prisma as unknown as EditorPrismaClient);
+export const captchaAdminSettings = new CaptchaAdminSettingsService(prisma as unknown as CaptchaPrismaClient);
+export const captchaVerificationService = new CaptchaVerificationService(prisma as unknown as CaptchaPrismaClient);
 
 // Adapt CaptchaVerificationService to the CaptchaProvider interface expected by AuthService
 const captchaProvider: CaptchaProvider = {
@@ -179,62 +201,62 @@ const captchaProvider: CaptchaProvider = {
     const result = await captchaVerificationService.verify({
       token,
       clientIp: ip,
-      captchaType: captchaType as any,
+      captchaType: captchaType as CaptchaProviderType | undefined,
       captchaId,
     });
     return result.success;
   },
 };
 
-export const pagesAdminSettings = new PagesAdminSettingsService(prisma as any);
-export const siteSettingsService = new SiteSettingsService(prisma as any);
-export const themeService = new ThemeService(prisma as any);
-export const menuBuilderService = new MenuBuilderService(prisma as any);
+export const pagesAdminSettings = new PagesAdminSettingsService(prisma as unknown as PagesPrismaClient);
+export const siteSettingsService = new SiteSettingsService(prisma as unknown as SiteSettingsPrismaClient);
+export const themeService = new ThemeService(prisma as unknown as ThemePrismaClient);
+export const menuBuilderService = new MenuBuilderService(prisma as unknown as MenuBuilderPrismaClient);
 
 // Core services
 export const authService = new AuthService(
-  prisma as any,
+  prisma as unknown as UsersPrismaClient,
   stubJwt,
   stubMail,
   captchaProvider,
   {},
   { log: authLogger.info, warn: authLogger.warn, error: authLogger.error },
 );
-export const userService = new UserService(prisma as any, stubMail);
+export const userService = new UserService(prisma as unknown as UsersPrismaClient, stubMail);
 
 export const blogService = new BlogService({
-  prisma: prisma as any,
+  prisma: prisma as unknown as BlogPrismaClient,
   cache: cacheProvider,
   logger: blogLogger,
   revalidate: revalidateCallback,
 });
 
 export const spamService = new SpamService();
-export const moderationService = new ModerationService(prisma as any, commentEventBus);
-export const commentService = new CommentService(prisma as any, spamService, commentEventBus);
+export const moderationService = new ModerationService(prisma as unknown as CommentsPrismaClient, commentEventBus);
+export const commentService = new CommentService(prisma as unknown as CommentsPrismaClient, spamService, commentEventBus);
 
-export const tagService = new TagService(prisma as any);
-export const autocompleteService = new AutocompleteService(prisma as any);
-export const autoTaggingService = new AutoTaggingService(prisma as any, tagService);
+export const tagService = new TagService(prisma as unknown as TagsPrismaClient);
+export const autocompleteService = new AutocompleteService(prisma as unknown as TagsPrismaClient);
+export const autoTaggingService = new AutoTaggingService(prisma as unknown as TagsPrismaClient, tagService);
 
 export const seoService = new SeoService({
-  post: prisma.post as any,
-  page: prisma.page as any,
-  category: prisma.category as any,
-  tag: prisma.tag as any,
-  seoSuggestion: prisma.seoSuggestion as any,
-  seoKeyword: prisma.seoKeyword as any,
-  seoEntity: prisma.seoEntity as any,
-  seoEntityEdge: prisma.seoEntityEdge as any,
-  batchOperation: prisma.batchOperation as any,
-  transaction: prisma.$transaction.bind(prisma) as any,
-  rawQuery: prisma.$queryRawUnsafe.bind(prisma) as any,
+  post: prisma.post as unknown as PrismaPostDelegate,
+  page: prisma.page as unknown as PrismaPageDelegate,
+  category: prisma.category as unknown as PrismaCategoryDelegate,
+  tag: prisma.tag as unknown as PrismaTagDelegate,
+  seoSuggestion: prisma.seoSuggestion as unknown as PrismaSeoSuggestionDelegate,
+  seoKeyword: prisma.seoKeyword as unknown as PrismaSeoKeywordDelegate,
+  seoEntity: prisma.seoEntity as unknown as PrismaSeoEntityDelegate,
+  seoEntityEdge: prisma.seoEntityEdge as unknown as PrismaSeoEntityEdgeDelegate,
+  batchOperation: prisma.batchOperation as unknown as PrismaBatchOperationDelegate,
+  transaction: prisma.$transaction.bind(prisma) as unknown as PrismaTransactionFn,
+  rawQuery: prisma.$queryRawUnsafe.bind(prisma) as unknown as PrismaRawQueryFn,
   cache: cacheProvider,
   logger: seoLogger,
 });
 
 export const pageService = new PageService({
-  prisma: prisma as any,
+  prisma: prisma as unknown as PagesPrismaClient,
   cache: cacheProvider,
   logger: pageLogger,
   revalidate: revalidateCallback,
@@ -256,13 +278,13 @@ try {
 }
 
 export const mediaAdminSettings = new MediaAdminSettingsService({
-  prisma: prisma as any,
+  prisma: prisma as unknown as MediaPrismaClient,
   cache: cacheProvider,
   logger: mediaLogger,
 });
 
 export const mediaService = new MediaService({
-  prisma: prisma as any,
+  prisma: prisma as unknown as MediaPrismaClient,
   storage: mediaStorageProvider,
   cache: cacheProvider,
   logger: mediaLogger,
@@ -287,12 +309,12 @@ pagesAdminSettings.registerConsumer(pageService);
 // ─── Ads Module ─────────────────────────────────────────────────────────────
 
 export const adsAdminSettings = new AdsAdminSettingsService({
-  prisma: prisma as any,
+  prisma: prisma as unknown as AdsPrismaClient,
   cache: cacheProvider,
 });
 
 export const adsService = new AdsService({
-  prisma: prisma as any,
+  prisma: prisma as unknown as AdsPrismaClient,
   cache: cacheProvider,
   getConfig: () => adsAdminSettings.getConfig(),
 });
@@ -302,7 +324,7 @@ export const adsService = new AdsService({
 export const distributionEventBus = new DistributionEventBus();
 
 export const distributionService = new DistributionService(
-  prisma as any,
+  prisma as unknown as DistributionPrismaClient,
   distributionEventBus,
   {
     distributionEnabled: true,

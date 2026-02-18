@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Users, Trash2, Search, CheckSquare, Square,
   ChevronDown, MoreHorizontal, UserPlus, Shield, Edit2,
@@ -83,9 +83,7 @@ export default function AdminUsersPage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [bulkMenuOpen]);
 
-  useEffect(() => { fetchUsers(); }, [page, search, roleFilter]);
-
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -102,7 +100,9 @@ export default function AdminUsersPage() {
       }
     } catch { toast("Failed to fetch users", "error"); }
     finally { setLoading(false); }
-  }
+  }, [page, search, roleFilter]);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   async function changeRole(userId: string, role: string) {
     try {

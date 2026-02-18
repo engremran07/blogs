@@ -26,7 +26,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // standalone output is for Docker/CI (Linux); skip on Windows where
+  // Turbopack chunk filenames with ":" break NTFS copyfile.
+  output: process.platform !== "win32" ? "standalone" : undefined,
   poweredByHeader: false,
   reactCompiler: true,
   images: {

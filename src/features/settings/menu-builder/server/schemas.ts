@@ -17,7 +17,6 @@ import {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const optStr = z.string().optional();
 const optBool = z.boolean().optional();
 const nullableStr = (max: number) => z.string().max(max).nullable().optional();
 

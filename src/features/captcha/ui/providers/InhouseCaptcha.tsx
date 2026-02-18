@@ -168,6 +168,7 @@ function InhouseCaptchaInner({
 
   /* ── Init — generate on mount ── */
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initialization: generates captcha challenge on mount; state updates are in the newChallenge callback (external synchronization)
     newChallenge(false);
   }, [newChallenge]);
 
@@ -175,6 +176,7 @@ function InhouseCaptchaInner({
   useEffect(() => {
     if (lastResetSignalRef.current === resetSignal) return;
     lastResetSignalRef.current = resetSignal;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Responds to external resetSignal prop change; generating a new challenge requires state updates
     newChallenge(true);
   }, [resetSignal, newChallenge]);
 

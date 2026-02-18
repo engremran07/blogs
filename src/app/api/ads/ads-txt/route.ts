@@ -12,7 +12,7 @@ export async function GET() {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },

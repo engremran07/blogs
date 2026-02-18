@@ -5,6 +5,8 @@ import { auth } from "@/server/auth";
 import { createLogger } from "@/server/observability/logger";
 import { CreateCategorySchema, BulkCreateCategoriesSchema } from "@/features/blog/server/schemas";
 import { z } from "zod";
+import type { ScanPrisma } from "@/features/ads/server/scan-pages";
+import type { Category } from "@prisma/client";
 
 const logger = createLogger("api/categories");
 
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
       }
 
       const { names, ...shared } = bulkParsed.data;
-      const created: any[] = [];
+      const created: Category[] = [];
       const errors: string[] = [];
 
       for (let i = 0; i < names.length; i++) {
@@ -85,12 +87,12 @@ export async function POST(req: NextRequest) {
           try {
             const { addPageTypesToSlots } = await import("@/features/ads/server/scan-pages");
             const { prisma } = await import("@/server/db/prisma");
-            await addPageTypesToSlots(prisma as any, [`category:${cat.slug}`]);
+            await addPageTypesToSlots(prisma as unknown as ScanPrisma, [`category:${cat.slug}`]);
           } catch {
             // Ads module may not be available — non-critical
           }
-        } catch (err: any) {
-          errors.push(`"${names[i]}": ${err?.message || "Failed to create"}`);
+        } catch (err: unknown) {
+          errors.push(`"${names[i]}": ${(err as { message?: string })?.message || "Failed to create"}`);
         }
       }
 
@@ -125,15 +127,15 @@ export async function POST(req: NextRequest) {
     try {
       const { addPageTypesToSlots } = await import("@/features/ads/server/scan-pages");
       const { prisma } = await import("@/server/db/prisma");
-      await addPageTypesToSlots(prisma as any, [`category:${category.slug}`]);
+      await addPageTypesToSlots(prisma as unknown as ScanPrisma, [`category:${category.slug}`]);
     } catch {
       // Ads module may not be available — non-critical
     }
 
     return NextResponse.json({ success: true, data: category }, { status: 201 });
-  } catch (error: any) {
-    const status = error?.statusCode ?? 500;
-    const message = error?.message ?? "Failed to create category";
+  } catch (error: unknown) {
+    const status = (error as { statusCode?: number })?.statusCode ?? 500;
+    const message = (error as { message?: string })?.message ?? "Failed to create category";
     logger.error("[api/categories] POST error:", { error });
     return NextResponse.json({ success: false, error: message }, { status });
   }

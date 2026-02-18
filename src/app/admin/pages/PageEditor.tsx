@@ -3,13 +3,17 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Save, ArrowLeft, Globe, ChevronDown, ChevronUp } from "lucide-react";
+import { Save, ArrowLeft, Globe, ChevronDown, ChevronUp, Image as ImageIcon, Code, Eye } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/FormFields";
+import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import dynamic from "next/dynamic";
+import Image from "next/image";
+import type { MediaItem } from "@/features/media/types";
 
 const RichTextEditor = dynamic(() => import("@/features/editor/ui/RichTextEditor"), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" /> });
+const MediaManager = dynamic(() => import("@/features/media/ui/MediaManager").then(m => ({ default: m.MediaManager })), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" /> });
 
 function slugify(text: string) {
   return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
@@ -40,6 +44,15 @@ interface PageForm {
   // Hierarchy
   parentId: string;
   sortOrder: number;
+  // Visibility guard
+  password: string;
+  // Code injection
+  customCss: string;
+  customJs: string;
+  customHead: string;
+  // Metrics (computed)
+  wordCount: number;
+  readingTime: number;
 }
 
 const defaultForm: PageForm = {
@@ -63,6 +76,12 @@ const defaultForm: PageForm = {
   scheduledFor: "",
   parentId: "",
   sortOrder: 0,
+  password: "",
+  customCss: "",
+  customJs: "",
+  customHead: "",
+  wordCount: 0,
+  readingTime: 0,
 };
 
 export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: boolean }) {
@@ -71,6 +90,9 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
   const [saving, setSaving] = useState(false);
   const [autoSlug, setAutoSlug] = useState(isNew);
   const [seoOpen, setSeoOpen] = useState(false);
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const [form, setForm] = useState<PageForm>({ ...defaultForm });
 
@@ -102,6 +124,12 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
               scheduledFor: pg.scheduledFor ? new Date(pg.scheduledFor).toISOString().slice(0, 16) : "",
               parentId: pg.parentId || "",
               sortOrder: pg.sortOrder ?? 0,
+              password: pg.password || "",
+              customCss: pg.customCss || "",
+              customJs: pg.customJs || "",
+              customHead: pg.customHead || "",
+              wordCount: pg.wordCount ?? 0,
+              readingTime: pg.readingTime ?? 0,
             });
             setAutoSlug(false);
           }
@@ -143,6 +171,15 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
         // Hierarchy
         parentId: form.parentId || null,
         sortOrder: form.sortOrder,
+        // Visibility guard
+        password: form.visibility === "PASSWORD_PROTECTED" ? (form.password || null) : null,
+        // Code injection
+        customCss: form.customCss || null,
+        customJs: form.customJs || null,
+        customHead: form.customHead || null,
+        // Metrics
+        wordCount: form.wordCount,
+        readingTime: form.readingTime,
       };
 
       if (form.scheduledFor) {
@@ -170,7 +207,9 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
       const data = await res.json();
       if (data.success) {
         toast(isNew ? "Page created!" : "Page saved!", "success");
-        router.push("/admin/pages");
+        if (isNew && data.data?.slug) {
+          router.push(`/admin/pages/${data.data.slug}/edit`);
+        }
       } else {
         toast(data.error || "Failed to save", "error");
       }
@@ -194,8 +233,18 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             {isNew ? "New Page" : "Edit Page"}
           </h1>
+          {!isNew && (
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+              {form.wordCount} words &middot; {form.readingTime} min read
+            </span>
+          )}
         </div>
         <div className="flex gap-2">
+          {!isNew && (
+            <Button variant="outline" onClick={() => setShowPreview(true)} icon={<Eye className="h-4 w-4" />}>
+              Preview
+            </Button>
+          )}
           <Button variant="outline" onClick={() => handleSave("DRAFT")} loading={saving} icon={<Save className="h-4 w-4" />}>
             Save Draft
           </Button>
@@ -210,14 +259,19 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
           <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
             <Input label="Title" value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="Page title..." />
             <div className="mt-4">
-              <Input label="Slug" value={form.slug} onChange={(e) => { setAutoSlug(false); update("slug", e.target.value); }} placeholder="page-slug" />
+              <Input label="Slug" value={form.slug} onChange={(e) => { setAutoSlug(false); update("slug", e.target.value); }} placeholder="page-slug" hint="URL-friendly version of the title" />
             </div>
           </div>
           <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
             <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Content</label>
             <RichTextEditor
               content={form.content}
-              onChange={(html) => update("content", html)}
+              onChange={(html, _text, wc) => {
+                update("content", html);
+                const wordCount = wc ?? 0;
+                const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+                setForm(prev => ({ ...prev, wordCount, readingTime }));
+              }}
               onImageUpload={async (file: File) => {
                 const fd = new FormData();
                 fd.append("file", file);
@@ -228,12 +282,12 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
                 return data.data.url;
               }}
               placeholder="Write your page content here..."
-              minHeight="350px"
-              maxHeight="700px"
+              minHeight="400px"
+              maxHeight="800px"
             />
           </div>
           <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-            <Textarea label="Excerpt" value={form.excerpt} onChange={(e) => update("excerpt", e.target.value)} placeholder="Short summary..." rows={3} />
+            <Textarea label="Excerpt" value={form.excerpt} onChange={(e) => update("excerpt", e.target.value)} placeholder="Short summary..." rows={3} hint="Optional. Used in page listings and meta descriptions." />
           </div>
 
           {/* SEO Section */}
@@ -263,12 +317,79 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
                     nofollow
                   </label>
                 </div>
+                {/* SEO Preview */}
+                <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900">
+                  <p className="text-xs text-gray-400">Search Preview</p>
+                  <p className="mt-1 text-sm font-medium text-blue-700 dark:text-blue-400">
+                    {form.metaTitle || form.title || "Page Title"}
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-400">
+                    myblog.com/{form.slug || "page-slug"}
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                    {form.metaDescription || form.excerpt || "Page description will appear here..."}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Code Injection Section */}
+          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+            <button
+              onClick={() => setCodeOpen(!codeOpen)}
+              className="flex w-full items-center justify-between p-6"
+            >
+              <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                <Code className="h-4 w-4" /> Code Injection
+              </h3>
+              {codeOpen ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+            </button>
+            {codeOpen && (
+              <div className="space-y-4 border-t border-gray-200 p-6 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Add custom CSS, JavaScript, or HTML head tags to this page only.
+                </p>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Custom CSS</label>
+                  <textarea
+                    value={form.customCss}
+                    onChange={(e) => update("customCss", e.target.value)}
+                    placeholder=".my-class { color: red; }"
+                    rows={4}
+                    className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600"
+                    spellCheck={false}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Custom JavaScript</label>
+                  <textarea
+                    value={form.customJs}
+                    onChange={(e) => update("customJs", e.target.value)}
+                    placeholder="console.log('Hello from page');"
+                    rows={4}
+                    className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600"
+                    spellCheck={false}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Custom Head Tags</label>
+                  <textarea
+                    value={form.customHead}
+                    onChange={(e) => update("customHead", e.target.value)}
+                    placeholder='<meta name="custom" content="value" />'
+                    rows={3}
+                    className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600"
+                    spellCheck={false}
+                  />
+                </div>
               </div>
             )}
           </div>
         </div>
 
         <div className="space-y-6">
+          {/* Settings */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
             <h3 className="mb-3 font-semibold text-gray-900 dark:text-white">Settings</h3>
             <Select label="Status" value={form.status} onChange={(e) => update("status", e.target.value)}>
@@ -296,6 +417,18 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
                 <option value="LOGGED_IN_ONLY">Logged In Only</option>
               </Select>
             </div>
+            {form.visibility === "PASSWORD_PROTECTED" && (
+              <div className="mt-4">
+                <Input
+                  label="Page Password"
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => update("password", e.target.value)}
+                  placeholder="Enter password..."
+                  hint="Visitors must enter this password to view the page"
+                />
+              </div>
+            )}
             {form.status === "SCHEDULED" && (
               <div className="mt-4">
                 <Input
@@ -316,15 +449,142 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
             </div>
           </div>
 
+          {/* Featured Image with MediaManager */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-            <h3 className="mb-3 font-semibold text-gray-900 dark:text-white">Featured Image</h3>
-            <Input label="Image URL" value={form.featuredImage} onChange={(e) => update("featuredImage", e.target.value)} placeholder="https://..." />
+            <h3 className="mb-3 font-semibold text-gray-900 dark:text-white">
+              <ImageIcon className="mr-1 inline h-4 w-4" /> Featured Image
+            </h3>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  value={form.featuredImage}
+                  onChange={(e) => update("featuredImage", e.target.value)}
+                  placeholder="Image URL..."
+                />
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowMediaPicker(true)}
+              >
+                Browse
+              </Button>
+            </div>
+            {form.featuredImage && (
+              <Image
+                src={form.featuredImage}
+                alt="Preview"
+                className="mt-3 max-h-48 rounded-lg object-cover"
+                width={400}
+                height={192}
+                unoptimized
+              />
+            )}
             <div className="mt-3">
-              <Input label="Alt Text" value={form.featuredImageAlt} onChange={(e) => update("featuredImageAlt", e.target.value)} placeholder="Image description..." />
+              <Input label="Alt Text" value={form.featuredImageAlt} onChange={(e) => update("featuredImageAlt", e.target.value)} placeholder="Image description for accessibility..." />
             </div>
           </div>
+
+          {/* Page Info */}
+          {!isNew && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+              <h3 className="mb-3 font-semibold text-gray-900 dark:text-white">Page Info</h3>
+              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex justify-between">
+                  <span>Words</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{form.wordCount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Reading time</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{form.readingTime} min</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Media Picker Modal */}
+      <Modal
+        open={showMediaPicker}
+        onClose={() => setShowMediaPicker(false)}
+        title="Select Featured Image"
+        size="full"
+      >
+        <div className="h-[70vh]">
+          <MediaManager
+            mode="picker"
+            accept="image/*"
+            onSelect={(items: MediaItem[]) => {
+              if (items.length > 0) {
+                update("featuredImage", items[0].url);
+                if (items[0].altText) {
+                  update("featuredImageAlt", items[0].altText);
+                }
+              }
+              setShowMediaPicker(false);
+            }}
+            onUpload={async (file: File) => {
+              const formData = new FormData();
+              formData.append("file", file);
+              const res = await fetch("/api/media", { method: "POST", body: formData });
+              const json = await res.json();
+              if (!json.success) throw new Error(json.error?.message ?? "Upload failed");
+              return json.data;
+            }}
+            onList={async (filter, sort, page, size) => {
+              const params = new URLSearchParams();
+              if (filter?.search) params.set("search", filter.search);
+              if (filter?.mimeType) params.set("mimeType", filter.mimeType);
+              if (filter?.folder) params.set("folder", filter.folder);
+              if (sort?.field) params.set("sortField", sort.field);
+              if (sort?.direction) params.set("sortDirection", sort.direction);
+              if (page) params.set("page", String(page));
+              if (size) params.set("pageSize", String(size));
+              params.set("mimeType", "image/");
+              const res = await fetch(`/api/media?${params}`);
+              const json = await res.json();
+              if (!json.success) throw new Error(json.error?.message ?? "Failed to load");
+              return json.data;
+            }}
+            onListFolders={async () => {
+              const res = await fetch("/api/media/folders");
+              const json = await res.json();
+              return json.success ? json.data : [];
+            }}
+            onDelete={async (id: string) => {
+              await fetch(`/api/media/${id}`, { method: "DELETE" });
+            }}
+            onUpdate={async (id: string, data) => {
+              const res = await fetch(`/api/media/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+              });
+              const json = await res.json();
+              if (!json.success) throw new Error(json.error?.message ?? "Update failed");
+              return json.data;
+            }}
+          />
+        </div>
+      </Modal>
+
+      {/* Preview Modal */}
+      <Modal
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        title={`Preview: ${form.title || "Untitled"}`}
+        size="full"
+      >
+        <div className="mx-auto max-w-3xl p-8">
+          <article className="prose prose-lg prose-blue dark:prose-invert max-w-none">
+            <h1>{form.title}</h1>
+            <div dangerouslySetInnerHTML={{ __html: form.content }} />
+          </article>
+          {form.customCss && <style dangerouslySetInnerHTML={{ __html: form.customCss }} />}
+        </div>
+      </Modal>
     </div>
   );
 }

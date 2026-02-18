@@ -5,7 +5,9 @@ import { createLogger } from "@/server/observability/logger";
 import { CreatePageSchema, PageListSchema } from "@/features/pages/server/schemas";
 import { PageError } from "@/features/pages/types";
 import { addPageTypesToSlots } from "@/features/ads/server/scan-pages";
+import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 import { InterlinkService } from "@/features/seo/server/interlink.service";
+import type { InterlinkPrisma } from "@/features/seo/server/interlink.service";
 
 const logger = createLogger("api/pages");
 
@@ -45,7 +47,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
     }
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
     }
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest) {
       body.slug = body.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     }
 
-    const authorId = (session.user as any).id || body.authorId;
+    const authorId = session.user.id || body.authorId;
     body.authorId = authorId;
 
     const parsed = CreatePageSchema.safeParse(body);
@@ -71,11 +73,11 @@ export async function POST(req: NextRequest) {
 
     // Auto-include this new page in ad slot pageTypes
     if (page.slug) {
-      void addPageTypesToSlots(prisma as any, [`page:${page.slug}`]).catch(() => {});
+      void addPageTypesToSlots(prisma as unknown as ScanPrisma, [`page:${page.slug}`]).catch(() => {});
     }
 
     // Interlink lifecycle: scan for link suggestions
-    new InterlinkService(prisma as any).onContentCreated(page.id, 'PAGE', parsed.data.status || 'DRAFT').catch((err: unknown) =>
+    new InterlinkService(prisma as unknown as InterlinkPrisma).onContentCreated(page.id, 'PAGE', parsed.data.status || 'DRAFT').catch((err: unknown) =>
       logger.error("[api/pages] Interlink onContentCreated error:", { error: err }),
     );
 

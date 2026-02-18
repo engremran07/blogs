@@ -16,7 +16,6 @@ import {
   CACHE_KEYS,
   CACHE_TTL,
   MEDIA_LIMITS,
-  VARIANT_PRESETS_CONFIG,
   IMAGE_ALT_MAX_LENGTH,
   IMAGE_SIZE_WARN_THRESHOLD,
   IMAGE_SIZE_ERROR_THRESHOLD,
@@ -63,9 +62,7 @@ import type {
   SitemapImageData,
   MediaVariantMapWithWebP,
   ApiResponse,
-  TagMode,
 } from '../types';
-import { MediaError } from '../types';
 
 /* ====================================================================== *
  *  No‑op fallbacks                                                       *
@@ -347,7 +344,6 @@ export class MediaService {
     let totalBytes = 0;
 
     try {
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -758,7 +754,7 @@ export class MediaService {
   async createFolder(
     name: string,
     parentId?: string,
-    userId?: string,
+    _userId?: string,
   ): Promise<ApiResponse<MediaFolder>> {
     const safeName = sanitizeFolderName(name);
 
@@ -1292,7 +1288,7 @@ export class MediaService {
     }
 
     let removed = 0;
-    let freedBytes = 0;
+    const freedBytes = 0;
 
     for (const folderPath of folderPaths) {
       try {

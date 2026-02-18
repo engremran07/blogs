@@ -3,27 +3,60 @@ import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/prisma";
 import { createLogger } from "@/server/observability/logger";
 import { removePageTypesFromSlots } from "@/features/ads/server/scan-pages";
+import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 import { sanitizeContent, sanitizeText } from "@/features/blog/server/sanitization.util";
 import { countWords, calculateReadingTime } from "@/features/blog/server/constants";
 import { autoDistributePost } from "@/features/distribution";
-import { InterlinkService } from "@/features/seo/server/interlink.service";
+import { InterlinkService, type InterlinkPrisma } from "@/features/seo/server/interlink.service";
 
 const logger = createLogger("api/posts");
+
+const POST_INCLUDE = {
+  author: { select: { id: true, username: true, displayName: true } },
+  categories: { select: { id: true, name: true, slug: true, color: true } },
+  tags: { select: { id: true, name: true, slug: true, color: true } },
+};
+
+/**
+ * Resolve the [id] param to a post record.
+ * Accepts a numeric postNumber (e.g. "42") or a cuid string.
+ */
+async function resolvePost(identifier: string) {
+  const num = /^\d+$/.test(identifier) ? parseInt(identifier, 10) : NaN;
+  if (!isNaN(num)) {
+    return prisma.post.findUnique({
+      where: { postNumber: num, deletedAt: null },
+      include: POST_INCLUDE,
+    });
+  }
+  return prisma.post.findUnique({
+    where: { id: identifier, deletedAt: null },
+    include: POST_INCLUDE,
+  });
+}
+
+/**
+ * Resolve identifier to the cuid id (for update/delete operations).
+ */
+async function resolvePostId(identifier: string): Promise<string | null> {
+  const num = /^\d+$/.test(identifier) ? parseInt(identifier, 10) : NaN;
+  if (!isNaN(num)) {
+    const post = await prisma.post.findUnique({
+      where: { postNumber: num },
+      select: { id: true },
+    });
+    return post?.id ?? null;
+  }
+  return identifier;
+}
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const post = await prisma.post.findUnique({
-      where: { id, deletedAt: null },
-      include: {
-        author: { select: { id: true, username: true, displayName: true } },
-        categories: { select: { id: true, name: true, slug: true, color: true } },
-        tags: { select: { id: true, name: true, slug: true, color: true } },
-      },
-    });
+    const { id: identifier } = await params;
+    const post = await resolvePost(identifier);
 
     if (!post) {
       return NextResponse.json(
@@ -47,12 +80,16 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id: identifier } = await params;
+    const id = await resolvePostId(identifier);
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Post not found" }, { status: 404 });
+    }
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
     }
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (!["AUTHOR", "EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
     }
@@ -168,14 +205,14 @@ export async function PATCH(
       interlinkChanges.statusChanged = true;
       // If unpublishing, trigger onContentUnpublished
       if (existingPost.status === 'PUBLISHED' && safeData.status !== 'PUBLISHED') {
-        new InterlinkService(prisma as any).onContentUnpublished(id, 'POST', existingPost.slug).catch((err: unknown) =>
+        new InterlinkService(prisma as unknown as InterlinkPrisma).onContentUnpublished(id, 'POST', existingPost.slug).catch((err: unknown) =>
           logger.error("[api/posts/[id]] Interlink onContentUnpublished error:", { error: err }),
         );
       }
     }
     if (safeData.content) interlinkChanges.contentChanged = true;
     if (Object.keys(interlinkChanges).length > 0) {
-      new InterlinkService(prisma as any).onContentUpdated(id, 'POST', interlinkChanges).catch((err: unknown) =>
+      new InterlinkService(prisma as unknown as InterlinkPrisma).onContentUpdated(id, 'POST', interlinkChanges).catch((err: unknown) =>
         logger.error("[api/posts/[id]] Interlink onContentUpdated error:", { error: err }),
       );
     }
@@ -195,12 +232,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id: identifier } = await params;
+    const id = await resolvePostId(identifier);
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Post not found" }, { status: 404 });
+    }
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
     }
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
     }
@@ -223,7 +264,7 @@ export async function DELETE(
     // Decrement category post counts
     if (post?.categories?.length) {
       await prisma.category.updateMany({
-        where: { id: { in: post.categories.map((c: any) => c.id) } },
+        where: { id: { in: post.categories.map((c) => c.id) } },
         data: { postCount: { decrement: 1 } },
       });
     }
@@ -232,7 +273,7 @@ export async function DELETE(
     if (post?.categories?.length || true) {
       const deletedPost = await prisma.post.findUnique({ where: { id }, select: { slug: true } });
       if (deletedPost) {
-        new InterlinkService(prisma as any).onContentDeleted(id, 'POST', deletedPost.slug).catch((err: unknown) =>
+        new InterlinkService(prisma as unknown as InterlinkPrisma).onContentDeleted(id, 'POST', deletedPost.slug).catch((err: unknown) =>
           logger.error("[api/posts/[id]] Interlink onContentDeleted error:", { error: err }),
         );
       }
@@ -255,7 +296,7 @@ export async function DELETE(
         }
       }
       if (orphanKeys.length > 0) {
-        await removePageTypesFromSlots(prisma as any, orphanKeys);
+        await removePageTypesFromSlots(prisma as unknown as ScanPrisma, orphanKeys);
         logger.info(`Auto-excluded orphan category pageTypes from ad slots: ${orphanKeys.join(", ")}`);
       }
     }

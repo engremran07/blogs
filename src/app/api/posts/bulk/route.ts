@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
     }
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
     }

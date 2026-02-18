@@ -22,7 +22,7 @@ export async function PATCH(
     if (body.status && Object.keys(body).length === 1) {
       const status = body.status as string;
       // TODO: extract real moderatorId from session
-      const moderatorId = (session.user as any).id || "system";
+      const moderatorId = session.user.id || "system";
       let comment;
       switch (status) {
         case "APPROVED":

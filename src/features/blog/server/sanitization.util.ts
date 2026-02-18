@@ -6,27 +6,6 @@
 /*  HTML SANITIZATION                                                         */
 /* ========================================================================== */
 
-/** Allowlisted HTML tags for blog content. */
-const SAFE_TAGS = new Set([
-  'p', 'br', 'b', 'i', 'u', 'em', 'strong', 'a', 'img',
-  'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'table', 'thead', 'tbody', 'tr', 'th', 'td',
-  'figure', 'figcaption', 'picture', 'source', 'video', 'audio',
-  'div', 'span', 'section', 'article', 'header', 'footer', 'nav',
-  'hr', 'sup', 'sub', 'mark', 'del', 'ins', 'abbr', 'time',
-  'details', 'summary', 'dl', 'dt', 'dd', 'caption',
-]);
-
-/** Allowlisted attribute names. */
-const SAFE_ATTRS = new Set([
-  'href', 'src', 'alt', 'title', 'class', 'id', 'target', 'rel',
-  'width', 'height', 'loading', 'decoding', 'srcset', 'sizes',
-  'type', 'datetime', 'cite', 'data-id', 'data-type', 'style',
-  'colspan', 'rowspan', 'scope', 'headers', 'role', 'aria-label',
-  'aria-hidden', 'tabindex', 'open', 'name',
-]);
-
 /** Dangerous protocols that should be blocked in href/src. */
 const DANGEROUS_PROTOCOLS = /^(javascript|vbscript|data):/i;
 

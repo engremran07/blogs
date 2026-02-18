@@ -3,6 +3,7 @@ import { blogService } from "@/server/wiring";
 import { auth } from "@/server/auth";
 import { createLogger } from "@/server/observability/logger";
 import { UpdateCategorySchema } from "@/features/blog/server/schemas";
+import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 
 const logger = createLogger("api/categories/[id]");
 
@@ -72,9 +73,9 @@ export async function PATCH(
     const category = await blogService.updateCategory(id, parsed.data);
 
     return NextResponse.json({ success: true, data: category });
-  } catch (error: any) {
-    const status = error?.statusCode ?? 500;
-    const message = error?.message ?? "Failed to update category";
+  } catch (error: unknown) {
+    const status = (error as { statusCode?: number })?.statusCode ?? 500;
+    const message = (error as { message?: string })?.message ?? "Failed to update category";
     logger.error("[api/categories/[id]] PATCH error:", { error });
     return NextResponse.json({ success: false, error: message }, { status });
   }
@@ -111,7 +112,7 @@ export async function DELETE(
           "@/features/ads/server/scan-pages"
         );
         const { prisma } = await import("@/server/db/prisma");
-        await removePageTypesFromSlots(prisma as any, [
+        await removePageTypesFromSlots(prisma as unknown as ScanPrisma, [
           `category:${category.slug}`,
         ]);
         logger.info(
@@ -123,9 +124,9 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    const status = error?.statusCode ?? 500;
-    const message = error?.message ?? "Failed to delete category";
+  } catch (error: unknown) {
+    const status = (error as { statusCode?: number })?.statusCode ?? 500;
+    const message = (error as { message?: string })?.message ?? "Failed to delete category";
     logger.error("[api/categories/[id]] DELETE error:", { error });
     return NextResponse.json({ success: false, error: message }, { status });
   }

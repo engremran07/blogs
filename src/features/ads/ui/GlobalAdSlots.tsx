@@ -12,6 +12,21 @@ import type { AdPlacementData } from "./AdRenderer";
 import { AdRenderer } from "./AdRenderer";
 import { GlobalOverlayAds } from "./GlobalOverlayAds";
 
+/** Raw DB placement with endDate not on client-facing AdPlacementData */
+interface RawGlobalPlacement extends AdPlacementData {
+  endDate?: string | Date | null;
+}
+
+/** Typed ad-related Prisma tables not on the default client type */
+interface AdPrismaExt {
+  adSettings: {
+    findFirst(args: Record<string, unknown>): Promise<{ requireConsent?: boolean } | null>;
+  };
+  adPlacement: {
+    findMany(args: Record<string, unknown>): Promise<RawGlobalPlacement[]>;
+  };
+}
+
 interface SectionProps {
   /** Current page type for targeting */
   pageType?: string;
@@ -28,7 +43,7 @@ async function getAdConfig() {
     });
     if (!siteSettings?.adsEnabled) return null;
 
-    const adSettings = await (prisma as any).adSettings.findFirst({
+    const adSettings = await (prisma as unknown as AdPrismaExt).adSettings.findFirst({
       select: { requireConsent: true },
     });
     return { requireConsent: (adSettings?.requireConsent ?? false) as boolean };
@@ -40,10 +55,10 @@ async function getAdConfig() {
 /**
  * Fetch placements for a specific position.
  */
-async function fetchPositionPlacements(position: string, pageType: string): Promise<AdPlacementData[]> {
+async function fetchPositionPlacements(position: string, _pageType: string): Promise<AdPlacementData[]> {
   try {
     const now = new Date();
-    const placements = await (prisma as any).adPlacement.findMany({
+    const placements = await (prisma as unknown as AdPrismaExt).adPlacement.findMany({
       where: {
         isActive: true,
         provider: { isActive: true, killSwitch: false },
@@ -66,7 +81,7 @@ async function fetchPositionPlacements(position: string, pageType: string): Prom
     });
 
     return placements.filter(
-      (p: any) => !p.endDate || new Date(p.endDate) > now,
+      (p) => !p.endDate || new Date(p.endDate as string) > now,
     );
   } catch {
     return [];

@@ -12,14 +12,27 @@
  * to a standalone repository (@yourorg/rich-text-editor) in the future.
  *
  * FILES:
- *   RichTextEditor.tsx           — Main component (contentEditable + toolbar)
- *   editor.css                   — Scoped styles with CSS custom properties
- *   types.ts                     — TypeScript interfaces
- *   constants.ts                 — Editor-specific constants (palette, shortcuts)
- *   schemas.ts                   — Zod validation schemas
- *   admin-settings.service.ts    — DB-backed admin settings service
- *   prisma-schema.reference.prisma — Reference Prisma model
- *   utils/                       — Logger, sanitizer, error boundary
+ *   ui/
+ *     RichTextEditor.tsx           — Slim orchestrator (composes hooks + components)
+ *     editor.css                   — Scoped styles with CSS custom properties
+ *     editor.icons.ts              — Centralised lucide-react icon re-exports
+ *     editor.config.ts             — Admin-settings merger + MergedEditorConfig type
+ *     hooks/
+ *       useEditor.ts               — Composition hook (wires core + input + actions)
+ *       useEditorCore.ts           — Refs, metrics, history, undo/redo, execCommand
+ *       useEditorInput.ts          — Input handling, paste, drag-and-drop
+ *       useEditorActions.ts        — Formatting, insertions, blocks, image toolbar
+ *     components/
+ *       EditorToolbar.tsx           — All toolbar groups
+ *       EditorContent.tsx           — Content area, source view, image context toolbar
+ *       FindReplaceBar.tsx          — Find & replace bar
+ *       EditorDialogs.tsx           — Link, Image, Video, Color, Table dialogs
+ *   types.ts                       — TypeScript interfaces
+ *   server/
+ *     constants.ts                  — Editor-specific constants (palette, shortcuts)
+ *     schemas.ts                    — Zod validation schemas
+ *     admin-settings.service.ts     — DB-backed admin settings service
+ *   utils/                          — Logger, sanitizer, error boundary
  * ============================================================================
  */
 
@@ -64,6 +77,11 @@ export {
   DEFAULT_ALLOWED_HEADING_LEVELS,
   DEFAULT_MAX_TABLE_ROWS,
   DEFAULT_MAX_TABLE_COLS,
+  FONT_SIZE_PRESETS,
+  LINE_HEIGHT_PRESETS,
+  SPECIAL_CHARS,
+  BLOCK_TYPE_OPTIONS,
+  CONTENT_TEMPLATES,
 } from './server/constants';
 
 /* ── Schemas ── */

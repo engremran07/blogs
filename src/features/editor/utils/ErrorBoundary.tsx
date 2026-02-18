@@ -21,6 +21,7 @@ export interface EditorErrorBoundaryProps {
 interface State {
   hasError: boolean;
   errorMessage: string;
+  retryCount: number;
 }
 
 export class EditorErrorBoundary extends Component<EditorErrorBoundaryProps, State> {
@@ -28,10 +29,10 @@ export class EditorErrorBoundary extends Component<EditorErrorBoundaryProps, Sta
 
   constructor(props: EditorErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, errorMessage: '' };
+    this.state = { hasError: false, errorMessage: '', retryCount: 0 };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, errorMessage: error.message };
   }
 
@@ -58,11 +59,30 @@ export class EditorErrorBoundary extends Component<EditorErrorBoundaryProps, Sta
             fontSize: '14px',
           }}
         >
-          <strong>Editor Error:</strong> An unexpected error occurred.
+          <strong>Editor Error:</strong>{' '}
+          {this.state.errorMessage || 'An unexpected error occurred.'}
           <br />
+          {this.state.retryCount >= 3 ? (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              style={{
+                marginTop: '8px',
+                padding: '6px 12px',
+                border: '1px solid #c62828',
+                borderRadius: '4px',
+                background: 'white',
+                color: '#c62828',
+                cursor: 'pointer',
+                fontSize: '13px',
+              }}
+            >
+              Reload page
+            </button>
+          ) : (
           <button
             type="button"
-            onClick={() => this.setState({ hasError: false, errorMessage: '' })}
+            onClick={() => this.setState((prev) => ({ hasError: false, errorMessage: '', retryCount: prev.retryCount + 1 }))}
             style={{
               marginTop: '8px',
               padding: '6px 12px',
@@ -74,8 +94,9 @@ export class EditorErrorBoundary extends Component<EditorErrorBoundaryProps, Sta
               fontSize: '13px',
             }}
           >
-            Try to recover
+            Try to recover ({3 - this.state.retryCount} attempts remaining)
           </button>
+          )}
         </div>
       );
     }

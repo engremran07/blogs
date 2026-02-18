@@ -11,7 +11,7 @@ const logger = createLogger("api/auth/register");
 
 export async function POST(request: Request) {
   try {
-    // Check if registration is enabled (from DB settings or default)
+    // Check if registration is enabled — honour BOTH SiteSettings and UserSettings
     let config = DEFAULT_USER_CONFIG;
     try {
       const settings = await prisma.userSettings.findFirst();
@@ -21,6 +21,14 @@ export async function POST(request: Request) {
     if (!config.registrationEnabled) {
       return NextResponse.json({ error: "Registration is currently disabled" }, { status: 403 });
     }
+
+    // Also check SiteSettings.enableRegistration (admin toggle on settings page)
+    try {
+      const siteSettings = await prisma.siteSettings.findFirst();
+      if (siteSettings && siteSettings.enableRegistration === false) {
+        return NextResponse.json({ error: "Registration is currently disabled" }, { status: 403 });
+      }
+    } catch { /* proceed if SiteSettings unavailable */ }
 
     const body = await request.json();
 
@@ -55,7 +63,7 @@ export async function POST(request: Request) {
     // Validate input with Zod schema
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
-      const messages = parsed.error.issues.map((e: any) => e.message).join(", ");
+      const messages = parsed.error.issues.map((e) => e.message).join(", ");
       return NextResponse.json({ error: messages }, { status: 400 });
     }
 

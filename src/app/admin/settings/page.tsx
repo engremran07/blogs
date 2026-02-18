@@ -5,13 +5,14 @@ import {
   Save, Globe, Palette, MessageSquare, Lock, FileText, Search, Shield, Settings2,
   LayoutGrid, List, Columns, Eye, PanelRight,
   Share2, BookOpen, Navigation, Clock, User, Hash, Image as ImageIcon,
-  Rss, Moon, Type, Upload, AlertCircle, Trash2, BarChart3, CheckCircle,
-  Phone, MapPin, Link2, Megaphone, Mail, Code2, Smartphone, Bell,
-  Database, Server, ExternalLink, Cookie, Scale,
+  Moon, Type, Upload, AlertCircle, Trash2, BarChart3, CheckCircle,
+  Phone, MapPin, Link2, Megaphone, Mail, Code2, Bell,
+  Database, Server, ExternalLink, Cookie, Scale, Edit3, Zap, Power,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/FormFields";
 import { toast } from "@/components/ui/Toast";
+import Image from "next/image";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -153,6 +154,7 @@ const TABS = [
   { key: "email",      label: "Email",      icon: <Mail className="h-4 w-4" /> },
   { key: "security",   label: "Security",   icon: <Shield className="h-4 w-4" /> },
   { key: "privacy",    label: "Privacy",    icon: <Cookie className="h-4 w-4" /> },
+  { key: "editor",     label: "Editor",     icon: <Edit3 className="h-4 w-4" /> },
   { key: "advanced",   label: "Advanced",   icon: <Code2 className="h-4 w-4" /> },
 ] as const;
 
@@ -263,7 +265,7 @@ function FileDropZone({ label, value, accept, purpose, onUploaded, onRemove, pre
         ) : value ? (
           <div className="flex items-center gap-4">
             <div className={`${previewSize} shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-700`}>
-              <img src={value} alt={label} className="h-full w-full object-contain" />
+              <Image src={value} alt={label} className="h-full w-full object-contain" width={200} height={200} unoptimized />
             </div>
             <div className="flex-1 text-left min-w-0">
               <p className="truncate text-sm font-medium text-gray-700 dark:text-gray-300">{value}</p>
@@ -295,6 +297,93 @@ export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
   const [hasChanges, setHasChanges] = useState(false);
   const originalRef = useRef<string>("");
+
+  // ── Editor Settings (separate API) ───────────────────────────────────
+  const [editorSettings, setEditorSettings] = useState<Record<string, unknown> | null>(null);
+  const [editorLoading, setEditorLoading] = useState(false);
+  const [editorSaving, setEditorSaving] = useState(false);
+  const [editorHasChanges, setEditorHasChanges] = useState(false);
+  const editorOrigRef = useRef<string>("");
+  const editorFetched = useRef(false);
+
+  async function fetchEditorSettings() {
+    if (editorFetched.current) return;
+    setEditorLoading(true);
+    try {
+      const res = await fetch("/api/settings/editor");
+      const data = await res.json();
+      if (data.success && data.data?.settings) {
+        setEditorSettings(data.data.settings);
+        editorOrigRef.current = JSON.stringify(data.data.settings);
+        editorFetched.current = true;
+      }
+    } catch {
+      toast("Failed to load editor settings", "error");
+    } finally {
+      setEditorLoading(false);
+    }
+  }
+
+  function updateEditor(key: string, value: unknown) {
+    setEditorSettings((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, [key]: value };
+      setEditorHasChanges(JSON.stringify(next) !== editorOrigRef.current);
+      return next;
+    });
+  }
+
+  async function handleSaveEditor() {
+    if (!editorSettings) return;
+    setEditorSaving(true);
+    try {
+      const res = await fetch("/api/settings/editor", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editorSettings),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast("Editor settings saved!", "success");
+        if (data.data) {
+          setEditorSettings(data.data);
+          editorOrigRef.current = JSON.stringify(data.data);
+        }
+        setEditorHasChanges(false);
+      } else {
+        toast(data.error || "Failed to save editor settings", "error");
+      }
+    } catch {
+      toast("Failed to save editor settings", "error");
+    } finally {
+      setEditorSaving(false);
+    }
+  }
+
+  async function editorAction(action: string, label: string) {
+    try {
+      const res = await fetch("/api/settings/editor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast(`${label} applied!`, "success");
+        editorFetched.current = false;
+        fetchEditorSettings();
+      } else {
+        toast(data.error || `Failed to apply ${label}`, "error");
+      }
+    } catch {
+      toast(`Failed to apply ${label}`, "error");
+    }
+  }
+
+  // Fetch editor settings when tab is first opened
+  useEffect(() => {
+    if (activeTab === "editor") fetchEditorSettings();
+  }, [activeTab]);
 
   useEffect(() => { fetchSettings(); }, []);
 
@@ -372,6 +461,14 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      {/* Registration OFF banner */}
+      {settings && settings.enableRegistration === false && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span><strong>User registration is currently OFF.</strong> New users cannot create accounts. You can re-enable it under <em>General → Localization</em>.</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -936,6 +1033,184 @@ export default function AdminSettingsPage() {
                 </div>
               )}
             </Section>
+          </>
+        )}
+
+        {/* ═══ EDITOR ═══ */}
+        {activeTab === "editor" && (
+          <>
+            {editorLoading ? (
+              <div className="flex h-40 items-center justify-center">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+              </div>
+            ) : !editorSettings ? (
+              <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-800">
+                <p className="text-gray-500">Editor settings not available. Database may need seeding.</p>
+              </div>
+            ) : (
+              <>
+                {/* Quick Actions */}
+                <div className="flex flex-wrap gap-3">
+                  <Button variant="outline" size="sm" onClick={() => editorAction('full-mode', 'Full Mode')} icon={<Zap className="h-4 w-4" />}>
+                    Full Mode
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => editorAction('simple-mode', 'Simple Mode')} icon={<Type className="h-4 w-4" />}>
+                    Simple Mode
+                  </Button>
+                  <Button
+                    variant={editorSettings.editorEnabled ? 'outline' : 'primary'}
+                    size="sm"
+                    onClick={() => editorAction(editorSettings.editorEnabled ? 'disable' : 'enable', editorSettings.editorEnabled ? 'Kill Switch' : 'Re-enable')}
+                    icon={<Power className="h-4 w-4" />}
+                  >
+                    {editorSettings.editorEnabled ? 'Disable Editor' : 'Enable Editor'}
+                  </Button>
+                  {editorHasChanges && (
+                    <Button onClick={handleSaveEditor} loading={editorSaving} icon={<Save className="h-4 w-4" />}>
+                      Save Editor Settings
+                    </Button>
+                  )}
+                </div>
+
+                {/* Global Toggle */}
+                <Section title="Global" icon={<Power className="h-5 w-5 text-red-500" />} description="Master switch for the editor">
+                  <ToggleCard label="Editor Enabled" description="Turn off to disable all editors site-wide (kill switch)" checked={!!editorSettings.editorEnabled} onChange={(v) => updateEditor('editorEnabled', v)} />
+                </Section>
+
+                {/* Text Formatting */}
+                <Section title="Text Formatting" icon={<Type className="h-5 w-5 text-blue-500" />} description="Toggle individual formatting features">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <ToggleCard label="Bold" checked={!!editorSettings.enableBold} onChange={(v) => updateEditor('enableBold', v)} />
+                    <ToggleCard label="Italic" checked={!!editorSettings.enableItalic} onChange={(v) => updateEditor('enableItalic', v)} />
+                    <ToggleCard label="Underline" checked={!!editorSettings.enableUnderline} onChange={(v) => updateEditor('enableUnderline', v)} />
+                    <ToggleCard label="Strikethrough" checked={!!editorSettings.enableStrikethrough} onChange={(v) => updateEditor('enableStrikethrough', v)} />
+                    <ToggleCard label="Inline Code" checked={!!editorSettings.enableInlineCode} onChange={(v) => updateEditor('enableInlineCode', v)} />
+                    <ToggleCard label="Superscript" checked={!!editorSettings.enableSuperscript} onChange={(v) => updateEditor('enableSuperscript', v)} />
+                    <ToggleCard label="Subscript" checked={!!editorSettings.enableSubscript} onChange={(v) => updateEditor('enableSubscript', v)} />
+                  </div>
+                </Section>
+
+                {/* Block Elements */}
+                <Section title="Block Elements" icon={<LayoutGrid className="h-5 w-5 text-green-500" />} description="Headers, lists, quotes, and code blocks">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <ToggleCard label="Headings" checked={!!editorSettings.enableHeadings} onChange={(v) => updateEditor('enableHeadings', v)} />
+                    <ToggleCard label="Lists" checked={!!editorSettings.enableLists} onChange={(v) => updateEditor('enableLists', v)} />
+                    <ToggleCard label="Task Lists" checked={!!editorSettings.enableTaskLists} onChange={(v) => updateEditor('enableTaskLists', v)} />
+                    <ToggleCard label="Blockquotes" checked={!!editorSettings.enableBlockquotes} onChange={(v) => updateEditor('enableBlockquotes', v)} />
+                    <ToggleCard label="Code Blocks" checked={!!editorSettings.enableCodeBlocks} onChange={(v) => updateEditor('enableCodeBlocks', v)} />
+                    <ToggleCard label="Tables" checked={!!editorSettings.enableTables} onChange={(v) => updateEditor('enableTables', v)} />
+                    <ToggleCard label="Horizontal Rule" checked={!!editorSettings.enableHorizontalRule} onChange={(v) => updateEditor('enableHorizontalRule', v)} />
+                    <ToggleCard label="Block Type Dropdown" checked={!!editorSettings.enableBlockTypeDropdown} onChange={(v) => updateEditor('enableBlockTypeDropdown', v)} />
+                  </div>
+                </Section>
+
+                {/* Media & Embeds */}
+                <Section title="Media & Embeds" icon={<ImageIcon className="h-5 w-5 text-purple-500" />} description="Images, video embeds, and upload settings">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <ToggleCard label="Images" checked={!!editorSettings.enableImages} onChange={(v) => updateEditor('enableImages', v)} />
+                    <ToggleCard label="Video Embeds" checked={!!editorSettings.enableVideoEmbeds} onChange={(v) => updateEditor('enableVideoEmbeds', v)} />
+                    <ToggleCard label="Links" checked={!!editorSettings.enableLinks} onChange={(v) => updateEditor('enableLinks', v)} />
+                    <ToggleCard label="Remove Link" checked={!!editorSettings.enableRemoveLink} onChange={(v) => updateEditor('enableRemoveLink', v)} />
+                    <ToggleCard label="Drag & Drop Upload" checked={!!editorSettings.enableDragDropUpload} onChange={(v) => updateEditor('enableDragDropUpload', v)} />
+                  </div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <Input label="Max Image Size (bytes)" type="number" value={String(editorSettings.maxImageSizeBytes ?? 5242880)} onChange={(e) => updateEditor('maxImageSizeBytes', parseInt(e.target.value) || 5242880)} />
+                    <Input label="Default Image Width" type="number" value={String(editorSettings.defaultImageWidth ?? 800)} onChange={(e) => updateEditor('defaultImageWidth', parseInt(e.target.value) || 800)} />
+                  </div>
+                </Section>
+
+                {/* Styling & Appearance */}
+                <Section title="Styling" icon={<Palette className="h-5 w-5 text-pink-500" />} description="Colors, alignment, and visual features">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <ToggleCard label="Text Color" checked={!!editorSettings.enableTextColor} onChange={(v) => updateEditor('enableTextColor', v)} />
+                    <ToggleCard label="Background Color" checked={!!editorSettings.enableBackgroundColor} onChange={(v) => updateEditor('enableBackgroundColor', v)} />
+                    <ToggleCard label="Alignment" checked={!!editorSettings.enableAlignment} onChange={(v) => updateEditor('enableAlignment', v)} />
+                    <ToggleCard label="Indent Buttons" checked={!!editorSettings.enableIndentButtons} onChange={(v) => updateEditor('enableIndentButtons', v)} />
+                    <ToggleCard label="Font Size" checked={!!editorSettings.enableFontSize} onChange={(v) => updateEditor('enableFontSize', v)} />
+                    <ToggleCard label="Line Height" checked={!!editorSettings.enableLineHeight} onChange={(v) => updateEditor('enableLineHeight', v)} />
+                    <ToggleCard label="Clear Formatting" checked={!!editorSettings.enableClearFormatting} onChange={(v) => updateEditor('enableClearFormatting', v)} />
+                  </div>
+                </Section>
+
+                {/* Advanced Features */}
+                <Section title="Advanced Features" icon={<Zap className="h-5 w-5 text-amber-500" />} description="Power-user features and utilities">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <ToggleCard label="Undo / Redo" checked={!!editorSettings.enableUndoRedo} onChange={(v) => updateEditor('enableUndoRedo', v)} />
+                    <ToggleCard label="Fullscreen" checked={!!editorSettings.enableFullscreen} onChange={(v) => updateEditor('enableFullscreen', v)} />
+                    <ToggleCard label="Markdown Shortcuts" checked={!!editorSettings.enableMarkdownShortcuts} onChange={(v) => updateEditor('enableMarkdownShortcuts', v)} />
+                    <ToggleCard label="Find & Replace" checked={!!editorSettings.enableFindReplace} onChange={(v) => updateEditor('enableFindReplace', v)} />
+                    <ToggleCard label="Source View" checked={!!editorSettings.enableSourceView} onChange={(v) => updateEditor('enableSourceView', v)} />
+                    <ToggleCard label="Emoji Picker" checked={!!editorSettings.enableEmoji} onChange={(v) => updateEditor('enableEmoji', v)} />
+                    <ToggleCard label="Special Characters" checked={!!editorSettings.enableSpecialChars} onChange={(v) => updateEditor('enableSpecialChars', v)} />
+                    <ToggleCard label="Table of Contents" checked={!!editorSettings.enableTableOfContents} onChange={(v) => updateEditor('enableTableOfContents', v)} />
+                    <ToggleCard label="Print" checked={!!editorSettings.enablePrint} onChange={(v) => updateEditor('enablePrint', v)} />
+                  </div>
+                </Section>
+
+                {/* Content Limits */}
+                <Section title="Content Limits" icon={<BarChart3 className="h-5 w-5 text-orange-500" />} description="Word count, character count, and table limits">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Input label="Max Word Count" type="number" value={String(editorSettings.maxWordCount ?? 0)} onChange={(e) => updateEditor('maxWordCount', parseInt(e.target.value) || 0)} hint="0 = unlimited" />
+                    <Input label="Max Char Count" type="number" value={String(editorSettings.maxCharCount ?? 0)} onChange={(e) => updateEditor('maxCharCount', parseInt(e.target.value) || 0)} hint="0 = unlimited" />
+                    <Input label="Max Table Rows" type="number" value={String(editorSettings.maxTableRows ?? 20)} onChange={(e) => updateEditor('maxTableRows', parseInt(e.target.value) || 20)} />
+                    <Input label="Max Table Columns" type="number" value={String(editorSettings.maxTableCols ?? 10)} onChange={(e) => updateEditor('maxTableCols', parseInt(e.target.value) || 10)} />
+                    <Input label="Reading WPM" type="number" value={String(editorSettings.readingWpm ?? 200)} onChange={(e) => updateEditor('readingWpm', parseInt(e.target.value) || 200)} hint="Words per minute for reading time estimate" />
+                    <Input label="Auto-save Delay (ms)" type="number" value={String(editorSettings.autoSaveDebounceMs ?? 1000)} onChange={(e) => updateEditor('autoSaveDebounceMs', parseInt(e.target.value) || 1000)} />
+                    <Input label="History Stack Size" type="number" value={String(editorSettings.maxHistorySize ?? 100)} onChange={(e) => updateEditor('maxHistorySize', parseInt(e.target.value) || 100)} />
+                  </div>
+                </Section>
+
+                {/* Editor Defaults */}
+                <Section title="Editor Defaults" icon={<Settings2 className="h-5 w-5 text-gray-500" />} description="Default placeholder text, dimensions, and colors">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Input label="Placeholder Text" value={String(editorSettings.defaultPlaceholder ?? 'Start writing...')} onChange={(e) => updateEditor('defaultPlaceholder', e.target.value)} />
+                    <Input label="Default Text Color" value={String(editorSettings.defaultTextColor ?? '#000000')} onChange={(e) => updateEditor('defaultTextColor', e.target.value)} />
+                    <Input label="Min Height" value={String(editorSettings.defaultMinHeight ?? '200px')} onChange={(e) => updateEditor('defaultMinHeight', e.target.value)} hint="e.g. 200px, 50vh" />
+                    <Input label="Max Height" value={String(editorSettings.defaultMaxHeight ?? '600px')} onChange={(e) => updateEditor('defaultMaxHeight', e.target.value)} hint="e.g. 600px, 80vh" />
+                  </div>
+                </Section>
+
+                {/* Color Palette */}
+                <Section title="Color Palette" icon={<Palette className="h-5 w-5 text-indigo-500" />} description="Available colors in the text/background color pickers">
+                  <div className="flex flex-wrap gap-2">
+                    {(Array.isArray(editorSettings.colorPalette) ? editorSettings.colorPalette as string[] : []).map((color: string, i: number) => (
+                      <div key={i} className="group relative">
+                        <input
+                          type="color"
+                          value={color}
+                          onChange={(e) => {
+                            const palette = [...(editorSettings.colorPalette as string[])];
+                            palette[i] = e.target.value;
+                            updateEditor('colorPalette', palette);
+                          }}
+                          className="h-8 w-8 cursor-pointer rounded border border-gray-300 p-0 dark:border-gray-600"
+                          title={color}
+                        />
+                        <button
+                          onClick={() => {
+                            const palette = (editorSettings.colorPalette as string[]).filter((_: string, j: number) => j !== i);
+                            updateEditor('colorPalette', palette);
+                          }}
+                          className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white group-hover:flex"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => {
+                        const palette = [...(Array.isArray(editorSettings.colorPalette) ? editorSettings.colorPalette as string[] : []), '#000000'];
+                        updateEditor('colorPalette', palette);
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-500 hover:text-blue-500 dark:border-gray-600"
+                      title="Add color"
+                    >
+                      +
+                    </button>
+                  </div>
+                </Section>
+              </>
+            )}
           </>
         )}
 

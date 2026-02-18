@@ -3,15 +3,17 @@
  * Uses credentials provider with bcrypt password validation.
  */
 import NextAuth from "next-auth";
+import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/server/db/prisma";
 import bcrypt from "bcrypt";
 import { CaptchaVerificationService } from "@/features/captcha/server/verification.service";
 import type { UserRole } from "@/features/auth/types";
+import type { CaptchaPrismaClient, CaptchaProviderType } from "@/features/captcha/types";
 
 // Direct captcha verification — no self-fetch HTTP call
-const captchaService = new CaptchaVerificationService(prisma as any);
+const captchaService = new CaptchaVerificationService(prisma as unknown as CaptchaPrismaClient);
 
 declare module "next-auth" {
   interface User {
@@ -39,7 +41,7 @@ declare module "next-auth" {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma) as any,
+  adapter: PrismaAdapter(prisma) as unknown as NextAuthConfig['adapter'],
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
@@ -85,7 +87,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             const captchaResult = await captchaService.verify({
               token: captchaToken || "",
               clientIp: "127.0.0.1", // IP not available in authorize(); middleware handles rate-limiting
-              captchaType: captchaType as any,
+              captchaType: captchaType as CaptchaProviderType | undefined,
               captchaId,
             });
             if (!captchaResult.success) return null;
@@ -122,8 +124,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id as string;
-        token.role = (user as any).role;
-        token.username = (user as any).username;
+        token.role = (user as { role: UserRole }).role;
+        token.username = (user as { username: string }).username;
       }
       return token;
     },
@@ -139,7 +141,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const isAdmin = request.nextUrl.pathname.startsWith("/admin");
       if (isAdmin) {
         if (!auth?.user) return false;
-        const role = (auth.user as any).role;
+        const role = (auth.user as { role?: string }).role;
         return role === "ADMINISTRATOR" || role === "SUPER_ADMIN";
       }
       return true;

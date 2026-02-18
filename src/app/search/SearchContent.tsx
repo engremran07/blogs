@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search as SearchIcon, Calendar, Eye, Clock, Loader2, X } from "lucide-react";
 
@@ -114,10 +115,13 @@ export default function SearchContent() {
             >
               {post.featuredImage && (
                 <div className="hidden h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:block dark:bg-gray-700">
-                  <img
+                  <Image
                     src={post.featuredImage}
                     alt={post.title}
                     className="h-full w-full object-cover"
+                    width={144}
+                    height={96}
+                    unoptimized
                   />
                 </div>
               )}

@@ -18,7 +18,7 @@ async function requireAdmin() {
       { status: 401 },
     );
   }
-  const role = (session.user as any).role;
+  const role = session.user.role;
   if (!["ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
     return NextResponse.json(
       { success: false, error: "Forbidden — admin role required" },
@@ -65,7 +65,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const updatedBy = (guard.user as any)?.id ?? (guard.user as any)?.email ?? undefined;
+    const updatedBy = guard.user.id ?? guard.user.email ?? undefined;
     const result = await siteSettingsService.updateSettings(
       parsed.data as Record<string, unknown>,
       updatedBy,

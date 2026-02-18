@@ -7,7 +7,7 @@
 import type {
   PagesPrismaClient, PagesCacheProvider, PagesLogger,
   PagesRevalidationCallback, PagesConfig, PagesConfigConsumer,
-  Page, PageWithRelations, PageWithChildren, PageTreeNode,
+  Page, PageWithRelations, PageTreeNode,
   PageRevision, PageListOptions, PaginatedResult,
   CreatePageInput, UpdatePageInput,
   PageLockInfo, ScheduledPage, ScheduleProcessResult,

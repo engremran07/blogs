@@ -1,0 +1,20 @@
+-- AlterTable: Add enhanced editor toolbar fields
+ALTER TABLE "editor_settings"
+  ADD COLUMN "enableInlineCodeButton" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableRemoveLink" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableClearFormatting" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableSuperscript" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableSubscript" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableIndentButtons" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableFontSize" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableLineHeight" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableBlockTypeDropdown" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableFindReplace" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableSourceView" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableEmoji" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableSpecialChars" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enablePrint" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "enableTableOfContents" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN "fontSizePresets" INTEGER[] DEFAULT ARRAY[12, 14, 16, 18, 20, 24, 28, 32, 36, 48],
+  ADD COLUMN "lineHeightPresets" DOUBLE PRECISION[] DEFAULT ARRAY[1.0, 1.25, 1.5, 1.75, 2.0],
+  ADD COLUMN "sanitizeOnSave" BOOLEAN NOT NULL DEFAULT true;

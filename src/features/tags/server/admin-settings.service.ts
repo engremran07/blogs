@@ -194,7 +194,7 @@ export class AdminSettingsService {
       if (found) {
         existing++;
         // Ensure protected status
-        if (settings.protectInitial && !(found as any).protected) {
+        if (settings.protectInitial && !found.protected) {
           await this.prisma.tag.update({
             where: { id: found.id },
             data: { protected: true },
@@ -275,10 +275,10 @@ export class AdminSettingsService {
     ]);
 
     const avgUsage = allTags.length > 0
-      ? allTags.reduce((s: number, t: any) => s + t.usageCount, 0) / allTags.length
+      ? allTags.reduce((s: number, t) => s + t.usageCount, 0) / allTags.length
       : 0;
     const treeDepthMax = allTags.length > 0
-      ? Math.max(...allTags.map((t: any) => t.level ?? 1))
+      ? Math.max(...allTags.map((t) => t.level ?? 1))
       : 0;
 
     return {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/server/db/prisma";
 import { Search, Clock, Tag, Archive, FolderOpen } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
@@ -90,7 +91,7 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
               >
                 {post.featuredImage && (
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700">
-                    <img src={post.featuredImage} alt="" className="h-full w-full object-cover" />
+                    <Image src={post.featuredImage} alt="" className="h-full w-full object-cover" width={48} height={48} unoptimized />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
@@ -140,7 +141,7 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
             <FolderOpen className="h-4 w-4" /> Categories
           </h3>
           <ul className="space-y-1.5">
-            {categories.map((cat: any) => (
+            {categories.map((cat) => (
               <li key={cat.id}>
                 <Link
                   href={`/blog?category=${cat.slug}`}

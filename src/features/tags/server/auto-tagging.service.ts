@@ -81,7 +81,7 @@ export class AutoTaggingService {
           where: { id: tag.id },
           data: {
             usageCount: { increment: 1 },
-            synonymHits: (tag as any).synonyms?.includes(keyword.toLowerCase())
+            synonymHits: tag.synonyms?.includes(keyword.toLowerCase())
               ? { increment: 1 }
               : undefined,
           },
@@ -126,8 +126,8 @@ export class AutoTaggingService {
     const useLlm = opts.useLlm !== false;
     const syncRelation = opts.syncRelation !== false;
 
-    const plain = ((post as any).content || '').replace(/<[^>]*>/g, ' ').substring(0, 3000);
-    const context = `Title: ${(post as any).title}\n\n${(post as any).excerpt || ''}\n\n${plain}`;
+    const plain = (post.content || '').replace(/<[^>]*>/g, ' ').substring(0, 3000);
+    const context = `Title: ${post.title}\n\n${post.excerpt || ''}\n\n${plain}`;
 
     // Try LLM first
     if (useLlm && this.llm) {
@@ -145,8 +145,8 @@ export class AutoTaggingService {
 
     // Keyword fallback
     const keywordTags = await this.extractKeywordTags(
-      (post as any).content || '',
-      (post as any).title,
+      post.content || '',
+      post.title,
     );
     if (syncRelation) await this.syncTagRelation(postId, keywordTags);
     return { tags: keywordTags, source: 'keyword', confidence: keywordTags.map(() => 0.5) };
@@ -237,7 +237,7 @@ export class AutoTaggingService {
     });
 
     const underTagged = posts
-      .filter((p: any) => p._count.tags < minTagsRequired)
+      .filter((p) => p._count.tags < minTagsRequired)
       .slice(0, maxPosts);
 
     const result: BatchAutoTagResult = { processed: 0, tagged: 0, errors: 0, details: [] };
@@ -252,7 +252,7 @@ export class AutoTaggingService {
         result.tagged++;
         result.details.push({
           postId: post.id,
-          title: (post as any).title,
+          title: post.title,
           tagsAdded: tagResult.tags.length,
           source: tagResult.source,
         });
@@ -337,7 +337,7 @@ Respond in JSON: {"synonyms": ["synonym1", "synonym2", ...]}`;
       take: 200,
       orderBy: { usageCount: 'desc' },
     });
-    const tagNames = existingTags.map((t: any) => t.name);
+    const tagNames = existingTags.map((t) => t.name);
 
     const prompt = `You are a content tagging AI. Analyze the following blog post and extract the most relevant tags.
 
@@ -408,7 +408,7 @@ Respond in STRICT JSON format only:
           where: { id: tag.id },
           data: {
             usageCount: { increment: 1 },
-            synonymHits: (tag as any).synonyms?.includes(name.toLowerCase())
+            synonymHits: tag.synonyms?.includes(name.toLowerCase())
               ? { increment: 1 }
               : undefined,
           },
@@ -438,7 +438,7 @@ Respond in STRICT JSON format only:
     });
     if (!post) return;
 
-    const existingIds = new Set((post as any).tags.map((t: { id: string }) => t.id));
+    const existingIds = new Set(post.tags.map((t: { id: string }) => t.id));
     const merged = new Set([...existingIds, ...newTagIds]);
 
     await this.prisma.post.update({

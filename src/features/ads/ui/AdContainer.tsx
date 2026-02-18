@@ -22,6 +22,25 @@ import { prisma } from "@/server/db/prisma";
 import { AdRenderer, type AdPlacementData } from "./AdRenderer";
 import { ReservedAdSlot } from "./ReservedAdSlot";
 
+/** Raw DB placement with fields not on the client-facing AdPlacementData */
+interface RawAdPlacement extends AdPlacementData {
+  endDate?: string | Date | null;
+  slot: AdPlacementData['slot'] & { pageTypes?: string[] };
+}
+
+/** Typed ad-related Prisma tables not on the default client type */
+interface AdPrismaExt {
+  adSettings: {
+    findFirst(args: Record<string, unknown>): Promise<{ positionKillSwitches?: unknown; requireConsent?: boolean } | null>;
+  };
+  adPlacement: {
+    findMany(args: Record<string, unknown>): Promise<RawAdPlacement[]>;
+  };
+  adSlot: {
+    findMany(args: Record<string, unknown>): Promise<Array<{ name: string; position: string; pageTypes: string[] }>>;
+  };
+}
+
 interface AdContainerProps {
   /** Ad position — e.g. SIDEBAR, IN_CONTENT, HEADER, FOOTER */
   position: string;
@@ -66,8 +85,13 @@ export async function AdContainer({
     });
     const adsEnabled = siteSettings?.adsEnabled ?? false;
 
+    // Global kill switch — hide EVERYTHING: no ads, no stubs, no placeholders
+    if (!adsEnabled) {
+      return null;
+    }
+
     // Check per-position kill switch from AdSettings
-    const adSettings = await (prisma as any).adSettings.findFirst({
+    const adSettings = await (prisma as unknown as AdPrismaExt).adSettings.findFirst({
       select: { positionKillSwitches: true, requireConsent: true },
     });
     const posKillSwitches = (adSettings?.positionKillSwitches as Record<string, boolean>) ?? {};
@@ -77,15 +101,11 @@ export async function AdContainer({
       return <ReservedAdSlot position={position} label="Position disabled" className={className} />;
     }
 
-    if (!adsEnabled) {
-      return null;
-    }
-
     const now = new Date();
 
     // Fetch ALL active placements for this position, then filter by pageType
     // in JS to support prefix-wildcard patterns like "tag:*", "category:*"
-    const placements = await (prisma as any).adPlacement.findMany({
+    const placements = await (prisma as unknown as AdPrismaExt).adPlacement.findMany({
       where: {
         isActive: true,
         provider: { isActive: true, killSwitch: false },
@@ -115,9 +135,9 @@ export async function AdContainer({
 
     // Post-filter: pageType matching (exact, "*", empty, prefix-wildcard) + endDate
     let activePlacements: AdPlacementData[] = placements.filter(
-      (p: any) =>
+      (p) =>
         slotMatchesPage(p.slot?.pageTypes ?? [], pageType) &&
-        (!p.endDate || new Date(p.endDate) > now),
+        (!p.endDate || new Date(p.endDate as string) > now),
     );
 
     // Ad rotation: shuffle eligible placements so different ads show on each load
@@ -128,9 +148,20 @@ export async function AdContainer({
     activePlacements = activePlacements.slice(0, 3); // limit ads per position
 
     if (activePlacements.length === 0) {
-      // No active placements — show stub placeholder so admin sees where ads go
+      // Only show reserved placeholder when:
+      //  1. showPlaceholder is enabled
+      //  2. No real ad providers exist (Google Ads, Ezoic, MediaVine, etc.)
+      // If real providers ARE configured, the slot is simply empty (no visual noise).
       if (showPlaceholder) {
-        const allSlots = await (prisma as any).adSlot.findMany({
+        const realProviderCount = await (prisma as unknown as { adProvider: { count(args: Record<string, unknown>): Promise<number> } }).adProvider.count({
+          where: { isActive: true, killSwitch: false },
+        });
+
+        // Real providers exist — just render nothing (no placeholder noise)
+        if (realProviderCount > 0) return null;
+
+        // No providers at all — show placeholder so admin knows where to set up ads
+        const allSlots = await (prisma as unknown as AdPrismaExt).adSlot.findMany({
           where: {
             isActive: true,
             position,
@@ -138,14 +169,13 @@ export async function AdContainer({
           select: { name: true, position: true, pageTypes: true },
         });
 
-        const reservedSlot = allSlots.find((s: any) =>
+        const reservedSlot = allSlots.find((s) =>
           slotMatchesPage(s.pageTypes ?? [], pageType),
         );
 
         if (reservedSlot) {
           return <ReservedAdSlot position={position} label={reservedSlot.name} className={className} />;
         }
-        // Even without a slot record, show a generic stub for the position
         return <ReservedAdSlot position={position} label="Ads will display here" className={className} />;
       }
       return null;

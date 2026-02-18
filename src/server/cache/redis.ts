@@ -17,10 +17,13 @@ function createRedisClient(): Redis {
     return new Redis({ url, token });
   }
 
-  // No-op fallback for local development without Upstash
-  logger.warn(
-    "UPSTASH_REDIS_REST_URL not configured — using in-memory no-op fallback"
-  );
+  // No-op fallback for local development without Upstash.
+  // Only warn in production — in dev this is expected.
+  if (process.env.NODE_ENV === "production") {
+    logger.warn(
+      "UPSTASH_REDIS_REST_URL not configured — using in-memory no-op fallback"
+    );
+  }
 
   const noopHandler: ProxyHandler<Redis> = {
     get(_target, prop) {

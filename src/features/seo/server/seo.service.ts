@@ -26,7 +26,6 @@ import type {
   BatchOperation,
   BatchResult,
   BulkEnhancementStats,
-  BulkEnhancementResult,
   SitemapConfig,
   SitemapEntry,
   SitemapStats,
@@ -44,7 +43,6 @@ import {
 import { auditContent, aggregateSiteAudit } from './seo-audit.util';
 import {
   extractKeywords,
-  extractKeywordsFromTerms,
   inferKeywordIntent,
   generateSeoTitle,
   generateSeoDescription,
@@ -62,20 +60,15 @@ import {
   buildPageEntries,
   buildStaticEntries,
   normalizeSitemapConfig,
-  splitEntries,
-  computeSitemapStats,
 } from './sitemap.util';
 import { generateRobotsTxt, buildDefaultRobotsConfig } from './robots.util';
 import {
-  detectCycles,
   validateEdgeCreation,
   findShortestPath,
-  getReachableNodes,
-  findStronglyConnectedComponents,
   analyzeGraph,
-  findHubsAndAuthorities,
 } from './entity-graph.util';
 import { assembleSeoMeta } from './meta.util';
+import type { InterlinkPrisma } from './interlink.service';
 
 /* ========================================================================== */
 /*  SECTION 1 — Helper: Response Envelope                                     */
@@ -403,7 +396,7 @@ export class SeoService {
 
   /** Refresh the keyword index from all published posts and pages. */
   async refreshKeywords(
-    source: string = 'system',
+    _source: string = 'system',
   ): Promise<ApiResponse<{ total: number }>> {
     try {
       const posts = await this.deps.post.findMany({
@@ -1133,11 +1126,12 @@ export class SeoService {
 
       // ── Build content index for auto-interlinking ──
       const { InterlinkService } = await import('./interlink.service');
+      const depsExt = this.deps as unknown as Record<string, unknown>;
       const interlinkSvc = new InterlinkService({
-        post: this.deps.post as any,
-        page: this.deps.page as any,
-        internalLink: (this.deps as any).internalLink ?? { findMany: async () => [], count: async () => 0, create: async () => ({}), upsert: async () => ({}), update: async () => ({}), updateMany: async () => ({}), deleteMany: async () => ({}) },
-        interlinkExclusion: (this.deps as any).interlinkExclusion ?? { findMany: async () => [], count: async () => 0, create: async () => ({}), delete: async () => ({}) },
+        post: this.deps.post as unknown as InterlinkPrisma['post'],
+        page: this.deps.page as unknown as InterlinkPrisma['page'],
+        internalLink: (depsExt.internalLink ?? { findMany: async () => [], count: async () => 0, create: async () => ({}), upsert: async () => ({}), update: async () => ({}), updateMany: async () => ({}), deleteMany: async () => ({}) }) as InterlinkPrisma['internalLink'],
+        interlinkExclusion: (depsExt.interlinkExclusion ?? { findMany: async () => [], count: async () => 0, create: async () => ({}), delete: async () => ({}) }) as InterlinkPrisma['interlinkExclusion'],
       });
       const contentIndex = await interlinkSvc.buildIndex();
 
@@ -1269,8 +1263,8 @@ export class SeoService {
                   type: item._type,
                   content: item.content,
                   seoKeywords: item.seoKeywords || [],
-                  tags: (item as any).tags || [],
-                  categories: (item as any).categories || [],
+                  tags: item.tags || [],
+                  categories: item.categories || [],
                 },
                 contentIndex,
               );
@@ -1459,9 +1453,6 @@ export class SeoService {
         return fail('STATS_FAILED', 'Could not generate sitemap for stats.');
       }
       // Re-parse to count entries (simpler to just count from generation)
-      const normalizedConfig = normalizeSitemapConfig(config);
-      const entries: SitemapEntry[] = [];
-
       // We already have the XML, parse entry count from it
       const urlMatches = sitemapResult.data!.match(/<url>/g);
       const totalUrls = urlMatches ? urlMatches.length : 0;

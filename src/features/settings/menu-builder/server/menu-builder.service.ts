@@ -38,8 +38,6 @@ import {
   validateMenuTree,
   duplicateMenu,
   removeMenuItemCascade,
-  reorderMenuItems,
-  moveMenuItem,
 } from './menu-structure';
 import { clonePresetMenus, getPresetById } from './menu-presets';
 

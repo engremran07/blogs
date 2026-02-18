@@ -74,6 +74,46 @@ export interface EditorAdminProps {
   enableMarkdownShortcuts?: boolean;
   enableDragDropUpload?: boolean;
 
+  // ── Enhanced toolbar features ────────────────────────────────────────────
+  enableInlineCodeButton?: boolean;
+  enableRemoveLink?: boolean;
+  enableClearFormatting?: boolean;
+  enableSuperscript?: boolean;
+  enableSubscript?: boolean;
+  enableIndentButtons?: boolean;
+  enableFontSize?: boolean;
+  enableLineHeight?: boolean;
+  enableBlockTypeDropdown?: boolean;
+  enableFindReplace?: boolean;
+  enableSourceView?: boolean;
+  enableEmoji?: boolean;
+  enableSpecialChars?: boolean;
+  enablePrint?: boolean;
+  enableTableOfContents?: boolean;
+
+  // ── Phase 3: Competitive / Advanced features ────────────────────────────
+  enableSlashCommands?: boolean;
+  enableCaseChange?: boolean;
+  enableFormatPainter?: boolean;
+  enableFocusMode?: boolean;
+  enableContentTemplates?: boolean;
+  enableAutosaveIndicator?: boolean;
+  enableButtonBlock?: boolean;
+  enableSpacerBlock?: boolean;
+  enableGallery?: boolean;
+  enableBookmarkCard?: boolean;
+  enableAudioEmbed?: boolean;
+  enableFileAttach?: boolean;
+  enableDropCap?: boolean;
+  enableFootnotes?: boolean;
+  enableMathBlocks?: boolean;
+  enableAnchorLinks?: boolean;
+  enableKeyboardShortcutsHelp?: boolean;
+  /** Disabled by default — duplicates site ad management feature */
+  enableAdBlock?: boolean;
+  /** Disabled by default — duplicates site SEO feature */
+  enableSeoScore?: boolean;
+
   // ── Content limits ──────────────────────────────────────────────────────
   maxWordCount?: number;
   maxCharCount?: number;
@@ -98,10 +138,21 @@ export interface EditorAdminProps {
   colorPalette?: string[];
   defaultTextColor?: string;
 
+  // ── Font & spacing presets ──────────────────────────────────────────────
+  fontSizePresets?: number[];
+  lineHeightPresets?: number[];
+
   // ── Editor behaviour ────────────────────────────────────────────────────
   maxHistorySize?: number;
   autoSaveDebounceMs?: number;
   readingWpm?: number;
+  sanitizeOnSave?: boolean;
+  /** Default placeholder text (default: 'Start writing your content here...') */
+  defaultPlaceholder?: string;
+  /** Default min height CSS value (default: '300px') */
+  defaultMinHeight?: string;
+  /** Default max height CSS value (default: '600px') */
+  defaultMaxHeight?: string;
 }
 
 // ─── Data Types ─────────────────────────────────────────────────────────────
@@ -221,6 +272,80 @@ export interface EditorConfig {
   /** Enable drag-and-drop image upload (default: true) */
   enableDragDropUpload?: boolean;
 
+  // ── Enhanced toolbar features ────────────────────────────────────────────
+
+  /** Enable inline code toolbar button (default: true) */
+  enableInlineCodeButton?: boolean;
+  /** Enable remove link button (default: true) */
+  enableRemoveLink?: boolean;
+  /** Enable clear formatting button (default: true) */
+  enableClearFormatting?: boolean;
+  /** Enable superscript button (default: true) */
+  enableSuperscript?: boolean;
+  /** Enable subscript button (default: true) */
+  enableSubscript?: boolean;
+  /** Enable indent/outdent buttons (default: true) */
+  enableIndentButtons?: boolean;
+  /** Enable font size dropdown (default: true) */
+  enableFontSize?: boolean;
+  /** Enable line height dropdown (default: true) */
+  enableLineHeight?: boolean;
+  /** Enable block type dropdown (default: true) */
+  enableBlockTypeDropdown?: boolean;
+  /** Enable find & replace dialog (default: true) */
+  enableFindReplace?: boolean;
+  /** Enable source HTML view toggle (default: true) */
+  enableSourceView?: boolean;
+  /** Enable emoji picker (default: true) */
+  enableEmoji?: boolean;
+  /** Enable special characters insertion (default: true) */
+  enableSpecialChars?: boolean;
+  /** Enable print button (default: true) */
+  enablePrint?: boolean;
+  /** Enable table of contents generator (default: true) */
+  enableTableOfContents?: boolean;
+
+  // ── Phase 3: Competitive / Advanced features ────────────────────────────
+
+  /** Enable slash commands menu (default: true) */
+  enableSlashCommands?: boolean;
+  /** Enable case change dropdown (default: true) */
+  enableCaseChange?: boolean;
+  /** Enable format painter tool (default: true) */
+  enableFormatPainter?: boolean;
+  /** Enable focus / zen mode (default: true) */
+  enableFocusMode?: boolean;
+  /** Enable content templates picker (default: true) */
+  enableContentTemplates?: boolean;
+  /** Enable autosave status indicator (default: true) */
+  enableAutosaveIndicator?: boolean;
+  /** Enable button / CTA block insertion (default: true) */
+  enableButtonBlock?: boolean;
+  /** Enable spacer block insertion (default: true) */
+  enableSpacerBlock?: boolean;
+  /** Enable gallery block (default: true) */
+  enableGallery?: boolean;
+  /** Enable bookmark / link preview card (default: true) */
+  enableBookmarkCard?: boolean;
+  /** Enable audio embed (default: true) */
+  enableAudioEmbed?: boolean;
+  /** Enable file attachment block (default: true) */
+  enableFileAttach?: boolean;
+  /** Enable drop cap on first paragraph (default: true) */
+  enableDropCap?: boolean;
+  /** Enable footnotes with auto-numbering (default: true) */
+  enableFootnotes?: boolean;
+  /** Enable math / KaTeX blocks (default: true) */
+  enableMathBlocks?: boolean;
+  /** Enable anchor / bookmark insertion (default: true) */
+  enableAnchorLinks?: boolean;
+  /** Enable keyboard shortcuts help dialog (default: true) */
+  enableKeyboardShortcutsHelp?: boolean;
+  /** Enable ad placement block — disabled by default, duplicates site ads (default: false) */
+  enableAdBlock?: boolean;
+  /** Enable SEO readability score — disabled by default, duplicates site SEO (default: false) */
+  enableSeoScore?: boolean;
+
   // ── Content limits ──────────────────────────────────────────────────────
 
   /** Max word count, 0 = unlimited (default: 0) */
@@ -258,6 +383,13 @@ export interface EditorConfig {
   /** Default text color (default: '#000000') */
   defaultTextColor?: string;
 
+  // ── Font & spacing presets ──────────────────────────────────────────────
+
+  /** Preset font sizes in px (default: [12,14,16,18,20,24,28,32,36,48]) */
+  fontSizePresets?: number[];
+  /** Preset line height values (default: [1,1.25,1.5,1.75,2]) */
+  lineHeightPresets?: number[];
+
   // ── Editor behaviour ────────────────────────────────────────────────────
 
   /** Max undo/redo history states (default: 50) */
@@ -266,6 +398,8 @@ export interface EditorConfig {
   autoSaveDebounceMs?: number;
   /** Words per minute for reading time calculation (default: 200) */
   readingWpm?: number;
+  /** Sanitize HTML output on every save (default: false) */
+  sanitizeOnSave?: boolean;
   /** Default placeholder text (default: 'Start writing your content here...') */
   defaultPlaceholder?: string;
   /** Default min height CSS value (default: '300px') */
@@ -311,6 +445,44 @@ export interface EditorSystemSettings {
   enableMarkdownShortcuts: boolean;
   enableDragDropUpload: boolean;
 
+  // Enhanced toolbar features
+  enableInlineCodeButton: boolean;
+  enableRemoveLink: boolean;
+  enableClearFormatting: boolean;
+  enableSuperscript: boolean;
+  enableSubscript: boolean;
+  enableIndentButtons: boolean;
+  enableFontSize: boolean;
+  enableLineHeight: boolean;
+  enableBlockTypeDropdown: boolean;
+  enableFindReplace: boolean;
+  enableSourceView: boolean;
+  enableEmoji: boolean;
+  enableSpecialChars: boolean;
+  enablePrint: boolean;
+  enableTableOfContents: boolean;
+
+  // Phase 3: Competitive / Advanced features
+  enableSlashCommands: boolean;
+  enableCaseChange: boolean;
+  enableFormatPainter: boolean;
+  enableFocusMode: boolean;
+  enableContentTemplates: boolean;
+  enableAutosaveIndicator: boolean;
+  enableButtonBlock: boolean;
+  enableSpacerBlock: boolean;
+  enableGallery: boolean;
+  enableBookmarkCard: boolean;
+  enableAudioEmbed: boolean;
+  enableFileAttach: boolean;
+  enableDropCap: boolean;
+  enableFootnotes: boolean;
+  enableMathBlocks: boolean;
+  enableAnchorLinks: boolean;
+  enableKeyboardShortcutsHelp: boolean;
+  enableAdBlock: boolean;
+  enableSeoScore: boolean;
+
   // Content limits
   maxWordCount: number;
   maxCharCount: number;
@@ -332,10 +504,15 @@ export interface EditorSystemSettings {
   colorPalette: string[];
   defaultTextColor: string;
 
+  // Font & spacing presets
+  fontSizePresets: number[];
+  lineHeightPresets: number[];
+
   // Editor behaviour
   maxHistorySize: number;
   autoSaveDebounceMs: number;
   readingWpm: number;
+  sanitizeOnSave: boolean;
   defaultPlaceholder: string;
   defaultMinHeight: string;
   defaultMaxHeight: string;

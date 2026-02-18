@@ -11,16 +11,11 @@ import {
   BarChart3,
   Layers,
   MonitorSmartphone,
-  RefreshCw,
   Eye,
-  MousePointer,
   MousePointerClick,
   DollarSign,
   AlertTriangle,
   CheckCircle,
-  XCircle,
-  ChevronDown,
-  ChevronRight,
   Shield,
   ScanSearch,
   Settings,
@@ -202,7 +197,21 @@ export default function AdsAdminPage() {
   }
 
   // Scan results state
-  const [scanResults, setScanResults] = useState<any>(null);
+  const [scanResults, setScanResults] = useState<{
+    count?: number;
+    health?: {
+      totalPageTypes: number;
+      coveredPageTypes: number;
+      uncoveredPageTypes: number;
+      overServedPageTypes: number;
+      recommendations?: string[];
+    };
+    pageTypes?: Array<{ key: string; label: string; kind: string; trafficScore: number; slotCoverage: number }>;
+    message?: string;
+    discovered?: number;
+    added?: number;
+    pruned?: number;
+  } | null>(null);
   const [scanResultsOpen, setScanResultsOpen] = useState(false);
 
   /* ─── Scan Pages ─── */
@@ -1020,10 +1029,10 @@ export default function AdsAdminPage() {
                 </div>
 
                 {/* Recommendations */}
-                {scanResults.health.recommendations?.length > 0 && (
+                {(scanResults.health.recommendations?.length ?? 0) > 0 && (
                   <div className="space-y-1.5">
                     <h5 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Recommendations</h5>
-                    {scanResults.health.recommendations.map((rec: string, i: number) => (
+                    {scanResults.health.recommendations?.map((rec: string, i: number) => (
                       <div key={i} className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
                         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         <span>{rec}</span>
@@ -1035,7 +1044,7 @@ export default function AdsAdminPage() {
             )}
 
             {/* Discovered Page Types */}
-            {scanResults.pageTypes?.length > 0 && (
+            {(scanResults.pageTypes?.length ?? 0) > 0 && (
               <div>
                 <h4 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white">
                   Discovered Page Types ({scanResults.count})
@@ -1051,7 +1060,7 @@ export default function AdsAdminPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                      {(scanResults.pageTypes as any[]).map((pt: any) => (
+                      {scanResults.pageTypes!.map((pt) => (
                         <tr key={pt.key} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                           <td className="px-3 py-2">
                             <div>
@@ -1109,7 +1118,7 @@ export default function AdsAdminPage() {
 /* ─── Ads Settings Panel ─── */
 
 function AdsSettingsPanel() {
-  const [config, setConfig] = useState<Record<string, any> | null>(null);
+  const [config, setConfig] = useState<Record<string, string | number | boolean | string[] | Record<string, unknown> | undefined> | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -1168,7 +1177,7 @@ function AdsSettingsPanel() {
       <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
       <input
         type="number"
-        value={config[field] ?? 0}
+        value={config[field] as string | number | readonly string[] | undefined ?? 0}
         onChange={(e) => setConfig({ ...config, [field]: parseInt(e.target.value) || 0 })}
         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
       />
@@ -1249,7 +1258,11 @@ function AdsSettingsPanel() {
 /* ─── Compliance Panel ─── */
 
 function CompliancePanel() {
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{
+    scannedCount?: number;
+    passedCount?: number;
+    issues?: Array<{ placementId: string; severity: string; message: string; rule: string }>;
+  } | null>(null);
   const [scanning, setScanning] = useState(false);
 
   async function runScan() {
@@ -1288,12 +1301,12 @@ function CompliancePanel() {
               {result.issues?.length === 0 ? `All ${result.scannedCount ?? 0} checks passed` : `${result.issues?.length ?? 0} issue(s) found in ${result.scannedCount ?? 0} placements`}
             </span>
           </div>
-          {result.issues?.length > 0 && (
+          {(result.issues?.length ?? 0) > 0 && (
             <ul className="space-y-2">
-              {result.issues.map((issue: any, i: number) => (
+              {result.issues!.map((issue, i: number) => (
                 <li key={i} className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{issue.message || issue}</span>
+                  <span>{issue.message}</span>
                 </li>
               ))}
             </ul>

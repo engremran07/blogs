@@ -69,6 +69,44 @@ export const updateEditorSettingsSchema = z.object({
   enableMarkdownShortcuts: z.boolean().optional(),
   enableDragDropUpload: z.boolean().optional(),
 
+  // Enhanced toolbar features
+  enableInlineCodeButton: z.boolean().optional(),
+  enableRemoveLink: z.boolean().optional(),
+  enableClearFormatting: z.boolean().optional(),
+  enableSuperscript: z.boolean().optional(),
+  enableSubscript: z.boolean().optional(),
+  enableIndentButtons: z.boolean().optional(),
+  enableFontSize: z.boolean().optional(),
+  enableLineHeight: z.boolean().optional(),
+  enableBlockTypeDropdown: z.boolean().optional(),
+  enableFindReplace: z.boolean().optional(),
+  enableSourceView: z.boolean().optional(),
+  enableEmoji: z.boolean().optional(),
+  enableSpecialChars: z.boolean().optional(),
+  enablePrint: z.boolean().optional(),
+  enableTableOfContents: z.boolean().optional(),
+
+  // Phase 3: Competitive / Advanced features
+  enableSlashCommands: z.boolean().optional(),
+  enableCaseChange: z.boolean().optional(),
+  enableFormatPainter: z.boolean().optional(),
+  enableFocusMode: z.boolean().optional(),
+  enableContentTemplates: z.boolean().optional(),
+  enableAutosaveIndicator: z.boolean().optional(),
+  enableButtonBlock: z.boolean().optional(),
+  enableSpacerBlock: z.boolean().optional(),
+  enableGallery: z.boolean().optional(),
+  enableBookmarkCard: z.boolean().optional(),
+  enableAudioEmbed: z.boolean().optional(),
+  enableFileAttach: z.boolean().optional(),
+  enableDropCap: z.boolean().optional(),
+  enableFootnotes: z.boolean().optional(),
+  enableMathBlocks: z.boolean().optional(),
+  enableAnchorLinks: z.boolean().optional(),
+  enableKeyboardShortcutsHelp: z.boolean().optional(),
+  enableAdBlock: z.boolean().optional(),
+  enableSeoScore: z.boolean().optional(),
+
   // Content limits
   maxWordCount: positiveIntOrZero
     .max(1_000_000, 'Max word count cannot exceed 1,000,000')
@@ -108,6 +146,18 @@ export const updateEditorSettingsSchema = z.object({
     .optional(),
   defaultTextColor: hexColor.optional(),
 
+  // Font & spacing presets
+  fontSizePresets: z
+    .array(positiveInt.max(200, 'Font size cannot exceed 200'))
+    .min(1, 'At least one font size required')
+    .max(20)
+    .optional(),
+  lineHeightPresets: z
+    .array(z.number().min(0.5).max(5))
+    .min(1, 'At least one line height required')
+    .max(10)
+    .optional(),
+
   // Editor behaviour
   maxHistorySize: positiveInt
     .max(500, 'Max history size cannot exceed 500')
@@ -124,6 +174,9 @@ export const updateEditorSettingsSchema = z.object({
     .optional(),
   defaultMinHeight: cssLength.optional(),
   defaultMaxHeight: cssLength.optional(),
+
+  // Content sanitization
+  sanitizeOnSave: z.boolean().optional(),
 }).strict();
 
 export type UpdateEditorSettingsInput = z.infer<typeof updateEditorSettingsSchema>;
@@ -162,6 +215,44 @@ export const editorFrontendSettingsSchema = z.object({
   enableMarkdownShortcuts: z.boolean(),
   enableDragDropUpload: z.boolean(),
 
+  // Enhanced toolbar features
+  enableInlineCodeButton: z.boolean(),
+  enableRemoveLink: z.boolean(),
+  enableClearFormatting: z.boolean(),
+  enableSuperscript: z.boolean(),
+  enableSubscript: z.boolean(),
+  enableIndentButtons: z.boolean(),
+  enableFontSize: z.boolean(),
+  enableLineHeight: z.boolean(),
+  enableBlockTypeDropdown: z.boolean(),
+  enableFindReplace: z.boolean(),
+  enableSourceView: z.boolean(),
+  enableEmoji: z.boolean(),
+  enableSpecialChars: z.boolean(),
+  enablePrint: z.boolean(),
+  enableTableOfContents: z.boolean(),
+
+  // Phase 3: Competitive / Advanced features
+  enableSlashCommands: z.boolean().optional(),
+  enableCaseChange: z.boolean().optional(),
+  enableFormatPainter: z.boolean().optional(),
+  enableFocusMode: z.boolean().optional(),
+  enableContentTemplates: z.boolean().optional(),
+  enableAutosaveIndicator: z.boolean().optional(),
+  enableButtonBlock: z.boolean().optional(),
+  enableSpacerBlock: z.boolean().optional(),
+  enableGallery: z.boolean().optional(),
+  enableBookmarkCard: z.boolean().optional(),
+  enableAudioEmbed: z.boolean().optional(),
+  enableFileAttach: z.boolean().optional(),
+  enableDropCap: z.boolean().optional(),
+  enableFootnotes: z.boolean().optional(),
+  enableMathBlocks: z.boolean().optional(),
+  enableAnchorLinks: z.boolean().optional(),
+  enableKeyboardShortcutsHelp: z.boolean().optional(),
+  enableAdBlock: z.boolean().optional(),
+  enableSeoScore: z.boolean().optional(),
+
   // Content limits
   maxWordCount: positiveIntOrZero,
   maxCharCount: positiveIntOrZero,
@@ -183,10 +274,15 @@ export const editorFrontendSettingsSchema = z.object({
   colorPalette: z.array(hexColor),
   defaultTextColor: hexColor,
 
+  // Font & spacing presets
+  fontSizePresets: z.array(positiveInt),
+  lineHeightPresets: z.array(z.number()),
+
   // Editor behaviour
   maxHistorySize: positiveInt,
   autoSaveDebounceMs: positiveInt,
   readingWpm: positiveInt,
+  sanitizeOnSave: z.boolean(),
   defaultPlaceholder: z.string(),
   defaultMinHeight: z.string(),
   defaultMaxHeight: z.string(),

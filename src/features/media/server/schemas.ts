@@ -10,7 +10,6 @@ import { z } from 'zod';
 import {
   MEDIA_STATUSES,
   MEDIA_TYPES,
-  IMAGE_FORMATS,
   VARIANT_PRESETS,
   VIEW_MODES,
   SORT_FIELDS,

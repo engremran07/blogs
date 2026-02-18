@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   RefreshCw,
   BarChart3,
-  Hash,
   Globe,
   Zap,
 } from "lucide-react";

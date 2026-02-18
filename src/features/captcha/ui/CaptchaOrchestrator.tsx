@@ -21,7 +21,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useSyncExternalStore, memo } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import type { CaptchaProviderType, CaptchaProps as CaptchaPropsType, CaptchaSettings } from '../types';
 import { FALLBACK_PRIORITY, CAPTCHA_PROVIDER_TYPES } from '../types';
@@ -73,6 +73,11 @@ function isProviderEnabled(
 /*  ORCHESTRATOR COMPONENT                                                  */
 /* ======================================================================== */
 
+/* Stable helpers for useSyncExternalStore hydration detection */
+const emptySubscribe = () => () => {};
+const getClientHydrated = () => true;
+const getServerHydrated = () => false;
+
 function CaptchaInner({ onVerify, type, resetNonce = 0, settings: externalSettings, onDisabled }: CaptchaPropsType) {
   /*
    * Self-contained mode: if `settings` is passed directly, use it.
@@ -81,16 +86,13 @@ function CaptchaInner({ onVerify, type, resetNonce = 0, settings: externalSettin
   const resolvedSettings: CaptchaSettings | undefined = externalSettings;
   const hasSettings = Boolean(resolvedSettings);
 
-  const [isHydrated, setIsHydrated] = useState(false);
+  const isHydrated = useSyncExternalStore(emptySubscribe, getClientHydrated, getServerHydrated);
   const [currentMethod, setCurrentMethod] = useState<CaptchaProviderType | null>(null);
-  const [fallbackChain, setFallbackChain] = useState<CaptchaProviderType[]>([]);
-  const [isReady, setIsReady] = useState(false);
   const [attemptedMethods, setAttemptedMethods] = useState<Set<CaptchaProviderType>>(new Set());
 
   const attemptedMethodsRef = useRef<Set<CaptchaProviderType>>(new Set());
   const exhaustedFallbackLoggedRef = useRef(false);
   const verifiedRef = useRef(false);
-  const configSignatureRef = useRef<string | null>(null);
   const lastResetNonceRef = useRef(resetNonce);
   const killSwitchHandledRef = useRef(false);
 
@@ -111,8 +113,6 @@ function CaptchaInner({ onVerify, type, resetNonce = 0, settings: externalSettin
   /* ── Admin fallback order ── */
   const adminFallbackOrder = (resolvedSettings?.fallbackOrder as CaptchaProviderType[] | undefined) ?? undefined;
 
-  useEffect(() => { setIsHydrated(true); }, []);
-
   /* ── Kill switch: auto-verify when captcha is globally disabled ── */
   useEffect(() => {
     if (!isHydrated || !hasSettings) return;
@@ -131,29 +131,14 @@ function CaptchaInner({ onVerify, type, resetNonce = 0, settings: externalSettin
     }
   }, [isHydrated, hasSettings, captchaEnabled, onVerify, onDisabled]);
 
-  /* ── Build fallback chain ── */
-  useEffect(() => {
-    if (!hasSettings || !isHydrated || !captchaEnabled) return;
+  /* ── Build fallback chain (computed during render via useMemo) ── */
+  const fallbackChain = useMemo((): CaptchaProviderType[] => {
+    if (!hasSettings || !isHydrated || !captchaEnabled) return [];
 
     const hasV3 = Boolean(recaptchaV3SiteKey);
     const hasV2 = Boolean(recaptchaV2SiteKey);
     const hasTurnstile = Boolean(turnstileSiteKey);
     const hasHCaptcha = Boolean(hcaptchaSiteKey);
-
-    const signature = [
-      type ?? '', configuredCaptchaType ?? '',
-      hasV2 ? '1' : '0', hasV3 ? '1' : '0',
-      hasTurnstile ? '1' : '0', hasHCaptcha ? '1' : '0',
-      resolvedSettings?.enableTurnstile !== false ? '1' : '0',
-      resolvedSettings?.enableRecaptchaV3 !== false ? '1' : '0',
-      resolvedSettings?.enableRecaptchaV2 !== false ? '1' : '0',
-      resolvedSettings?.enableHcaptcha !== false ? '1' : '0',
-      resolvedSettings?.enableInhouse !== false ? '1' : '0',
-      JSON.stringify(adminFallbackOrder ?? ''),
-    ].join('|');
-
-    if (configSignatureRef.current === signature && isReady) return;
-    configSignatureRef.current = signature;
 
     const normalised = normaliseType(type) ?? normaliseType(configuredCaptchaType);
 
@@ -181,14 +166,22 @@ function CaptchaInner({ onVerify, type, resetNonce = 0, settings: externalSettin
 
     if (chain.length === 0) chain.push('custom');
 
-    setFallbackChain(chain);
-    setCurrentMethod(chain[0]!);
-    attemptedMethodsRef.current = new Set();
-    setAttemptedMethods(new Set());
-    exhaustedFallbackLoggedRef.current = false;
-    verifiedRef.current = false;
-    setIsReady(true);
-  }, [hasSettings, type, configuredCaptchaType, recaptchaV2SiteKey, recaptchaV3SiteKey, turnstileSiteKey, hcaptchaSiteKey, isHydrated, isReady, captchaEnabled, resolvedSettings, adminFallbackOrder]);
+    return chain;
+  }, [hasSettings, type, configuredCaptchaType, recaptchaV2SiteKey, recaptchaV3SiteKey, turnstileSiteKey, hcaptchaSiteKey, isHydrated, captchaEnabled, resolvedSettings, adminFallbackOrder]);
+
+  const isReady = fallbackChain.length > 0;
+
+  /* Reset tracking state when the computed fallback chain changes */
+  useEffect(() => {
+    if (fallbackChain.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resets state when fallback chain changes
+      setCurrentMethod(fallbackChain[0]!);
+      attemptedMethodsRef.current = new Set();
+      setAttemptedMethods(new Set());
+      exhaustedFallbackLoggedRef.current = false;
+      verifiedRef.current = false;
+    }
+  }, [fallbackChain]);
 
   /* ── Reset handling ── */
   useEffect(() => {

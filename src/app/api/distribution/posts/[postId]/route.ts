@@ -10,14 +10,14 @@ type Params = { params: Promise<{ postId: string }> };
 export async function GET(_req: NextRequest, ctx: Params) {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR", "AUTHOR"].includes((session.user as any).role)) {
+    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR", "AUTHOR"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const { postId } = await ctx.params;
     const records = await distributionService.getPostDistributions(postId);
     return NextResponse.json({ success: true, data: records });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },

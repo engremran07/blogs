@@ -80,7 +80,7 @@ export class SiteSettingsService {
     try {
       const settings = await this.getSettings();
       return { success: true, data: settings, timestamp: new Date().toISOString() };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: {
@@ -119,7 +119,7 @@ export class SiteSettingsService {
       this.propagateToConsumers();
 
       return { success: true, data: this.cached, timestamp: new Date().toISOString() };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: {
@@ -164,7 +164,7 @@ export class SiteSettingsService {
     try {
       const config = await this.getTopBarConfig();
       return { success: true, data: config, timestamp: new Date().toISOString() };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: {
@@ -295,7 +295,7 @@ export class SiteSettingsService {
     try {
       const config = await this.getCaptchaConfig();
       return { success: true, data: config, timestamp: new Date().toISOString() };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: {
@@ -411,6 +411,7 @@ export class SiteSettingsService {
       rssFeedTitle: s.rssFeedTitle,
       enableComments: s.enableComments,
       enableSearch: s.enableSearch,
+      enableRegistration: s.enableRegistration,
     };
   }
 
@@ -877,6 +878,7 @@ export class SiteSettingsService {
       // Reading
       enableSearch: s.enableSearch,
       enableComments: s.enableComments,
+      enableRegistration: s.enableRegistration,
 
       // Maintenance
       maintenanceMode: s.maintenanceMode,
@@ -924,9 +926,7 @@ export class SiteSettingsService {
   }
 
   private settingsToConfig(settings: SiteSystemSettings): SiteConfig {
-    /* eslint-disable @typescript-eslint/no-unused-vars */
     const { id: _id, updatedBy: _ub, updatedAt: _ua, ...config } = settings;
-    /* eslint-enable @typescript-eslint/no-unused-vars */
     return config as SiteConfig;
   }
 

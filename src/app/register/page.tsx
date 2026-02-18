@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mail, Lock, User, UserPlus, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, UserPlus, Eye, EyeOff, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/FormFields";
 import { toast } from "@/components/ui/Toast";
@@ -12,6 +12,7 @@ import Captcha from "@/features/captcha/ui/Captcha";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -25,6 +26,14 @@ export default function RegisterPage() {
   const [captchaId, setCaptchaId] = useState<string | undefined>();
   const [captchaType, setCaptchaType] = useState<string | undefined>();
   const [captchaNonce, setCaptchaNonce] = useState(0);
+
+  // Check if registration is enabled
+  useEffect(() => {
+    fetch("/api/settings/public")
+      .then((r) => r.json())
+      .then((d) => setRegistrationEnabled(d.data?.enableRegistration !== false))
+      .catch(() => setRegistrationEnabled(true));
+  }, []);
 
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -78,6 +87,38 @@ export default function RegisterPage() {
       setCaptchaNonce((n) => n + 1);
       setCaptchaToken("");
     }
+  }
+
+  // Loading state while checking registration availability
+  if (registrationEnabled === null) {
+    return (
+      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  // Registration disabled
+  if (!registrationEnabled) {
+    return (
+      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+            <ShieldOff className="h-7 w-7 text-gray-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Registration is closed</h1>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            New account creation is currently disabled by the site administrator.
+          </p>
+          <Link
+            href="/login"
+            className="mt-6 inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          >
+            Go to Sign In
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (

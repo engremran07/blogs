@@ -18,9 +18,9 @@ export async function GET() {
         siteName: s.siteName,
         siteTagline: s.siteTagline,
         siteDescription: s.siteDescription,
-        logoUrl: (s as any).logoUrl ?? null,
-        logoDarkUrl: (s as any).logoDarkUrl ?? null,
-        faviconUrl: (s as any).faviconUrl ?? null,
+        logoUrl: s.logoUrl ?? null,
+        logoDarkUrl: s.logoDarkUrl ?? null,
+        faviconUrl: s.faviconUrl ?? null,
 
         // Top Bar
         topBarEnabled: s.topBarEnabled,
@@ -37,31 +37,34 @@ export async function GET() {
         topBarDismissible: s.topBarDismissible,
 
         // Social links (needed when topBarShowSocialLinks is true)
-        socialFacebook: (s as any).socialFacebook ?? null,
-        socialTwitter: (s as any).socialTwitter ?? null,
-        socialInstagram: (s as any).socialInstagram ?? null,
-        socialLinkedin: (s as any).socialLinkedin ?? null,
-        socialYoutube: (s as any).socialYoutube ?? null,
-        socialGithub: (s as any).socialGithub ?? null,
+        socialFacebook: s.socialFacebook ?? null,
+        socialTwitter: s.socialTwitter ?? null,
+        socialInstagram: s.socialInstagram ?? null,
+        socialLinkedin: s.socialLinkedin ?? null,
+        socialYoutube: s.socialYoutube ?? null,
+        socialGithub: s.socialGithub ?? null,
 
         // Appearance / Theme
-        primaryColor: (s as any).primaryColor ?? null,
-        darkModeEnabled: (s as any).darkModeEnabled ?? true,
-        fontFamily: (s as any).fontFamily ?? null,
+        primaryColor: s.primaryColor ?? null,
+        darkModeEnabled: s.darkModeEnabled ?? true,
+        fontFamily: s.fontFamily ?? null,
 
         // Footer
-        footerText: (s as any).footerText ?? null,
-        footerShowSocialLinks: (s as any).footerShowSocialLinks ?? true,
+        footerText: s.footerText ?? null,
+        footerShowSocialLinks: s.footerShowSocialLinks ?? true,
+
+        // Registration
+        enableRegistration: s.enableRegistration ?? true,
 
         // Cookie consent / Privacy
         cookieConsentEnabled: s.cookieConsentEnabled ?? false,
         cookieConsentMessage: s.cookieConsentMessage ?? "",
-        privacyPolicyUrl: (s as any).privacyPolicyUrl ?? null,
-        termsOfServiceUrl: (s as any).termsOfServiceUrl ?? null,
-        gdprEnabled: (s as any).gdprEnabled ?? false,
+        privacyPolicyUrl: s.privacyPolicyUrl ?? null,
+        termsOfServiceUrl: s.termsOfServiceUrl ?? null,
+        gdprEnabled: s.gdprEnabled ?? false,
 
         // Analytics (non-secret — needed by script injector)
-        seoGoogleAnalyticsId: (s as any).seoGoogleAnalyticsId ?? null,
+        seoGoogleAnalyticsId: s.seoGoogleAnalyticsId ?? null,
       },
     });
   } catch {

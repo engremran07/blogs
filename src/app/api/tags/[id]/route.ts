@@ -5,9 +5,11 @@ import { TagService } from "@/features/tags/server/tag.service";
 import { updateTagSchema } from "@/features/tags/server/schemas";
 import { createLogger } from "@/server/observability/logger";
 import { removePageTypesFromSlots } from "@/features/ads/server/scan-pages";
+import type { ScanPrisma } from "@/features/ads/server/scan-pages";
+import type { TagsPrismaClient } from "@/features/tags/types";
 
 const logger = createLogger("api/tags");
-const tagService = new TagService(prisma as any);
+const tagService = new TagService(prisma as unknown as TagsPrismaClient);
 
 export async function GET(
   _req: NextRequest,
@@ -39,7 +41,7 @@ export async function PATCH(
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
     }
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
     }
@@ -85,7 +87,7 @@ export async function DELETE(
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
     }
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
     }
@@ -97,7 +99,7 @@ export async function DELETE(
 
     // Auto-exclude this tag from ad slot pageTypes
     if (tag?.slug) {
-      void removePageTypesFromSlots(prisma as any, [`tag:${tag.slug}`]).catch(() => {});
+      void removePageTypesFromSlots(prisma as unknown as ScanPrisma, [`tag:${tag.slug}`]).catch(() => {});
     }
 
     return NextResponse.json({ success: true });

@@ -7,25 +7,25 @@
  */
 declare module '@aws-sdk/client-s3' {
   export class S3Client {
-    constructor(config: Record<string, any>);
-    send(command: any): Promise<any>;
+    constructor(config: Record<string, unknown>);
+    send(command: unknown): Promise<unknown>;
   }
   export class PutObjectCommand {
-    constructor(input: Record<string, any>);
+    constructor(input: { Bucket: string; Key: string; Body?: Uint8Array | ReadableStream | Blob | string; ContentType?: string; Metadata?: Record<string, string>; [key: string]: unknown });
   }
   export class GetObjectCommand {
-    constructor(input: Record<string, any>);
+    constructor(input: { Bucket: string; Key: string; [key: string]: unknown });
   }
   export class DeleteObjectCommand {
-    constructor(input: Record<string, any>);
+    constructor(input: { Bucket: string; Key: string; [key: string]: unknown });
   }
   export class HeadObjectCommand {
-    constructor(input: Record<string, any>);
+    constructor(input: { Bucket: string; Key: string; [key: string]: unknown });
   }
   export class CopyObjectCommand {
-    constructor(input: Record<string, any>);
+    constructor(input: { Bucket: string; Key: string; CopySource: string; [key: string]: unknown });
   }
   export class ListObjectsV2Command {
-    constructor(input: Record<string, any>);
+    constructor(input: { Bucket: string; Prefix?: string; [key: string]: unknown });
   }
 }

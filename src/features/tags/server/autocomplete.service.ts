@@ -105,7 +105,7 @@ export class AutocompleteService {
     ]);
 
     return {
-      results: results.map((t: any) => ({
+      results: results.map((t) => ({
         id: t.id,
         name: t.name,
         slug: t.slug,
@@ -140,7 +140,7 @@ export class AutocompleteService {
         where: { name: { in: this.cfg.initialTags, mode: 'insensitive' } },
       });
       return {
-        results: initialResults.map((t: any) => ({
+        results: initialResults.map((t) => ({
           id: t.id, name: t.name, slug: t.slug, path: t.path,
           color: t.color, icon: t.icon, usageCount: t.usageCount, isExisting: true as const,
         })),
@@ -162,7 +162,7 @@ export class AutocompleteService {
     ]);
 
     return {
-      results: results.map((t: any) => ({
+      results: results.map((t) => ({
         id: t.id, name: t.name, slug: t.slug, path: t.path,
         color: t.color, icon: t.icon, usageCount: t.usageCount, isExisting: true as const,
       })),
@@ -242,12 +242,12 @@ export class AutocompleteService {
 
     if (tags.length === 0) return [];
 
-    const counts = tags.map((t: any) => t.usageCount);
+    const counts = tags.map((t) => t.usageCount);
     const minCount = Math.min(...counts);
     const maxCount = Math.max(...counts);
     const range = maxCount - minCount || 1;
 
-    return tags.map((t: any) => ({
+    return tags.map((t) => ({
       id: t.id,
       name: t.name,
       slug: t.slug,
@@ -314,7 +314,7 @@ export class AutocompleteService {
       select: { id: true, name: true, slug: true },
       orderBy: { usageCount: 'desc' },
       take: limit,
-    }) as any;
+    });
   }
 
   /**
@@ -346,7 +346,7 @@ export class AutocompleteService {
       });
 
       if (tag) {
-        resolved.push({ ...(tag as any), isExisting: true });
+        resolved.push({ ...tag, isExisting: true });
       } else if (opts.createMissing) {
         const slug = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
         const appliedName = this.cfg.forceLowercase ? name.toLowerCase() : name;
@@ -359,7 +359,7 @@ export class AutocompleteService {
           },
           select: { id: true, name: true, slug: true, path: true, color: true, icon: true, usageCount: true },
         });
-        resolved.push({ ...(created as any), isExisting: true });
+        resolved.push({ ...created, isExisting: true });
       } else {
         unmatched.push(name);
       }

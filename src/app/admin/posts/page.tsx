@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/ui/Modal";
 
 interface PostRow {
   id: string;
+  postNumber: number;
   title: string;
   slug: string;
   status: string;
@@ -233,8 +234,8 @@ export default function AdminPostsPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <Link href={post.status === "PUBLISHED" ? `/blog/${post.slug}` : `/blog/${post.slug}?preview=true`} target="_blank" className="rounded p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700" title={post.status === "PUBLISHED" ? "View" : "Preview"}><Eye className="h-4 w-4" /></Link>
-                          <Link href={`/admin/posts/${post.id}/edit`} className="rounded p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700" title="Edit"><Edit2 className="h-4 w-4" /></Link>
-                          <button onClick={() => setDeleteId(post.id)} className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete"><Trash2 className="h-4 w-4" /></button>
+                          <Link href={`/admin/posts/${post.postNumber}/edit`} className="rounded p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700" title="Edit"><Edit2 className="h-4 w-4" /></Link>
+                          <button onClick={() => setDeleteId(String(post.postNumber))} className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" title="Delete"><Trash2 className="h-4 w-4" /></button>
                         </div>
                       </td>
                     </tr>

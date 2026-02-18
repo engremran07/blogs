@@ -64,7 +64,7 @@ export class UserAdminSettingsService {
         data: settings,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: {
@@ -107,7 +107,7 @@ export class UserAdminSettingsService {
         data: this.cached,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: {
@@ -230,9 +230,7 @@ export class UserAdminSettingsService {
   }
 
   private settingsToConfig(settings: UserSystemSettings): UserConfig {
-    /* eslint-disable @typescript-eslint/no-unused-vars */
     const { id: _id, updatedBy: _ub, updatedAt: _ua, ...config } = settings;
-    /* eslint-enable @typescript-eslint/no-unused-vars */
     return config as UserConfig;
   }
 

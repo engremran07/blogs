@@ -10,9 +10,6 @@ import type {
   SitemapEntry,
   SitemapConfig,
   SitemapStats,
-  SitemapAlternate,
-  SitemapImage,
-  SitemapNews,
   SitemapChangeFrequency,
 } from '../types';
 import { SITEMAP_DEFAULTS, SITEMAP_XSL, SITEMAP_INDEX_XSL } from './constants';

@@ -34,17 +34,28 @@ const SAFE_TAGS = new Set([
   'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption', 'colgroup', 'col',
   /* Media */
   'img',
-  /* Other */
-  'details', 'summary',
+  /* Interactive / content blocks */
+  'details', 'summary', 'cite', 'nav',
+  /* Input (for task lists only — checkbox) */
+  'input',
+  /* Phase 3: audio / footnotes / sections */
+  'audio', 'source', 'section',
 ]);
 
 const SAFE_ATTRS = new Set([
   'href', 'src', 'alt', 'title', 'width', 'height',
   'target', 'rel', 'colspan', 'rowspan', 'scope',
   'loading', 'decoding', 'draggable',
-  'class', 'id', 'lang', 'dir',
+  'class', 'lang', 'dir',
   'role', 'aria-label', 'aria-hidden', 'aria-describedby',
-  'data-checked',
+  'data-checked', 'data-language', 'data-type',
+  'data-footnote', 'data-expression', 'data-slot-type', 'data-slot-id',
+  'download', 'sandbox', 'allowfullscreen', 'referrerpolicy',
+  'controls', 'preload',
+  /* For task list checkboxes */
+  'type', 'checked',
+  /* Open attribute for details elements */
+  'open',
   /* Needed for existing editor patterns */
   'style',
 ]);
@@ -63,10 +74,14 @@ const SAFE_STYLE_PROPS = new Set([
   'line-height', 'letter-spacing', 'word-spacing',
   'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
   'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
-  'border', 'border-radius',
-  'display', 'vertical-align',
+  'border', 'border-radius', 'border-left', 'border-right', 'border-top', 'border-bottom',
+  'display', 'vertical-align', 'float', 'clear',
   'width', 'height', 'max-width', 'max-height', 'min-width', 'min-height',
-  'list-style-type',
+  'list-style-type', 'list-style', 'list-style-position',
+  'opacity', 'overflow', 'overflow-x', 'overflow-y',
+  'gap', 'flex', 'flex-direction', 'flex-wrap',
+  'grid-template-columns', 'grid-gap',
+  'aspect-ratio', 'object-fit',
 ]);
 
 /* ── Sanitise a single style attribute value ── */
@@ -80,12 +95,17 @@ function sanitiseStyle(raw: string): string {
     const value = valueParts.join(':').trim();
     if (!property || !value) continue;
 
-    /* Block CSS expressions and url() with dangerous protocols */
-    if (/expression\s*\(/i.test(value)) continue;
-    if (/url\s*\(/i.test(value) && DANGEROUS_PROTOCOL.test(value)) continue;
+    /* Strip CSS comments that could hide expression() */
+    const cleanValue = value.replace(/\/\*[\s\S]*?\*\//g, '');
+
+    /* Block CSS expressions */
+    if (/expression\s*\(/i.test(cleanValue)) continue;
+
+    /* Block ALL url() in user-supplied styles — prevents tracking pixels & data: bypasses */
+    if (/url\s*\(/i.test(cleanValue)) continue;
 
     if (SAFE_STYLE_PROPS.has(property)) {
-      safe.push(`${property}: ${value}`);
+      safe.push(`${property}: ${cleanValue}`);
     }
   }
 
@@ -97,6 +117,8 @@ function isSafeUrl(url: string): boolean {
   const trimmed = url.trim();
   if (!trimmed) return true; // empty is ok
   if (DANGEROUS_PROTOCOL.test(trimmed)) return false;
+  // Block protocol-relative URLs (//evil.com)
+  if (trimmed.startsWith('//')) return false;
   if (SAFE_PROTOCOLS.test(trimmed) || trimmed.startsWith('/') || trimmed.startsWith('#') || trimmed.startsWith('.')) return true;
   /* Relative URLs without protocol are ok */
   if (!trimmed.includes(':')) return true;
@@ -142,7 +164,7 @@ function sanitizeNode(node: Node): void {
     /* Strip forbidden tags entirely (including children) */
     if (!SAFE_TAGS.has(tagName)) {
       /* For non-dangerous container tags, keep text content */
-      if (['script', 'style', 'link', 'meta', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'button', 'select', 'svg', 'math'].includes(tagName)) {
+      if (['script', 'style', 'link', 'meta', 'iframe', 'object', 'embed', 'form', 'textarea', 'button', 'select', 'svg', 'math'].includes(tagName)) {
         node.removeChild(el);
       } else {
         /* Unwrap: keep children, remove the wrapper tag */
@@ -152,6 +174,14 @@ function sanitizeNode(node: Node): void {
         node.removeChild(el);
       }
       continue;
+    }
+
+    /* Only allow input[type=checkbox] for task lists */
+    if (tagName === 'input') {
+      if (el.getAttribute('type') !== 'checkbox') {
+        node.removeChild(el);
+        continue;
+      }
     }
 
     /* Strip disallowed attributes */

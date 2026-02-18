@@ -26,6 +26,7 @@ import {
   useMemo,
   type ReactNode,
 } from 'react';
+import Image from 'next/image';
 import { Dialog, Transition, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react';
 import { Fragment } from 'react';
 import {
@@ -41,11 +42,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  ChevronsUpDown,
-  MoreVertical,
   Download,
-  ExternalLink,
-  RefreshCw,
   SlidersHorizontal,
   Image as ImageIcon,
   Film,
@@ -57,7 +54,6 @@ import {
   UploadCloud,
   Link2,
   ArrowUpDown,
-  Eye,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -79,9 +75,7 @@ import type {
   UploadProgress,
   UploadQueueState,
   ResolvedMediaAdminSettings,
-  ViewMode,
   SortField,
-  SortDirection,
   MediaSeoAuditResult,
   UpdateMediaInput,
 } from '../types';
@@ -91,7 +85,6 @@ import {
   isImageMime,
   getMimeLabel,
   MEDIA_LIMITS,
-  MEDIA_DEFAULTS,
   FRONTEND_DEFAULTS,
 } from '../server/constants';
 
@@ -729,13 +722,11 @@ function MediaGrid({
   selectedIds,
   onToggleSelect,
   onItemClick,
-  isPicker,
 }: {
   items: MediaItem[];
   selectedIds: Set<string>;
   onToggleSelect: (id: string, e: React.MouseEvent) => void;
   onItemClick: (item: MediaItem) => void;
-  isPicker: boolean;
 }) {
   if (items.length === 0) {
     return (
@@ -796,12 +787,15 @@ function MediaGrid({
 
             {/* Thumbnail or icon */}
             {isImage ? (
-              <img
+              <Image
                 src={item.variants?.thumb?.url ?? item.url}
                 alt={item.altText || item.originalName}
+                width={160}
+                height={160}
                 className="mm-grid-item__thumb"
                 loading="lazy"
                 draggable={false}
+                unoptimized
               />
             ) : (
               <div className="mm-grid-item__placeholder">
@@ -946,11 +940,14 @@ function MediaList({
               </td>
               <td>
                 {isImage ? (
-                  <img
+                  <Image
                     src={item.variants?.thumb?.url ?? item.url}
                     alt={item.altText || item.originalName}
+                    width={40}
+                    height={40}
                     className="mm-list__thumb"
                     loading="lazy"
+                    unoptimized
                   />
                 ) : (
                   <span className="mm-list__thumb-placeholder">
@@ -1040,11 +1037,14 @@ function DetailPanel({
 
       {/* Preview */}
       {isImage ? (
-        <img
+        <Image
           src={item.variants?.medium?.url ?? item.url}
           alt={item.altText || item.originalName}
+          width={480}
+          height={320}
           className="mm-detail__preview"
           draggable={false}
+          unoptimized
         />
       ) : (
         <div
@@ -1867,14 +1867,10 @@ export function MediaManager(props: MediaManagerProps) {
     onUploadFromUrl,
     onDelete,
     onBulkDelete,
-    onBulkMove,
     onUpdate,
     onList,
     onListFolders,
     onCreateFolder,
-    onRenameFolder,
-    onDeleteFolder,
-    onGetSrcSet,
     onAuditSeo,
     onDownload,
     onSelect,
@@ -1973,7 +1969,6 @@ export function MediaManager(props: MediaManagerProps) {
 
       dispatch({ type: 'UPLOAD_START' });
 
-      const total = fileArray.length;
       for (let i = 0; i < fileArray.length; i++) {
         const file = fileArray[i];
         const uploadId = `upload-${Date.now()}-${i}`;
@@ -2470,7 +2465,6 @@ export function MediaManager(props: MediaManagerProps) {
                     selectedIds={state.selectedIds}
                     onToggleSelect={handleToggleSelect}
                     onItemClick={handleItemClick}
-                    isPicker={isPicker}
                   />
                 ) : (
                   <MediaList

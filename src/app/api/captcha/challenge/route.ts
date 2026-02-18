@@ -69,7 +69,7 @@ export async function GET() {
 
     // Store challenge in DB with expiry
     const expiresAt = new Date(Date.now() + CHALLENGE_TTL_MS);
-    const challenge = await (prisma as any).captchaChallenge.create({
+    const challenge = await prisma.captchaChallenge.create({
       data: {
         answer,
         expiresAt,

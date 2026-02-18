@@ -4,11 +4,13 @@ import { prisma } from "@/server/db/prisma";
 import { TagService } from "@/features/tags/server/tag.service";
 import { bulkIdsSchema, mergeTagsSchema, bulkMergeDuplicatesSchema } from "@/features/tags/server/schemas";
 import { removePageTypesFromSlots } from "@/features/ads/server/scan-pages";
+import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 import { createLogger } from "@/server/observability/logger";
+import type { TagsPrismaClient } from "@/features/tags/types";
 
 const logger = createLogger("api/tags/bulk");
 
-const tagService = new TagService(prisma as any);
+const tagService = new TagService(prisma as unknown as TagsPrismaClient);
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +18,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
     }
-    const role = (session.user as any).role;
+    const role = session.user.role;
     if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
     }
@@ -83,7 +85,7 @@ export async function POST(req: NextRequest) {
         // Auto-exclude deleted tags from ad slot pageTypes
         const pageTypes = tagsToDelete.map((t: { slug: string }) => `tag:${t.slug}`);
         if (pageTypes.length > 0) {
-          void removePageTypesFromSlots(prisma as any, pageTypes).catch(() => {});
+          void removePageTypesFromSlots(prisma as unknown as ScanPrisma, pageTypes).catch(() => {});
         }
         return NextResponse.json({ success: true, message: `${result.deleted} tags deleted` });
       }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Github, Twitter, Rss, Heart, Facebook, Instagram, Linkedin, Youtube } from "lucide-react";
+import { Github, Twitter, Heart, Facebook, Instagram, Linkedin, Youtube } from "lucide-react";
 
 interface SocialLinks {
   github: string | null;

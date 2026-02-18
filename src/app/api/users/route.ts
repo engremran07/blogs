@@ -275,11 +275,11 @@ export async function PATCH(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: user });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Surface ValidationError messages from password validation
-    if (error?.name === "ValidationError") {
+    if ((error as { name?: string })?.name === "ValidationError") {
       return NextResponse.json(
-        { success: false, error: error.message },
+        { success: false, error: (error as Error).message },
         { status: 400 }
       );
     }

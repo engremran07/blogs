@@ -27,7 +27,6 @@ import {
   Globe,
   LinkIcon,
   ShieldCheck,
-  ShieldX,
   Trash2,
   Plus,
   Ban,

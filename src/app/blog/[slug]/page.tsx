@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/server/db/prisma";
 import { auth } from "@/server/auth";
-import { Calendar, Clock, ArrowLeft, Tag, Eye } from "lucide-react";
+import { Calendar, Clock, Tag, Eye } from "lucide-react";
 import { Badge, Avatar } from "@/components/ui/Card";
 import { CommentSection } from "./CommentSection";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";

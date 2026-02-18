@@ -1,5 +1,5 @@
 /**
- * Root Next.js Middleware — runs at the edge before every matched request.
+ * Root Next.js Proxy — runs at the edge before every matched request.
  *
  * Responsibilities:
  *  1. CRON secret verification on /api/cron
@@ -7,12 +7,12 @@
  *  3. Security: block common attack paths
  *
  * Auth is handled by NextAuth's `authorized` callback in auth.ts.
- * This middleware handles everything ELSE that should happen before
+ * This proxy handles everything ELSE that should happen before
  * a function cold-starts.
  */
 import { NextRequest, NextResponse } from "next/server";
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // ── 1. CRON secret gate ──────────────────────────────────────────────────
@@ -57,7 +57,7 @@ export async function middleware(req: NextRequest) {
 
 // ── Rate limiter (lazy-initialised) ─────────────────────────────────────────
 
-let rateLimiter: any = null;
+let rateLimiter: { limit: (id: string) => Promise<{ success: boolean }> } | null = null;
 let rateLimiterInitialised = false;
 
 async function checkRateLimit(req: NextRequest): Promise<boolean> {
@@ -99,7 +99,7 @@ async function checkRateLimit(req: NextRequest): Promise<boolean> {
 }
 
 // ── Matcher ─────────────────────────────────────────────────────────────────
-// Only run on routes that actually need middleware.
+// Only run on routes that actually need the proxy.
 // Skip static files, images, fonts, Next.js internals.
 export const config = {
   matcher: [

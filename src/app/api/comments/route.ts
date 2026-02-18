@@ -3,7 +3,7 @@ import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/prisma";
 import { createLogger } from "@/server/observability/logger";
 import { commentService, moderationService, captchaVerificationService, captchaAdminSettings } from "@/server/wiring";
-import { createCommentSchema, queryCommentsSchema } from "@/features/comments/server/schemas";
+import { createCommentSchema, queryCommentsSchema, type QueryCommentsPayload } from "@/features/comments/server/schemas";
 import { Sanitize } from "@/features/comments/server/sanitization";
 
 const logger = createLogger("api/comments");
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     // Admin panel query — delegate to ModerationService with full pagination
     if (all) {
       const session = await auth();
-      if (!session?.user || !["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes((session.user as any).role)) {
+      if (!session?.user || !["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
         return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
       }
       const parsed = queryCommentsSchema.safeParse({
@@ -30,11 +30,11 @@ export async function GET(req: NextRequest) {
         sortBy: searchParams.get("sortBy") || undefined,
         sortOrder: searchParams.get("sortOrder") || undefined,
       });
-      const query = parsed.success ? parsed.data : {};
-      const result = await moderationService.findAll(query as any);
+      const query: Partial<QueryCommentsPayload> = parsed.success ? parsed.data : {};
+      const result = await moderationService.findAll(query as QueryCommentsPayload);
       // include relations for admin view
       const enriched = await prisma.comment.findMany({
-        where: { id: { in: result.data.map((c: any) => c.id) } },
+        where: { id: { in: result.data.map((c) => c.id) } },
         orderBy: { createdAt: "desc" },
         include: {
           post: { select: { id: true, title: true, slug: true } },
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       });
       // Preserve order from result
       const byId = new Map(enriched.map((c) => [c.id, c]));
-      const ordered = result.data.map((c: any) => byId.get(c.id) ?? c);
+      const ordered = result.data.map((c) => byId.get(c.id) ?? c);
       return NextResponse.json({
         success: true,
         data: ordered,
