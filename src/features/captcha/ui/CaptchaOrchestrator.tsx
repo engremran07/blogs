@@ -81,9 +81,23 @@ const getServerHydrated = () => false;
 function CaptchaInner({ onVerify, type, resetNonce = 0, settings: externalSettings, onDisabled }: CaptchaPropsType) {
   /*
    * Self-contained mode: if `settings` is passed directly, use it.
-   * Otherwise attempt to read from SettingsContext (if available in host app).
+   * Otherwise self-fetch from /api/captcha/settings (public endpoint).
    */
-  const resolvedSettings: CaptchaSettings | undefined = externalSettings;
+  const [fetchedSettings, setFetchedSettings] = useState<CaptchaSettings | null>(null);
+  const fetchStartedRef = useRef(false);
+
+  // Self-fetch settings when none provided — triggered once on mount
+  useEffect(() => {
+    if (externalSettings) return;
+    if (fetchStartedRef.current) return;
+    fetchStartedRef.current = true;
+    fetch('/api/captcha/settings')
+      .then((r) => r.json())
+      .then((data) => setFetchedSettings(data as CaptchaSettings))
+      .catch(() => setFetchedSettings({ captchaEnabled: false } as CaptchaSettings));
+  }, [externalSettings]);
+
+  const resolvedSettings: CaptchaSettings | undefined = externalSettings ?? fetchedSettings ?? undefined;
   const hasSettings = Boolean(resolvedSettings);
 
   const isHydrated = useSyncExternalStore(emptySubscribe, getClientHydrated, getServerHydrated);
@@ -233,12 +247,12 @@ function CaptchaInner({ onVerify, type, resetNonce = 0, settings: externalSettin
   }, [onVerify]);
 
   /* ── Kill switch: render nothing ── */
-  if (!captchaEnabled && isHydrated) {
+  if (!captchaEnabled && isHydrated && hasSettings) {
     return null;
   }
 
-  /* ── Loading skeleton ── */
-  if (!isHydrated) {
+  /* ── Loading skeleton (hydrating or still fetching settings) ── */
+  if (!isHydrated || !hasSettings) {
     return (
       <div
         className="h-12 w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700"
@@ -247,7 +261,12 @@ function CaptchaInner({ onVerify, type, resetNonce = 0, settings: externalSettin
     );
   }
 
-  /* If settings never arrived or chain couldn't build, render in-house directly */
+  /* Settings loaded but captcha disabled → render nothing */
+  if (hasSettings && !captchaEnabled) {
+    return null;
+  }
+
+  /* If settings loaded but chain couldn't build, render in-house directly */
   if (!resolvedSettings || !currentMethod || fallbackChain.length === 0 || !isReady) {
     return (
       <div className="min-h-12.5" role="region" aria-label="Security verification">

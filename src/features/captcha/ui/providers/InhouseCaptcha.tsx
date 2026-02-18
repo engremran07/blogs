@@ -296,10 +296,10 @@ function InhouseCaptchaInner({
       </div>
 
       {/* Challenge image + input */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <div
           className={clsx(
-            'relative flex h-15 w-50 shrink-0 items-center justify-center overflow-hidden rounded border bg-white transition-opacity duration-200 dark:bg-gray-900',
+            'relative flex h-15 w-48 max-w-[55%] shrink-0 items-center justify-center overflow-hidden rounded border bg-white transition-opacity duration-200 dark:bg-gray-900',
             expired
               ? 'border-amber-400 opacity-50 dark:border-amber-600'
               : 'border-gray-200 dark:border-gray-700',
@@ -333,7 +333,7 @@ function InhouseCaptchaInner({
           onChange={(e) => handleChange(e.target.value)}
           disabled={expired}
           className={clsx(
-            'flex-1 rounded border px-3 py-2 text-center font-mono text-sm tracking-widest outline-none transition-colors',
+            'min-w-0 flex-1 rounded border px-3 py-2 text-center font-mono text-sm tracking-widest outline-none transition-colors',
             verified && !expired
               ? 'border-green-500 ring-1 ring-green-500 dark:border-green-400'
               : expired

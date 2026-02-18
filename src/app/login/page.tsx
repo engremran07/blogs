@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Mail, Lock, LogIn, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/FormFields";
+import { PasswordStrengthIndicator } from "@/components/ui/PasswordStrengthIndicator";
 import Captcha from "@/features/captcha/ui/Captcha";
 
 export default function LoginPage() {
@@ -30,12 +31,13 @@ function LoginForm() {
   const [captchaId, setCaptchaId] = useState<string | undefined>();
   const [captchaType, setCaptchaType] = useState<string | undefined>();
   const [captchaNonce, setCaptchaNonce] = useState(0);
+  const [captchaDisabled, setCaptchaDisabled] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    if (!captchaToken) {
+    if (!captchaDisabled && !captchaToken) {
       setError("Please complete the security check");
       return;
     }
@@ -124,6 +126,7 @@ function LoginForm() {
               }
               autoComplete="current-password"
             />
+            {password && <PasswordStrengthIndicator password={password} />}
           </div>
 
           <div className="mt-4">
@@ -133,6 +136,7 @@ function LoginForm() {
                 setCaptchaId(id);
                 setCaptchaType(type);
               }}
+              onDisabled={() => setCaptchaDisabled(true)}
               resetNonce={captchaNonce}
             />
           </div>
