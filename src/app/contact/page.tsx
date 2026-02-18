@@ -31,8 +31,20 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ContactPage() {
-  const settings = await prisma.siteSettings.findFirst({ select: { siteName: true } });
+  const settings = await prisma.siteSettings.findFirst({
+    select: {
+      siteName: true,
+      contactEmail: true,
+      contactPhone: true,
+      contactAddress: true,
+    },
+  });
   const siteName = settings?.siteName || "MyBlog";
+  const contactInfo = {
+    email: settings?.contactEmail || null,
+    phone: settings?.contactPhone || null,
+    address: settings?.contactAddress || null,
+  };
   const contactJsonLd = buildWebPageJsonLd({
     name: `Contact Us`,
     url: `${SITE_URL}/contact`,
@@ -50,7 +62,7 @@ export default async function ContactPage() {
         </p>
       </div>
 
-      <ContactForm />
+      <ContactForm contactInfo={contactInfo} />
 
       {/* In-Content Ad */}
       <div className="mt-12">

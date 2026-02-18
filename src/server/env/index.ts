@@ -33,6 +33,11 @@ const envSchema = z.object({
   CRON_SECRET: z.string().min(1).optional(),
   CLOUDFLARE_TURNSTILE_SECRET: z.string().min(1).optional(),
 
+  // Captcha secret keys (server-side verification)
+  RECAPTCHA_SECRET_KEY: z.string().min(1).optional(),
+  RECAPTCHA_V2_SECRET_KEY: z.string().min(1).optional(),
+  HCAPTCHA_SECRET_KEY: z.string().min(1).optional(),
+
   // Captcha provider site keys (optional — can also be stored in DB settings)
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_RECAPTCHA_V2_SITE_KEY: z.string().min(1).optional(),

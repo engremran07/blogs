@@ -147,6 +147,21 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   emailFromAddress: null,
   emailReplyTo: null,
 
+  // SMTP
+  smtpHost: null,
+  smtpPort: 587,
+  smtpUser: null,
+  smtpPassword: null,
+  smtpSecure: true,
+
+  // Email Notifications
+  emailNotifyOnComment: true,
+  emailNotifyOnUser: true,
+  emailNotifyOnContact: true,
+  emailWelcomeEnabled: true,
+  emailDigestEnabled: false,
+  emailDigestFrequency: 'weekly',
+
   // Third-Party Integrations
   googleTagManagerId: null,
   facebookPixelId: null,

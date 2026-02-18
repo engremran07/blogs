@@ -509,6 +509,38 @@ export class SiteSettingsService {
     };
   }
 
+  async getSmtpConfig(): Promise<import('../types').SmtpConfig> {
+    const s = await this.getSettings();
+    const raw = s as unknown as Record<string, unknown>;
+    return {
+      smtpHost: (raw.smtpHost as string) ?? null,
+      smtpPort: (raw.smtpPort as number) ?? 587,
+      smtpUser: (raw.smtpUser as string) ?? null,
+      smtpPassword: (raw.smtpPassword as string) ?? null,
+      smtpSecure: (raw.smtpSecure as boolean) ?? true,
+    };
+  }
+
+  async getNotificationConfig(): Promise<import('../types').EmailNotificationConfig> {
+    const s = await this.getSettings();
+    const raw = s as unknown as Record<string, unknown>;
+    return {
+      emailNotifyOnComment: (raw.emailNotifyOnComment as boolean) ?? true,
+      emailNotifyOnUser: (raw.emailNotifyOnUser as boolean) ?? true,
+      emailNotifyOnContact: (raw.emailNotifyOnContact as boolean) ?? true,
+      emailWelcomeEnabled: (raw.emailWelcomeEnabled as boolean) ?? true,
+    };
+  }
+
+  async getDigestConfig(): Promise<import('../types').EmailDigestConfig> {
+    const s = await this.getSettings();
+    const raw = s as unknown as Record<string, unknown>;
+    return {
+      emailDigestEnabled: (raw.emailDigestEnabled as boolean) ?? false,
+      emailDigestFrequency: (raw.emailDigestFrequency as string) ?? 'weekly',
+    };
+  }
+
   async updateEmailSender(
     updates: Partial<EmailSenderConfig>,
     updatedBy?: string,

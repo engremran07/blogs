@@ -726,7 +726,7 @@ export default function DistributionAdminPage() {
                 />
               </div>
             )}
-            <p className="text-xs text-gray-400 dark:text-gray-500">Credentials are stored encrypted. Leave blank to keep existing values.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Leave credential fields blank to keep existing values.</p>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

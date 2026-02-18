@@ -26,6 +26,7 @@ export default function RegisterPage() {
   const [captchaId, setCaptchaId] = useState<string | undefined>();
   const [captchaType, setCaptchaType] = useState<string | undefined>();
   const [captchaNonce, setCaptchaNonce] = useState(0);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Check if registration is enabled
   useEffect(() => {
@@ -50,6 +51,11 @@ export default function RegisterPage() {
 
     if (!isPasswordValid(form.password)) {
       setError("Password does not meet all requirements");
+      return;
+    }
+
+    if (!agreedToTerms) {
+      setError("You must agree to the Privacy Policy and Terms of Service");
       return;
     }
 
@@ -198,6 +204,28 @@ export default function RegisterPage() {
               leftIcon={<Lock className="h-4 w-4" />}
               autoComplete="new-password"
             />
+          </div>
+
+          <div className="mt-4">
+            <label className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                required
+              />
+              <span>
+                I agree to the{" "}
+                <Link href="/privacy-policy" target="_blank" className="font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400">
+                  Privacy Policy
+                </Link>{" "}
+                and{" "}
+                <Link href="/terms-of-service" target="_blank" className="font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400">
+                  Terms of Service
+                </Link>
+              </span>
+            </label>
           </div>
 
           <div className="mt-4">

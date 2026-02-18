@@ -307,15 +307,23 @@ export class DistributionService {
             );
 
             if (result.success) {
+              const publishedAt = new Date();
               await this.prisma.distributionRecord.update({
                 where: { id: record.id },
                 data: {
                   status: DistributionStatus.PUBLISHED,
                   externalId: result.externalId,
                   externalUrl: result.externalUrl,
-                  publishedAt: new Date(),
+                  publishedAt,
                 },
               });
+              // Update channel's lastPublishedAt
+              if (channel?.id) {
+                await this.prisma.distributionChannel.update({
+                  where: { id: channel.id },
+                  data: { lastPublishedAt: publishedAt },
+                }).catch(() => { /* non-critical */ });
+              }
               this.recordSuccess(platform);
             } else {
               await this.prisma.distributionRecord.update({
@@ -387,6 +395,12 @@ export class DistributionService {
       throw new Error(`Cannot retry from status ${record.status}`);
     }
 
+    // Guard: do not allow retries beyond maxRetries
+    const maxRetries = (record as any).maxRetries ?? this.config.maxRetries ?? 3;
+    if ((record.retryCount ?? 0) >= maxRetries) {
+      throw new Error(`Maximum retries (${maxRetries}) reached for this distribution record`);
+    }
+
     const updated = await this.prisma.distributionRecord.update({
       where: { id: input.recordId },
       data: {
@@ -418,9 +432,12 @@ export class DistributionService {
           });
 
           const post = await this.prisma.post.findUnique({ where: { id: fresh.postId } });
+          const postUrl = post && (post as any).slug
+            ? `${this.config.siteBaseUrl ?? ""}/blog/${(post as any).slug}`
+            : "";
           const result = await this.withRetry(
             () => connector.post(
-              { text: fresh.content, url: "", title: post?.title ?? "" },
+              { text: fresh.content, url: postUrl, title: post?.title ?? "" },
               channel.credentials as any,
             ),
             this.config.maxRetries ?? 3,
@@ -429,15 +446,23 @@ export class DistributionService {
           );
 
           if (result.success) {
+            const publishedAt = new Date();
             await this.prisma.distributionRecord.update({
               where: { id: record.id },
               data: {
                 status: DistributionStatus.PUBLISHED,
                 externalId: result.externalId,
                 externalUrl: result.externalUrl,
-                publishedAt: new Date(),
+                publishedAt,
               },
             });
+            // Update channel's lastPublishedAt on retry success
+            if (channel?.id) {
+              await this.prisma.distributionChannel.update({
+                where: { id: channel.id },
+                data: { lastPublishedAt: publishedAt },
+              }).catch(() => { /* non-critical */ });
+            }
             this.recordSuccess(fresh.platform);
           } else {
             await this.prisma.distributionRecord.update({
@@ -510,6 +535,19 @@ export class DistributionService {
 
   async updateConfig(input: Partial<DistributionConfig>): Promise<DistributionConfig> {
     this.config = { ...this.config, ...input };
+
+    // Persist to DB via SiteSetting (key: distributionConfig)
+    try {
+      await (this.prisma as any).siteSettings.upsert({
+        where: { key: "distributionConfig" },
+        create: { key: "distributionConfig", value: JSON.stringify(this.config) },
+        update: { value: JSON.stringify(this.config) },
+      });
+    } catch {
+      // Non-critical: in-memory config still updated
+      console.warn("[DistributionService] Failed to persist config to DB");
+    }
+
     await this.eventBus.emit(DistributionEvent.SETTINGS_UPDATED, { config: this.config });
     return this.config;
   }

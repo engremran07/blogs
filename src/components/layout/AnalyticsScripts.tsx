@@ -24,8 +24,14 @@ export function AnalyticsScripts({ gaId, gdprEnabled }: AnalyticsScriptsProps) {
   // No tracking ID configured — nothing to inject
   if (!gaId) return null;
 
-  // GDPR mode: block until user explicitly opts in to analytics
-  if (gdprEnabled && (!consented || !categories.analytics)) return null;
+  // Always respect cookie consent: block GA4 until user accepts analytics.
+  // In GDPR mode, require explicit analytics opt-in.
+  // In non-GDPR mode, require at least general consent (Accept All).
+  if (gdprEnabled) {
+    if (!consented || !categories.analytics) return null;
+  } else {
+    if (!consented) return null;
+  }
 
   return (
     <>

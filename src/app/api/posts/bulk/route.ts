@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/prisma";
 import { createLogger } from "@/server/observability/logger";
@@ -16,15 +17,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
     }
 
-    const { action, ids } = await req.json();
+    const rawBody = await req.json();
 
-    if (!ids?.length) {
-      return NextResponse.json({ success: false, error: "No IDs provided" }, { status: 400 });
+    // Validate with Zod
+    const VALID_ACTIONS = ["delete", "publish", "draft", "archive"] as const;
+    const bulkSchema = z.object({
+      action: z.enum(VALID_ACTIONS),
+      ids: z.array(z.string().min(1)).min(1).max(100),
+    });
+    const parsed = bulkSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.flatten().formErrors.join(", ") || "Invalid input" },
+        { status: 400 }
+      );
     }
-
-    if (ids.length > 100) {
-      return NextResponse.json({ success: false, error: "Maximum 100 items per bulk operation" }, { status: 400 });
-    }
+    const { action, ids } = parsed.data;
 
     switch (action) {
       case "delete": {

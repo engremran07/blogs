@@ -143,7 +143,7 @@ export const DEFAULT_ADS_CONFIG: AdsConfig = {
   deferUntilLcp: true,
   enableAdsTxt: false,
   adsTxtCustomEntries: [],
-  requireConsent: false,
+  requireConsent: true,
   consentModes: [],
 };
 

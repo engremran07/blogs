@@ -328,11 +328,12 @@ export class SeoService {
 
       const content = await this.deps.page.findUnique({
         where: { id: pageId },
-        include: { categories: true, tags: true },
       });
       if (!content) return fail('NOT_FOUND', 'Page not found.');
 
-      const result = auditContent(content, 'PAGE');
+      // Pages don't have categories/tags relations — supply empty arrays
+      const contentWithDefaults = { ...content, categories: [], tags: [] };
+      const result = auditContent(contentWithDefaults, 'PAGE');
 
       if (this.cache) {
         await this.cache.set(cacheKey, result, CACHE_TTLS.AUDIT);
@@ -464,10 +465,11 @@ export class SeoService {
         }
       }
 
-      // --- Process pages ---
+      // --- Process pages (Page model has no seoKeywords field) ---
       for (const page of pages) {
-        if (page.seoKeywords) {
-          for (const kw of page.seoKeywords) {
+        const pageSeoKeywords = (page as unknown as Record<string, unknown>).seoKeywords as string[] | undefined;
+        if (pageSeoKeywords && Array.isArray(pageSeoKeywords)) {
+          for (const kw of pageSeoKeywords) {
             const s = slugify(kw);
             if (s) allTerms.set(s, { intent: inferKeywordIntent(kw), source: 'seoKeywords' });
           }
@@ -564,13 +566,13 @@ export class SeoService {
       });
       const pages = await this.deps.page.findMany({
         where: { status: 'PUBLISHED' },
-        include: { categories: true, tags: true },
       });
 
       // Merge posts and pages into a single content list for co-occurrence
+      // Pages lack categories/tags relations — supply empty arrays
       const allContent: Array<AuditableContent & { _type: 'POST' | 'PAGE' }> = [
         ...posts.map((p) => ({ ...p, _type: 'POST' as const })),
-        ...pages.map((p) => ({ ...p, _type: 'PAGE' as const })),
+        ...pages.map((p) => ({ ...p, categories: [], tags: [], _type: 'PAGE' as const })),
       ];
 
       const entityMap = new Map<string, SeoEntity>();
@@ -764,7 +766,7 @@ export class SeoService {
   ): Promise<ApiResponse<{ recorded: boolean }>> {
     try {
       await this.deps.rawQuery(
-        `INSERT INTO "SeoKeywordHistory" ("keyword", "volume", "timestamp", "source", "competition")
+        `INSERT INTO "seo_keyword_history" ("keyword", "volume", "timestamp", "source", "competition")
          VALUES ($1, $2, $3, $4, $5)`,
         snapshot.keyword,
         snapshot.volume,
@@ -801,7 +803,7 @@ export class SeoService {
     limit: number = 100,
   ): Promise<ApiResponse<KeywordVolumeSnapshot[]>> {
     try {
-      let query = `SELECT * FROM "SeoKeywordHistory" WHERE "keyword" = $1`;
+      let query = `SELECT * FROM "seo_keyword_history" WHERE "keyword" = $1`;
       const params: unknown[] = [keyword];
       let paramIdx = 2;
 
@@ -840,7 +842,7 @@ export class SeoService {
       );
 
       const currentRows = (await this.deps.rawQuery(
-        `SELECT AVG("volume") as avg_volume FROM "SeoKeywordHistory"
+        `SELECT AVG("volume") as avg_volume FROM "seo_keyword_history"
          WHERE "keyword" = $1 AND "timestamp" >= $2 AND "timestamp" < $3`,
         keyword,
         currentStart.toISOString(),
@@ -848,7 +850,7 @@ export class SeoService {
       )) as { avg_volume: number | null }[];
 
       const previousRows = (await this.deps.rawQuery(
-        `SELECT AVG("volume") as avg_volume FROM "SeoKeywordHistory"
+        `SELECT AVG("volume") as avg_volume FROM "seo_keyword_history"
          WHERE "keyword" = $1 AND "timestamp" >= $2 AND "timestamp" < $3`,
         keyword,
         previousStart.toISOString(),
@@ -922,7 +924,7 @@ export class SeoService {
     try {
       const cutoff = new Date(Date.now() - retentionDays * 86400000);
       const result = (await this.deps.rawQuery(
-        `DELETE FROM "SeoKeywordHistory" WHERE "timestamp" < $1`,
+        `DELETE FROM "seo_keyword_history" WHERE "timestamp" < $1`,
         cutoff.toISOString(),
       )) as unknown[];
       return ok({ deleted: Array.isArray(result) ? result.length : 0 });
@@ -1536,13 +1538,14 @@ export class SeoService {
 
       const content = await this.deps.page.findUnique({
         where: { id: pageId },
-        include: { categories: true, tags: true },
       });
       if (!content) return fail('NOT_FOUND', 'Page not found.');
 
+      // Pages don't have categories/tags relations — supply empty arrays
+      const contentWithDefaults = { ...content, categories: [], tags: [] };
       // Default pathPrefix to '' for pages (not '/blog')
       const pageOptions = { ...options, pathPrefix: options.pathPrefix ?? '' };
-      const meta = assembleSeoMeta(content, pageOptions);
+      const meta = assembleSeoMeta(contentWithDefaults, pageOptions);
 
       if (this.cache) {
         await this.cache.set(cacheKey, meta, CACHE_TTLS.META);

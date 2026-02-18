@@ -94,6 +94,17 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
     }
 
+    // AUTHORs can only edit their own posts
+    if (role === "AUTHOR") {
+      const existingPost = await prisma.post.findUnique({ where: { id }, select: { authorId: true } });
+      if (!existingPost) {
+        return NextResponse.json({ success: false, error: "Post not found" }, { status: 404 });
+      }
+      if (existingPost.authorId !== session.user.id) {
+        return NextResponse.json({ success: false, error: "You can only edit your own posts" }, { status: 403 });
+      }
+    }
+
     const body = await req.json();
 
     // Extract tag IDs if provided

@@ -1,11 +1,23 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/server/db/prisma";
+import { siteSettingsService } from "@/server/wiring";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://example.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_URL.replace(/\/$/, "");
+
+  // Check if sitemap generation is enabled
+  try {
+    const s = await siteSettingsService.getSettings();
+    const raw = s as unknown as Record<string, unknown>;
+    if (raw.sitemapEnabled === false) {
+      return []; // Empty sitemap when disabled
+    }
+  } catch {
+    // Continue with defaults if settings unavailable
+  }
 
   // Fetch published posts (exclude noIndex posts)
   const posts = await prisma.post.findMany({

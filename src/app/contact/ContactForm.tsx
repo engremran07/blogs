@@ -7,7 +7,9 @@ import { Input, Textarea } from "@/components/ui/FormFields";
 import { toast } from "@/components/ui/Toast";
 import Captcha from "@/features/captcha/ui/Captcha";
 
-export default function ContactForm() {
+export default function ContactForm({ contactInfo }: {
+  contactInfo?: { email: string | null; phone: string | null; address: string | null };
+}) {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [sending, setSending] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
@@ -45,10 +47,10 @@ export default function ContactForm() {
       {/* Contact Info */}
       <div className="space-y-6">
         {[
-          { icon: Mail, label: "Email", value: "contact@myblog.com" },
-          { icon: MapPin, label: "Location", value: "San Francisco, CA" },
-          { icon: Phone, label: "Phone", value: "+1 (555) 123-4567" },
-        ].map((item) => (
+          { icon: Mail, label: "Email", value: contactInfo?.email || "contact@myblog.com" },
+          { icon: MapPin, label: "Location", value: contactInfo?.address || null },
+          { icon: Phone, label: "Phone", value: contactInfo?.phone || null },
+        ].filter((item) => item.value).map((item) => (
           <div
             key={item.label}
             className="flex items-start gap-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"

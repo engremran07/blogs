@@ -18,10 +18,16 @@ export async function PATCH(
     }
     const body = await req.json();
 
-    // Admin moderation actions (status change)
+    // Admin moderation actions (status change) — editors+ only
     if (body.status && Object.keys(body).length === 1) {
+      const allowedModRoles = ["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"];
+      if (!allowedModRoles.includes(session.user.role)) {
+        return NextResponse.json(
+          { success: false, error: "Only editors and admins can moderate comments" },
+          { status: 403 }
+        );
+      }
       const status = body.status as string;
-      // TODO: extract real moderatorId from session
       const moderatorId = session.user.id || "system";
       let comment;
       switch (status) {

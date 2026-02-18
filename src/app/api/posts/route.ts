@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const authorId = session.user.id || body.authorId;
+    const authorId = session.user.id;
 
     // Sanitize inputs
     const title = sanitizeText(body.title);

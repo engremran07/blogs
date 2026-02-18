@@ -275,6 +275,32 @@ export interface SiteConfig {
   /** Reply-to email — null = use emailFromAddress (on-request) */
   emailReplyTo: string | null;
 
+  // ── SMTP Configuration ────────────────────────────────────────────────
+  /** SMTP server hostname */
+  smtpHost: string | null;
+  /** SMTP port (default: 587) */
+  smtpPort: number;
+  /** SMTP username */
+  smtpUser: string | null;
+  /** SMTP password (stored encrypted) */
+  smtpPassword: string | null;
+  /** Use TLS for SMTP (default: true) */
+  smtpSecure: boolean;
+
+  // ── Email Notifications ───────────────────────────────────────────────
+  /** Send admin email on new comment */
+  emailNotifyOnComment: boolean;
+  /** Send admin email on new user registration */
+  emailNotifyOnUser: boolean;
+  /** Send admin email on contact form submission */
+  emailNotifyOnContact: boolean;
+  /** Send welcome email to new users */
+  emailWelcomeEnabled: boolean;
+  /** Enable email digest */
+  emailDigestEnabled: boolean;
+  /** Email digest frequency: daily | weekly | monthly */
+  emailDigestFrequency: string;
+
   // ── Third-Party Integrations ──────────────────────────────────────────
   /** Google Tag Manager container ID (on-request) */
   googleTagManagerId: string | null;
@@ -518,6 +544,29 @@ export interface EmailSenderConfig {
   emailFromName: string | null;
   emailFromAddress: string | null;
   emailReplyTo: string | null;
+}
+
+/** Extracts SMTP configuration. */
+export interface SmtpConfig {
+  smtpHost: string | null;
+  smtpPort: number;
+  smtpUser: string | null;
+  smtpPassword: string | null;
+  smtpSecure: boolean;
+}
+
+/** Extracts email notification toggles. */
+export interface EmailNotificationConfig {
+  emailNotifyOnComment: boolean;
+  emailNotifyOnUser: boolean;
+  emailNotifyOnContact: boolean;
+  emailWelcomeEnabled: boolean;
+}
+
+/** Extracts email digest settings. */
+export interface EmailDigestConfig {
+  emailDigestEnabled: boolean;
+  emailDigestFrequency: string;
 }
 
 /** Extracts media upload fields. */

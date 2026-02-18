@@ -399,6 +399,19 @@ export const updateEmailSenderSchema = z.object({
   emailFromName: nullableStr(100),
   emailFromAddress: z.string().email().nullable().optional(),
   emailReplyTo: z.string().email().nullable().optional(),
+  // SMTP
+  smtpHost: nullableStr(200),
+  smtpPort: z.number().int().min(1).max(65535).optional(),
+  smtpUser: nullableStr(200),
+  smtpPassword: nullableStr(500),
+  smtpSecure: optBool,
+  // Notifications
+  emailNotifyOnComment: optBool,
+  emailNotifyOnUser: optBool,
+  emailNotifyOnContact: optBool,
+  emailWelcomeEnabled: optBool,
+  emailDigestEnabled: optBool,
+  emailDigestFrequency: z.enum(['daily', 'weekly', 'monthly']).optional(),
 });
 export type UpdateEmailSenderInput = z.infer<typeof updateEmailSenderSchema>;
 

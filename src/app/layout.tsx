@@ -65,6 +65,10 @@ export async function generateMetadata(): Promise<Metadata> {
   let ogImage: string | null = null;
   let googleVerification: string | null = null;
   let bingVerification: string | null = null;
+  let yandexVerification: string | null = null;
+  let pinterestVerification: string | null = null;
+  let baiduVerification: string | null = null;
+  let titleTemplate = `%s | ${siteName}`;
   let faviconUrl = "/favicon.ico";
   try {
     const s = await siteSettingsService.getSettings();
@@ -72,22 +76,45 @@ export async function generateMetadata(): Promise<Metadata> {
     description = s.siteDescription || description;
     faviconUrl = s.faviconUrl || faviconUrl;
     const raw = s as unknown as Record<string, unknown>;
-    ogImage = raw.seoDefaultImage as string | null;
-    googleVerification = raw.seoGoogleVerification as string | null;
-    bingVerification = raw.seoBingVerification as string | null;
+    ogImage = (raw.seoDefaultImage as string) || null;
+    googleVerification = (raw.seoGoogleVerification as string) || null;
+    bingVerification = (raw.seoBingVerification as string) || null;
+    yandexVerification = (raw.seoYandexVerification as string) || null;
+    pinterestVerification = (raw.seoPinterestVerification as string) || null;
+    baiduVerification = (raw.seoBaiduVerification as string) || null;
+    // Use admin-configured title template if set (e.g. "%s — MySite")
+    const customTemplate = raw.seoTitleTemplate as string | null;
+    if (customTemplate && customTemplate.includes("%s")) {
+      titleTemplate = customTemplate.replace(/%siteName%/g, siteName);
+    } else {
+      titleTemplate = `%s | ${siteName}`;
+    }
   } catch {
     /* fallback to defaults */
   }
+
+  // Build verification object with all supported engines
+  const verification: Record<string, string> = {};
+  if (googleVerification) verification.google = googleVerification;
+  if (bingVerification) verification["msvalidate.01"] = bingVerification;
+  if (yandexVerification) verification["yandex-verification"] = yandexVerification;
+  if (pinterestVerification) verification["p:domain_verify"] = pinterestVerification;
+  if (baiduVerification) verification["baidu-site-verification"] = baiduVerification;
+
   return {
-    title: { default: siteName, template: `%s | ${siteName}` },
+    title: { default: siteName, template: titleTemplate },
     description,
     metadataBase: new URL(SITE_URL),
     alternates: { canonical: SITE_URL },
     icons: { icon: faviconUrl },
-    ...(googleVerification || bingVerification ? {
+    ...(Object.keys(verification).length > 0 ? {
       verification: {
         ...(googleVerification ? { google: googleVerification } : {}),
-        ...(bingVerification ? { other: { 'msvalidate.01': bingVerification } } : {}),
+        ...(Object.keys(verification).length > 1 ? {
+          other: Object.fromEntries(
+            Object.entries(verification).filter(([k]) => k !== "google")
+          ),
+        } : {}),
       },
     } : {}),
     openGraph: {

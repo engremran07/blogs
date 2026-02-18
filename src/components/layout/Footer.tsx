@@ -75,8 +75,8 @@ export function Footer({ siteName = "MyBlog", socialLinks, logoUrl }: { siteName
           <div>
             <h4 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Legal</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/privacy" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Privacy Policy</Link></li>
-              <li><Link href="/terms" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Terms of Service</Link></li>
+              <li><Link href="/privacy-policy" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Privacy Policy</Link></li>
+              <li><Link href="/terms-of-service" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Terms of Service</Link></li>
               <li><Link href="/contact" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Contact</Link></li>
               <li><Link href="/sitemap.xml" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Sitemap</Link></li>
             </ul>

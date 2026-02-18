@@ -189,30 +189,28 @@ export function CookieConsentBanner({ settings }: { settings: CookieConsentSetti
 
               {/* Buttons */}
               <div className="mt-4 flex flex-wrap items-center gap-2 sm:justify-end">
+                <button
+                  onClick={rejectAll}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  Reject All
+                </button>
                 {settings.gdprEnabled && (
-                  <>
-                    <button
-                      onClick={rejectAll}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-                    >
-                      Reject All
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (state) setDraft(state.categories);
-                        setShowPrefs(true);
-                      }}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-                    >
-                      Manage Preferences
-                    </button>
-                  </>
+                  <button
+                    onClick={() => {
+                      if (state) setDraft(state.categories);
+                      setShowPrefs(true);
+                    }}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                  >
+                    Manage Preferences
+                  </button>
                 )}
                 <button
                   onClick={acceptAll}
                   className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:ring-offset-gray-900"
                 >
-                  {settings.gdprEnabled ? "Accept All" : "Got it!"}
+                  Accept All
                 </button>
               </div>
             </>

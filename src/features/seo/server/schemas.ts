@@ -25,22 +25,22 @@ import {
 
 export const generateSuggestionsSchema = z.object({
   scope: z.enum(['site', 'post', 'page']),
-  targetId: z.string().uuid().optional(),
+  targetId: z.string().min(1).optional(),
 });
 
 export const decideSuggestionSchema = z.object({
   status: z.enum(['APPROVED', 'REJECTED']),
   note: z.string().max(1000).optional(),
-  decidedBy: z.string().uuid().optional(),
+  decidedBy: z.string().min(1).optional(),
 });
 
 export const applySuggestionSchema = z.object({
-  suggestionId: z.string().uuid(),
+  suggestionId: z.string().min(1),
 });
 
 export const listSuggestionsSchema = z.object({
   targetType: z.enum(SEO_TARGET_TYPES).optional(),
-  targetId: z.string().uuid().optional(),
+  targetId: z.string().min(1).optional(),
   status: z.enum(SEO_SUGGESTION_STATUSES).optional(),
   category: z.enum(SEO_SUGGESTION_CATEGORIES).optional(),
   source: z.enum(SEO_SUGGESTION_SOURCES).optional(),
@@ -50,7 +50,7 @@ export const listSuggestionsSchema = z.object({
 
 export const createSuggestionSchema = z.object({
   targetType: z.enum(SEO_TARGET_TYPES),
-  targetId: z.string().uuid(),
+  targetId: z.string().min(1),
   category: z.enum(SEO_SUGGESTION_CATEGORIES),
   title: z.string().min(1).max(300),
   description: z.string().min(1).max(2000),
@@ -58,7 +58,7 @@ export const createSuggestionSchema = z.object({
   source: z.enum(SEO_SUGGESTION_SOURCES).default('MANUAL'),
   proposed: z.record(z.string(), z.unknown()).optional(),
   autoApply: z.boolean().default(false),
-  createdById: z.string().uuid().optional(),
+  createdById: z.string().min(1).optional(),
 });
 
 /* ========================================================================== */
@@ -104,15 +104,15 @@ export const listEntitiesSchema = z.object({
 });
 
 export const createEdgeSchema = z.object({
-  fromId: z.string().uuid(),
-  toId: z.string().uuid(),
+  fromId: z.string().min(1),
+  toId: z.string().min(1),
   relation: z.enum(SEO_ENTITY_RELATIONS),
   weight: z.number().min(0).max(100).default(1),
 });
 
 export const shortestPathSchema = z.object({
-  fromId: z.string().uuid(),
-  toId: z.string().uuid(),
+  fromId: z.string().min(1),
+  toId: z.string().min(1),
 });
 
 /* ========================================================================== */
@@ -157,11 +157,11 @@ export const cleanupHistorySchema = z.object({
 
 export const createBatchSchema = z.object({
   name: z.string().min(1).max(300),
-  suggestionIds: z.array(z.string().uuid()).min(1).max(500),
+  suggestionIds: z.array(z.string().min(1)).min(1).max(500),
 });
 
 export const applyBatchSchema = z.object({
-  batchId: z.string().uuid(),
+  batchId: z.string().min(1),
 });
 
 export const listBatchesSchema = z.object({
@@ -175,11 +175,11 @@ export const listBatchesSchema = z.object({
 /* ========================================================================== */
 
 export const auditPostSchema = z.object({
-  postId: z.string().uuid(),
+  postId: z.string().min(1),
 });
 
 export const auditPageSchema = z.object({
-  pageId: z.string().uuid(),
+  pageId: z.string().min(1),
 });
 
 export const auditSiteSchema = z.object({
@@ -327,12 +327,12 @@ export const seoApiBodySchema = z.object({
     'refreshKeywords',
     'refreshEntities',
   ]),
-  postId: z.string().uuid().optional(),
-  pageId: z.string().uuid().optional(),
+  postId: z.string().min(1).optional(),
+  pageId: z.string().min(1).optional(),
   contentType: z.enum(['POST', 'PAGE']).optional(),
   baseUrl: z.string().url().optional(),
   scope: z.enum(['site', 'post', 'page']).optional(),
-  targetId: z.string().uuid().optional(),
+  targetId: z.string().min(1).optional(),
   options: z
     .object({
       limit: z.number().int().min(1).max(500).optional(),
