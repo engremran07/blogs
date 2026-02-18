@@ -59,6 +59,7 @@ interface SiteSettings {
   blogColumns: number;
   showAuthor: boolean;
   showDate: boolean;
+  showUpdatedDate: boolean;
   showReadTime: boolean;
   showTags: boolean;
   showFeaturedImage: boolean;
@@ -715,6 +716,7 @@ export default function AdminSettingsPage() {
                   { key: "showExcerpt", label: "Excerpt", icon: <FileText className="h-4 w-4" /> },
                   { key: "showAuthor", label: "Author", icon: <User className="h-4 w-4" /> },
                   { key: "showDate", label: "Publish Date", icon: <Clock className="h-4 w-4" /> },
+                  { key: "showUpdatedDate", label: "Updated Date", icon: <Clock className="h-4 w-4" /> },
                   { key: "showReadTime", label: "Read Time", icon: <BookOpen className="h-4 w-4" /> },
                   { key: "showTags", label: "Tags", icon: <Hash className="h-4 w-4" /> },
                   { key: "showViewCount", label: "View Count", icon: <Eye className="h-4 w-4" /> },

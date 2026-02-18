@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/server/db/prisma";
-import { Calendar, Clock, Search, Eye, User } from "lucide-react";
+import { Calendar, Clock, Search, Eye, User, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/Card";
 import { BlogSidebar } from "@/components/blog/BlogSidebar";
 import { PostCardShareOverlay } from "@/components/blog/PostCardShareOverlay";
@@ -60,6 +60,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   const showFeaturedImage = settings?.showFeaturedImage ?? true;
   const showExcerpt = settings?.showExcerpt ?? true;
   const showViewCount = settings?.showViewCount ?? false;
+  const showUpdatedDate = settings?.showUpdatedDate ?? true;
   const searchEnabled = settings?.enableSearch ?? true;
 
   const showSocialShare = settings?.socialSharingEnabled ?? true;
@@ -103,8 +104,8 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   type PostItem = {
     id: string; slug: string; title: string; excerpt: string | null;
-    featuredImage: string | null; publishedAt: Date | null; readingTime: number;
-    viewCount: number;
+    featuredImage: string | null; publishedAt: Date | null; updatedAt: Date;
+    readingTime: number; viewCount: number;
     author: { id: string; username: string; displayName: string | null } | null;
     tags: Array<{ id: string; name: string; slug: string }>;
     categories: Array<{ id: string; name: string; slug: string }>;
@@ -123,6 +124,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
         excerpt: true,
         featuredImage: true,
         publishedAt: true,
+        updatedAt: true,
         readingTime: true,
         viewCount: true,
         author: { select: { id: true, username: true, displayName: true } },
@@ -259,6 +261,12 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                           {new Date(post.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </span>
                       )}
+                      {showUpdatedDate && post.updatedAt && post.publishedAt && new Date(post.updatedAt).getTime() - new Date(post.publishedAt).getTime() > 86400000 && (
+                        <span className="flex items-center gap-1 text-green-600 dark:text-green-400" title={`Last updated: ${new Date(post.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}>
+                          <RefreshCw className="h-3 w-3" />
+                          Updated {new Date(post.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      )}
                       {showReadTime && post.readingTime > 0 && (
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
@@ -337,6 +345,12 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           {new Date(post.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      )}
+                      {showUpdatedDate && post.updatedAt && post.publishedAt && new Date(post.updatedAt).getTime() - new Date(post.publishedAt).getTime() > 86400000 && (
+                        <span className="flex items-center gap-1 text-green-600 dark:text-green-400" title={`Last updated: ${new Date(post.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}>
+                          <RefreshCw className="h-3 w-3" />
+                          Updated {new Date(post.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </span>
                       )}
                       {showReadTime && post.readingTime > 0 && (

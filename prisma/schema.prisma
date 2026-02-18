@@ -1308,6 +1308,7 @@ model SiteSettings {
   blogColumns                     Int      @default(2)             // 1, 2, 3, 4
   showAuthor                      Boolean  @default(true)
   showDate                        Boolean  @default(true)
+  showUpdatedDate                 Boolean  @default(true)
   showReadTime                    Boolean  @default(true)
   showTags                        Boolean  @default(true)
   showFeaturedImage               Boolean  @default(true)

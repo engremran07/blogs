@@ -161,6 +161,53 @@ export const updateSiteSettingsSchema = z.object({
   defaultPostStatus: z.string().optional(),
   enableSearch: optBool,
 
+  // Blog Layout & Display
+  blogLayout: z.string().max(20).optional(),
+  blogColumns: z.number().int().min(1).max(4).optional(),
+  showAuthor: optBool,
+  showDate: optBool,
+  showUpdatedDate: optBool,
+  showReadTime: optBool,
+  showTags: optBool,
+  showFeaturedImage: optBool,
+  showExcerpt: optBool,
+  showViewCount: optBool,
+
+  // Sidebar
+  sidebarEnabled: optBool,
+  sidebarPosition: z.string().max(10).optional(),
+  sidebarShowSearch: optBool,
+  sidebarShowRecentPosts: optBool,
+  sidebarShowCategories: optBool,
+  sidebarShowTags: optBool,
+  sidebarShowArchive: optBool,
+  sidebarRecentPostsCount: z.number().int().min(1).max(50).optional(),
+
+  // Single Post Display
+  relatedPostsEnabled: optBool,
+  relatedPostsCount: z.number().int().min(0).max(20).optional(),
+  socialSharingEnabled: optBool,
+  tableOfContentsEnabled: optBool,
+  showPostNavigation: optBool,
+
+  // Email / SMTP
+  smtpHost: nullableStr(200),
+  smtpPort: z.number().int().min(1).max(65535).optional(),
+  smtpUser: nullableStr(200),
+  smtpPassword: nullableStr(500),
+  smtpSecure: optBool,
+  emailNotifyOnComment: optBool,
+  emailNotifyOnUser: optBool,
+  emailNotifyOnContact: optBool,
+  emailWelcomeEnabled: optBool,
+  emailDigestEnabled: optBool,
+  emailDigestFrequency: z.string().max(20).optional(),
+
+  // SEO Verification (additional)
+  seoYandexVerification: nullableStr(100),
+  seoPinterestVerification: nullableStr(100),
+  seoBaiduVerification: nullableStr(100),
+
   // Privacy & Legal
   cookieConsentEnabled: optBool,
   cookieConsentMessage: z.string().max(2000).optional(),

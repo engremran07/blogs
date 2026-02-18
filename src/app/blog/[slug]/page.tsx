@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/server/db/prisma";
 import { auth } from "@/server/auth";
-import { Calendar, Clock, Tag, Eye } from "lucide-react";
+import { Calendar, Clock, Tag, Eye, RefreshCw } from "lucide-react";
 import { Badge, Avatar } from "@/components/ui/Card";
 import { CommentSection } from "./CommentSection";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
@@ -148,6 +148,7 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
   const showSocialShare = settings?.socialSharingEnabled ?? true;
   const showRelated = settings?.relatedPostsEnabled ?? true;
   const showPostNav = settings?.showPostNavigation ?? true;
+  const showUpdatedDate = settings?.showUpdatedDate ?? true;
   const commentsEnabled = commentSettings?.commentsEnabled ?? true;
 
   // Sidebar settings (same pattern as blog index)
@@ -317,6 +318,16 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
                       })
                     : "Draft"}
                 </span>
+                {showUpdatedDate && post.updatedAt && post.publishedAt && new Date(post.updatedAt).getTime() - new Date(post.publishedAt).getTime() > 86400000 && (
+                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400" title="This article has been updated since it was first published">
+                    <RefreshCw className="h-4 w-4" />
+                    Updated {new Date(post.updatedAt).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                )}
                 {post.readingTime > 0 && (
                   <span className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
