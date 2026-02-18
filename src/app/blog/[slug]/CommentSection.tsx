@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   MessageSquare, ThumbsUp, Send, Loader2,
   ChevronDown, ChevronUp, ArrowUpDown,
-  ChevronLeft, ChevronRight, MoreHorizontal,
+  ChevronLeft, ChevronRight, MoreHorizontal, Flag,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -123,6 +123,7 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
+  const [replyCaptchaToken, setReplyCaptchaToken] = useState("");
   const [captchaNonce, setCaptchaNonce] = useState(0);
 
   // Pagination state
@@ -207,13 +208,62 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
     return comment.replies.reduce((sum, r) => sum + 1 + countReplies(r), 0);
   }
 
+  /* ── Flag/Report handler ──────────────────────────────────────────────── */
+  async function handleFlag(commentId: string) {
+    if (!session?.user) {
+      toast("Please sign in to report a comment", "error");
+      return;
+    }
+    const reason = window.prompt("Why are you reporting this comment?");
+    if (!reason?.trim()) return;
+    try {
+      const res = await fetch(`/api/comments/${commentId}/flag`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast("Comment reported. Thank you.", "success");
+      } else {
+        toast(data.error || "Failed to report", "error");
+      }
+    } catch {
+      toast("Failed to report comment", "error");
+    }
+  }
+
+  /* ── Vote handler ────────────────────────────────────────────────────── */
+  async function handleVote(commentId: string) {
+    if (!session?.user) {
+      toast("Please sign in to vote", "error");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/comments/${commentId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "UP" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchComments();
+      } else {
+        toast(data.error || "Failed to vote", "error");
+      }
+    } catch {
+      toast("Failed to vote", "error");
+    }
+  }
+
   /* ── Submit comment ──────────────────────────────────────────────────── */
   async function handleSubmit(e: React.FormEvent, parentId?: string | null) {
     e.preventDefault();
     const text = parentId ? replyContent : content;
     if (!text.trim()) return;
 
-    if (!parentId && !captchaToken) {
+    const token = parentId ? replyCaptchaToken : captchaToken;
+    if (!token) {
       toast("Please complete the security check", "error");
       return;
     }
@@ -229,6 +279,7 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
           parentId: parentId || undefined,
           authorName: session?.user?.name || guestName || "Anonymous",
           authorEmail: session?.user?.email || guestEmail || "",
+          captchaToken: token,
         }),
       });
       const data = await res.json();
@@ -237,6 +288,7 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
         if (parentId) {
           setReplyContent("");
           setReplyTo(null);
+          setReplyCaptchaToken("");
         } else {
           setContent("");
         }
@@ -316,7 +368,10 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
 
           {/* Actions bar */}
           <div className="mt-3 flex items-center gap-4">
-            <button className="flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-blue-600 dark:text-gray-400">
+            <button
+              onClick={() => handleVote(comment.id)}
+              className="flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-blue-600 dark:text-gray-400"
+            >
               <ThumbsUp className="h-3.5 w-3.5" />
               {comment.upvotes > 0 && <span>{comment.upvotes}</span>}
             </button>
@@ -326,6 +381,16 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
             >
               Reply
             </button>
+            {session?.user && (
+              <button
+                onClick={() => handleFlag(comment.id)}
+                className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-red-500 dark:text-gray-500"
+                title="Report this comment"
+              >
+                <Flag className="h-3 w-3" />
+                Report
+              </button>
+            )}
             {/* Collapse / Expand toggle */}
             {(comment.replies?.length ?? 0) > 0 && (
               <button
@@ -356,6 +421,12 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
                 placeholder={`Replying to ${comment.authorName}…`}
                 rows={2}
               />
+              <div className="mt-2">
+                <Captcha
+                  onVerify={(token) => setReplyCaptchaToken(token)}
+                  resetNonce={captchaNonce}
+                />
+              </div>
               <div className="mt-2 flex justify-end gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setReplyTo(null)}>
                   Cancel

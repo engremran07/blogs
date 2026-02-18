@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // ESLint doesn't lint CSS — avoid "no matching configuration" warning
+    "**/*.css",
   ]),
   {
     rules: {

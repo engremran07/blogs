@@ -144,15 +144,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: comment }, { status: 201 });
   } catch (error) {
-    const message = "Failed to create comment";
-    const status = message.includes("disabled") || message.includes("blocked") || message.includes("closed")
+    const errMsg = error instanceof Error ? error.message : "Failed to create comment";
+    const status = errMsg.includes("disabled") || errMsg.includes("blocked") || errMsg.includes("closed")
       ? 403
-      : message.includes("Rate limit") || message.includes("Max")
+      : errMsg.includes("Rate limit") || errMsg.includes("Max")
         ? 429
-        : message.includes("depth") || message.includes("not allowed")
+        : errMsg.includes("depth") || errMsg.includes("not allowed") || errMsg.includes("Guest")
           ? 400
           : 500;
     logger.error("[api/comments] POST error:", { error });
-    return NextResponse.json({ success: false, error: message }, { status });
+    return NextResponse.json({ success: false, error: errMsg }, { status });
   }
 }

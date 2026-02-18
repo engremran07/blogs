@@ -100,15 +100,33 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    // Sync enableComments → CommentSettings.commentsEnabled (single source of truth)
-    if ('enableComments' in parsed.data && parsed.data.enableComments !== undefined) {
+    // Sync ALL comment fields from SiteSettings → CommentSettings (single source of truth)
+    const commentFieldMap: Record<string, string> = {
+      enableComments: 'commentsEnabled',
+      enableCommentModeration: 'requireModeration',
+      enableCommentVoting: 'enableVoting',
+      enableCommentThreading: 'enableThreading',
+      allowGuestComments: 'allowGuestComments',
+      maxReplyDepth: 'maxReplyDepth',
+      closeCommentsAfterDays: 'closeCommentsAfterDays',
+      editWindowMinutes: 'editWindowMinutes',
+    };
+    const commentSync: Record<string, unknown> = {};
+    for (const [siteField, commentField] of Object.entries(commentFieldMap)) {
+      if (siteField in parsed.data && (parsed.data as Record<string, unknown>)[siteField] !== undefined) {
+        commentSync[commentField] = (parsed.data as Record<string, unknown>)[siteField];
+      }
+    }
+    // Special case: autoApproveComments (boolean) → autoApproveThreshold (int)
+    // true = threshold 0 (always auto-approve), false = threshold 3 (require N approved first)
+    if ('autoApproveComments' in parsed.data && parsed.data.autoApproveComments !== undefined) {
+      commentSync.autoApproveThreshold = (parsed.data as Record<string, unknown>).autoApproveComments ? 0 : 3;
+    }
+    if (Object.keys(commentSync).length > 0) {
       try {
-        await commentAdminSettings.updateSettings(
-          { commentsEnabled: parsed.data.enableComments as boolean },
-          updatedBy ?? "system",
-        );
+        await commentAdminSettings.updateSettings(commentSync, updatedBy ?? "system");
       } catch (err) {
-        logger.error("[api/settings] Failed to sync enableComments to CommentSettings", { error: err });
+        logger.error("[api/settings] Failed to sync comment fields to CommentSettings", { error: err });
       }
     }
 

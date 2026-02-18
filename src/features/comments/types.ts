@@ -94,24 +94,25 @@ export interface CommentData {
   authorWebsite?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;
-  isApproved: boolean;
-  isSpam: boolean;
-  isFlagged: boolean;
-  flagReason?: string | null;
+
+  // Primary DB columns
+  status: string;
+  spamScore: number;
+  spamSignals: string[];
+  flagCount: number;
+  flagReasons: string[];
   isPinned: boolean;
   isResolved: boolean;
   isEdited: boolean;
-  isDeleted: boolean;
-  depth: number;
   upvotes: number;
   downvotes: number;
-  reactions: Record<string, number>;
-  moderatedBy?: string | null;
-  moderatedAt?: Date | null;
+
   editedAt?: Date | null;
   deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
+
+  // Relations (populated by includes)
   user?: CommentAuthor;
   post?: { id: string; title: string; slug: string };
   replies?: CommentData[];
@@ -398,5 +399,6 @@ export interface CommentsPrismaClient {
   commentVote: PrismaDelegate;
   learningSignal: PrismaDelegate;
   commentSettings: PrismaDelegate;
+  post: PrismaDelegate;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

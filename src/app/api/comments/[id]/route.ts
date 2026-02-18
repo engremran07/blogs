@@ -32,13 +32,7 @@ export async function PATCH(
           comment = await moderationService.reject(id, moderatorId);
           break;
         case "SPAM": {
-          // ModerationService doesn't have a dedicated spam method,
-          // so update directly with status and spamScore
-          const { prisma } = await import("@/server/db/prisma");
-          comment = await prisma.comment.update({
-            where: { id },
-            data: { status: "SPAM", spamScore: 1.0 },
-          });
+          comment = await moderationService.markAsSpam(id, moderatorId);
           break;
         }
         default:
@@ -60,18 +54,17 @@ export async function PATCH(
       );
     }
 
-    // TODO: extract real userId from session for ownership check
-    const userId = body.userId as string | undefined;
+    const userId = session.user.id;
     const comment = await commentService.update(id, parsed.data, userId);
     return NextResponse.json({ success: true, data: comment });
   } catch (error) {
-    const message = "Failed to update comment";
-    const status = message.includes("not found") ? 404
-      : message.includes("Not authorised") ? 403
-      : message.includes("window") ? 400
+    const errMsg = error instanceof Error ? error.message : "Failed to update comment";
+    const status = errMsg.includes("not found") ? 404
+      : errMsg.includes("Not authorised") ? 403
+      : errMsg.includes("window") ? 400
       : 500;
     logger.error("[api/comments/[id]] PATCH error:", { error });
-    return NextResponse.json({ success: false, error: message }, { status });
+    return NextResponse.json({ success: false, error: errMsg }, { status });
   }
 }
 
@@ -85,15 +78,17 @@ export async function DELETE(
     if (!session?.user) {
       return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
     }
-    // TODO: extract real userId from session for ownership check
-    await commentService.softDelete(id);
+    // Admins can delete any comment; regular users can only delete their own
+    const isAdminRole = ["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role);
+    const userId = isAdminRole ? undefined : session.user.id;
+    await commentService.softDelete(id, userId);
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = "Failed to delete comment";
+    const errMsg = error instanceof Error ? error.message : "Failed to delete comment";
     logger.error("[api/comments/[id]] DELETE error:", { error });
     return NextResponse.json(
-      { success: false, error: message },
-      { status: message.includes("not found") ? 404 : 500 }
+      { success: false, error: errMsg },
+      { status: errMsg.includes("not found") ? 404 : errMsg.includes("Not authorised") ? 403 : 500 }
     );
   }
 }

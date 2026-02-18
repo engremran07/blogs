@@ -37,8 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // TODO: extract real moderatorId from session
-    const moderatorId = "system";
+    const moderatorId = session.user.id || "system";
 
     switch (action) {
       case "delete": {
@@ -55,13 +54,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, message: `${count} comments rejected` });
       }
       case "spam": {
-        // Use bulkReject + update status to SPAM
-        const { prisma } = await import("@/server/db/prisma");
-        const result = await prisma.comment.updateMany({
-          where: { id: { in: ids } },
-          data: { status: "SPAM" },
-        });
-        return NextResponse.json({ success: true, message: `${result.count} comments marked as spam` });
+        const count = await moderationService.bulkMarkAsSpam(ids, moderatorId);
+        return NextResponse.json({ success: true, message: `${count} comments marked as spam` });
       }
       default:
         return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });

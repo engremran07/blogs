@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
@@ -14,8 +15,12 @@ import {
   User,
   LayoutDashboard,
   ChevronDown,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { useTheme } from "next-themes";
+import { useSyncExternalStore } from "react";
 import { Avatar } from "@/components/ui/Card";
 
 const navLinks = [
@@ -26,11 +31,26 @@ const navLinks = [
   { href: "/contact", label: "Contact" },
 ];
 
-export function Header({ siteName = "MyBlog" }: { siteName?: string }) {
+/* SSR-safe mounted check without triggering set-state-in-effect rule */
+const subscribeNoop = () => () => {};
+const getTrue = () => true;
+const getFalse = () => false;
+
+export function Header({
+  siteName = "MyBlog",
+  logoUrl,
+  showDarkModeToggle = true,
+}: {
+  siteName?: string;
+  logoUrl?: string | null;
+  showDarkModeToggle?: boolean;
+}) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+  const mounted = useSyncExternalStore(subscribeNoop, getTrue, getFalse);
 
   const isAdmin = session?.user?.role === "ADMINISTRATOR" ||
     session?.user?.role === "SUPER_ADMIN" ||
@@ -41,9 +61,13 @@ export function Header({ siteName = "MyBlog" }: { siteName?: string }) {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 font-bold text-white">
-            {siteName.charAt(0).toUpperCase()}
-          </div>
+          {logoUrl ? (
+            <Image src={logoUrl} alt={siteName} width={128} height={32} className="h-8 w-auto max-w-32 object-contain" unoptimized />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-bold text-white">
+              {siteName.charAt(0).toUpperCase()}
+            </div>
+          )}
           <span className="text-lg font-bold text-gray-900 dark:text-white">{siteName}</span>
         </Link>
 
@@ -56,7 +80,7 @@ export function Header({ siteName = "MyBlog" }: { siteName?: string }) {
               className={clsx(
                 "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href))
-                  ? "bg-gray-100 text-blue-600 dark:bg-gray-800 dark:text-blue-400"
+                  ? "bg-gray-100 text-primary dark:bg-gray-800"
                   : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white",
               )}
             >
@@ -67,6 +91,21 @@ export function Header({ siteName = "MyBlog" }: { siteName?: string }) {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Dark mode toggle */}
+          {showDarkModeToggle && mounted && (
+            <button
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+              aria-label="Toggle dark mode"
+            >
+              {resolvedTheme === "dark" ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </button>
+          )}
+
           <Link
             href="/search"
             className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
@@ -143,7 +182,7 @@ export function Header({ siteName = "MyBlog" }: { siteName?: string }) {
           ) : (
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
             >
               <LogIn className="h-4 w-4" />
               Sign In
@@ -172,7 +211,7 @@ export function Header({ siteName = "MyBlog" }: { siteName?: string }) {
                 className={clsx(
                   "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href))
-                    ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                    ? "bg-primary/10 text-primary"
                     : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800",
                 )}
               >

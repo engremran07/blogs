@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/layout/Providers";
@@ -19,16 +19,58 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/* ── Google Fonts helper ── */
+const GOOGLE_FONT_NAMES = new Set([
+  "Inter", "Roboto", "Open Sans", "Lato", "Poppins",
+  "Nunito", "Merriweather", "Playfair Display", "Montserrat",
+]);
+
+function extractGoogleFontName(css: string): string | null {
+  const m = css.match(/^['"]?([^'",]+)/);
+  const name = m?.[1]?.trim();
+  return name && GOOGLE_FONT_NAMES.has(name) ? name : null;
+}
+
+function buildGoogleFontsUrl(
+  ...families: (string | null | undefined)[]
+): string | null {
+  const names = families
+    .filter(Boolean)
+    .map((f) => extractGoogleFontName(f!))
+    .filter((n): n is string => n !== null);
+  const unique = [...new Set(names)];
+  if (unique.length === 0) return null;
+  const params = unique
+    .map((n) => `family=${encodeURIComponent(n)}:wght@300;400;500;600;700`)
+    .join("&");
+  return `https://fonts.googleapis.com/css2?${params}&display=swap`;
+}
+
+export async function generateViewport(): Promise<Viewport> {
+  let themeColor: string | null = null;
+  try {
+    const s = await siteSettingsService.getSettings();
+    themeColor = s.themeColor || s.primaryColor || null;
+  } catch {
+    /* fallback */
+  }
+  return {
+    ...(themeColor ? { themeColor } : {}),
+  };
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   let siteName = "MyBlog";
   let description = "A modern blog platform built with Next.js";
   let ogImage: string | null = null;
   let googleVerification: string | null = null;
   let bingVerification: string | null = null;
+  let faviconUrl = "/favicon.ico";
   try {
     const s = await siteSettingsService.getSettings();
     siteName = s.siteName || siteName;
     description = s.siteDescription || description;
+    faviconUrl = s.faviconUrl || faviconUrl;
     const raw = s as unknown as Record<string, unknown>;
     ogImage = raw.seoDefaultImage as string | null;
     googleVerification = raw.seoGoogleVerification as string | null;
@@ -41,6 +83,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     metadataBase: new URL(SITE_URL),
     alternates: { canonical: SITE_URL },
+    icons: { icon: faviconUrl },
     ...(googleVerification || bingVerification ? {
       verification: {
         ...(googleVerification ? { google: googleVerification } : {}),
@@ -95,8 +138,53 @@ export default async function RootLayout({
 }>) {
   const webSiteJsonLd = await getWebSiteJsonLd();
 
+  /* ── Appearance settings ── */
+  let primaryColor = "#3b82f6";
+  let secondaryColor = "#64748b";
+  let accentColor = "#f59e0b";
+  let fontFamily = "system-ui, sans-serif";
+  let headingFontFamily: string | null = null;
+  let customCss: string | null = null;
+  let darkModeEnabled = true;
+  let darkModeDefault = false;
+
+  try {
+    const s = await siteSettingsService.getSettings();
+    primaryColor = s.primaryColor || primaryColor;
+    secondaryColor = s.secondaryColor || secondaryColor;
+    accentColor = s.accentColor || accentColor;
+    fontFamily = s.fontFamily || fontFamily;
+    headingFontFamily = s.headingFontFamily ?? null;
+    customCss = s.customCss ?? null;
+    darkModeEnabled = s.darkModeEnabled ?? true;
+    darkModeDefault = s.darkModeDefault ?? false;
+  } catch {
+    /* fallback to defaults */
+  }
+
+  const effectiveHeadingFont = headingFontFamily || fontFamily;
+  const googleFontsUrl = buildGoogleFontsUrl(fontFamily, headingFontFamily);
+
+  const themeCssVars = `:root{--site-primary:${primaryColor};--site-secondary:${secondaryColor};--site-accent:${accentColor};--font-body:${fontFamily};--font-heading:${effectiveHeadingFont}}`;
+
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Theme CSS variable overrides from admin settings */}
+        <style dangerouslySetInnerHTML={{ __html: themeCssVars }} />
+        {/* Google Fonts for admin-selected typography */}
+        {googleFontsUrl && (
+          <>
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+            <link rel="stylesheet" href={googleFontsUrl} />
+          </>
+        )}
+        {/* Admin custom CSS */}
+        {customCss && (
+          <style dangerouslySetInnerHTML={{ __html: customCss }} />
+        )}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -104,7 +192,7 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(webSiteJsonLd) }}
         />
-        <Providers>
+        <Providers darkModeEnabled={darkModeEnabled} darkModeDefault={darkModeDefault}>
           <PublicShell
             headerAdSlot={<HeaderAdBanner />}
             footerAdSlot={<FooterAdBanner />}

@@ -113,6 +113,35 @@ export class ModerationService implements CommentConfigConsumer {
     return this.setStatus(id, CommentStatus.REJECTED, moderatorId, CommentEvent.REJECTED);
   }
 
+  async markAsSpam(id: string, moderatorId: string): Promise<CommentData> {
+    const comment = await this.prisma.comment.update({
+      where: { id },
+      data: { status: CommentStatus.SPAM, spamScore: 1.0 },
+    });
+    if (this.cfg.enableLearningSignals) {
+      await this.prisma.learningSignal.create({
+        data: { commentId: id, action: 'MANUAL_SPAM', metadata: { moderatorId } },
+      }).catch(() => {});
+    }
+    await this.emitEvent(CommentEvent.SPAM_DETECTED, comment, moderatorId);
+    return comment as CommentData;
+  }
+
+  async bulkMarkAsSpam(ids: string[], moderatorId: string): Promise<number> {
+    const result = await this.prisma.comment.updateMany({
+      where: { id: { in: ids } },
+      data: { status: CommentStatus.SPAM, spamScore: 1.0 },
+    });
+    if (this.cfg.enableLearningSignals) {
+      for (const id of ids) {
+        await this.prisma.learningSignal.create({
+          data: { commentId: id, action: 'MANUAL_SPAM_BULK', metadata: { moderatorId } },
+        }).catch(() => {});
+      }
+    }
+    return result.count;
+  }
+
   async flag(id: string, reason: string, userId: string): Promise<CommentData> {
     const comment = await this.prisma.comment.update({
       where: { id },

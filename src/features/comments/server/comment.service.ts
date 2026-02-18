@@ -49,16 +49,15 @@ export class CommentService implements CommentConfigConsumer {
 
     // Auto-close: check if comments are closed on this post
     if (this.cfg.closeCommentsAfterDays > 0) {
-      const post = await this.prisma.comment.findFirst({
-        where: { postId: input.postId },
-        select: { createdAt: true },
+      const post = await this.prisma.post.findUnique({
+        where: { id: input.postId },
+        select: { publishedAt: true, createdAt: true },
       }).catch(() => null);
-      // If we can't find a comment, look up the post creation date via any existing record
-      // A more robust approach would inject a post lookup, but as a safeguard:
       if (post) {
+        const referenceDate = post.publishedAt ?? post.createdAt;
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - this.cfg.closeCommentsAfterDays);
-        if (post.createdAt < cutoff) {
+        if (referenceDate < cutoff) {
           throw new Error(`Comments are closed on posts older than ${this.cfg.closeCommentsAfterDays} days`);
         }
       }

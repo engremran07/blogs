@@ -1,13 +1,32 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "next-themes";
 import { ToastContainer } from "@/components/ui/Toast";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+interface ProvidersProps {
+  children: React.ReactNode;
+  darkModeEnabled?: boolean;
+  darkModeDefault?: boolean;
+}
+
+export function Providers({
+  children,
+  darkModeEnabled = true,
+  darkModeDefault = false,
+}: ProvidersProps) {
   return (
-    <SessionProvider>
-      {children}
-      <ToastContainer />
-    </SessionProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme={darkModeEnabled ? (darkModeDefault ? "dark" : "system") : "light"}
+      enableSystem={darkModeEnabled}
+      forcedTheme={darkModeEnabled ? undefined : "light"}
+      disableTransitionOnChange
+    >
+      <SessionProvider>
+        {children}
+        <ToastContainer />
+      </SessionProvider>
+    </ThemeProvider>
   );
 }

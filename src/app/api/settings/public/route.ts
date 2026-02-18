@@ -46,8 +46,15 @@ export async function GET() {
 
         // Appearance / Theme
         primaryColor: s.primaryColor ?? null,
-        darkModeEnabled: s.darkModeEnabled ?? true,
+        secondaryColor: s.secondaryColor ?? null,
+        accentColor: s.accentColor ?? null,
         fontFamily: s.fontFamily ?? null,
+        headingFontFamily: s.headingFontFamily ?? null,
+        darkModeEnabled: s.darkModeEnabled ?? true,
+        darkModeDefault: s.darkModeDefault ?? false,
+        customCss: s.customCss ?? null,
+        themeColor: s.themeColor ?? null,
+        navShowDarkModeToggle: s.navShowDarkModeToggle ?? true,
 
         // Footer
         footerText: s.footerText ?? null,

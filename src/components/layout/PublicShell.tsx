@@ -26,6 +26,10 @@ interface TopBarSettings {
 interface PublicSettings extends TopBarSettings {
   siteName: string;
   siteDescription: string | null;
+  logoUrl: string | null;
+  logoDarkUrl: string | null;
+  darkModeEnabled: boolean;
+  navShowDarkModeToggle: boolean;
   cookieConsentEnabled: boolean;
   cookieConsentMessage: string;
   privacyPolicyUrl: string | null;
@@ -83,6 +87,8 @@ export function PublicShell({
     : null;
 
   const siteName = settings?.siteName || "MyBlog";
+  const logoUrl = settings?.logoUrl ?? null;
+  const showDarkModeToggle = (settings?.darkModeEnabled ?? true) && (settings?.navShowDarkModeToggle ?? true);
   const socialLinks = settings ? {
     github: settings.socialGithub,
     twitter: settings.socialTwitter,
@@ -95,11 +101,11 @@ export function PublicShell({
   return (
     <div className="flex min-h-screen flex-col">
       {settings && <TopBar settings={settings} />}
-      <Header siteName={siteName} />
+      <Header siteName={siteName} logoUrl={logoUrl} showDarkModeToggle={showDarkModeToggle} />
       {headerAdSlot}
       <main className="flex-1">{children}</main>
       {footerAdSlot}
-      <Footer siteName={siteName} socialLinks={socialLinks} />
+      <Footer siteName={siteName} socialLinks={socialLinks} logoUrl={logoUrl} />
       {consentSettings && <CookieConsentBanner settings={consentSettings} />}
       {settings && (
         <AnalyticsScripts

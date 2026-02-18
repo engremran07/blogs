@@ -428,6 +428,7 @@ model Comment {
   ipAddress      String?
   userAgent      String?
 
+  isEdited       Boolean   @default(false)
   editedAt       DateTime?
   deletedAt      DateTime?
   createdAt      DateTime  @default(now())
