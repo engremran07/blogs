@@ -71,15 +71,32 @@ export async function PATCH(req: NextRequest) {
       updatedBy,
     );
 
-    // Sync captchaEnabled → CaptchaSettings.captchaEnabled (single source of truth)
-    if ('captchaEnabled' in parsed.data && parsed.data.captchaEnabled !== undefined) {
+    // Sync captcha fields → CaptchaSettings (single source of truth for orchestrator)
+    const captchaFields = [
+      'captchaEnabled', 'enableTurnstile', 'enableRecaptchaV3', 'enableRecaptchaV2',
+      'enableHcaptcha', 'enableInhouse', 'turnstileSiteKey', 'recaptchaV3SiteKey',
+      'recaptchaV2SiteKey', 'hcaptchaSiteKey', 'inhouseCodeLength',
+      'requireCaptchaLogin', 'requireCaptchaRegister', 'requireCaptchaComment', 'requireCaptchaContact',
+    ] as const;
+    // Map SiteSettings field names → CaptchaSettings field names
+    const fieldMap: Record<string, string> = {
+      requireCaptchaLogin: 'requireCaptchaForLogin',
+      requireCaptchaRegister: 'requireCaptchaForRegistration',
+      requireCaptchaComment: 'requireCaptchaForComments',
+      requireCaptchaContact: 'requireCaptchaForContact',
+    };
+    const captchaSync: Record<string, unknown> = {};
+    for (const f of captchaFields) {
+      if (f in parsed.data && (parsed.data as Record<string, unknown>)[f] !== undefined) {
+        const target = fieldMap[f] ?? f;
+        captchaSync[target] = (parsed.data as Record<string, unknown>)[f];
+      }
+    }
+    if (Object.keys(captchaSync).length > 0) {
       try {
-        await captchaAdminSettings.updateSettings(
-          { captchaEnabled: parsed.data.captchaEnabled as boolean },
-          updatedBy ?? "system",
-        );
+        await captchaAdminSettings.updateSettings(captchaSync, updatedBy ?? "system");
       } catch (err) {
-        logger.error("[api/settings] Failed to sync captchaEnabled to CaptchaSettings", { error: err });
+        logger.error("[api/settings] Failed to sync captcha fields to CaptchaSettings", { error: err });
       }
     }
 

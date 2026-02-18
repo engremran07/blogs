@@ -119,12 +119,28 @@ export const updateSiteSettingsSchema = z.object({
   seoBingVerification: nullableStr(100),
 
   // CAPTCHA
+  captchaEnabled: optBool,
+  captchaType: z.string().max(50).optional(),
   captchaProvider: z.enum(CAPTCHA_PROVIDERS).optional(),
   captchaSiteKey: nullableStr(200),
   captchaSecretKey: nullableStr(200),
   captchaThreshold: z.number().min(0).max(1).optional(),
   captchaOnContactForm: optBool,
   captchaOnComments: optBool,
+  enableTurnstile: optBool,
+  enableRecaptchaV3: optBool,
+  enableRecaptchaV2: optBool,
+  enableHcaptcha: optBool,
+  enableInhouse: optBool,
+  turnstileSiteKey: nullableStr(200),
+  recaptchaV3SiteKey: nullableStr(200),
+  recaptchaV2SiteKey: nullableStr(200),
+  hcaptchaSiteKey: nullableStr(200),
+  inhouseCodeLength: z.number().int().min(4).max(10).optional(),
+  requireCaptchaLogin: optBool,
+  requireCaptchaRegister: optBool,
+  requireCaptchaComment: optBool,
+  requireCaptchaContact: optBool,
 
   // Reading / Content
   postsPerPage: z.number().int().min(1).max(100).optional(),

@@ -283,12 +283,27 @@ export class SiteSettingsService {
     const s = await this.getSettings();
     return {
       captchaEnabled: s.captchaEnabled,
+      captchaType: s.captchaType,
       captchaProvider: s.captchaProvider,
       captchaSiteKey: s.captchaSiteKey,
       captchaSecretKey: s.captchaSecretKey,
       captchaThreshold: s.captchaThreshold,
       captchaOnContactForm: s.captchaOnContactForm,
       captchaOnComments: s.captchaOnComments,
+      enableTurnstile: s.enableTurnstile,
+      enableRecaptchaV3: s.enableRecaptchaV3,
+      enableRecaptchaV2: s.enableRecaptchaV2,
+      enableHcaptcha: s.enableHcaptcha,
+      enableInhouse: s.enableInhouse,
+      turnstileSiteKey: s.turnstileSiteKey,
+      recaptchaV3SiteKey: s.recaptchaV3SiteKey,
+      recaptchaV2SiteKey: s.recaptchaV2SiteKey,
+      hcaptchaSiteKey: s.hcaptchaSiteKey,
+      inhouseCodeLength: s.inhouseCodeLength,
+      requireCaptchaLogin: s.requireCaptchaLogin,
+      requireCaptchaRegister: s.requireCaptchaRegister,
+      requireCaptchaComment: s.requireCaptchaComment,
+      requireCaptchaContact: s.requireCaptchaContact,
     };
   }
 

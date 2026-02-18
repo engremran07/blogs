@@ -103,12 +103,27 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
 
   // CAPTCHA
   captchaEnabled: false,
+  captchaType: 'turnstile',
   captchaProvider: 'none',
   captchaSiteKey: null,
   captchaSecretKey: null,
   captchaThreshold: 0.5,
   captchaOnContactForm: false,
   captchaOnComments: false,
+  enableTurnstile: true,
+  enableRecaptchaV3: false,
+  enableRecaptchaV2: false,
+  enableHcaptcha: false,
+  enableInhouse: true,
+  turnstileSiteKey: null,
+  recaptchaV3SiteKey: null,
+  recaptchaV2SiteKey: null,
+  hcaptchaSiteKey: null,
+  inhouseCodeLength: 6,
+  requireCaptchaLogin: false,
+  requireCaptchaRegister: false,
+  requireCaptchaComment: false,
+  requireCaptchaContact: false,
 
   // Reading / Content
   postsPerPage: 10,

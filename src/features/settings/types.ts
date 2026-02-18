@@ -194,6 +194,8 @@ export interface SiteConfig {
   // ── CAPTCHA (site-wide provider configuration) ────────────────────────
   /** Master kill-switch for CAPTCHA module (CORE — default: false) */
   captchaEnabled: boolean;
+  /** Default CAPTCHA type selected in admin (CORE — default: 'turnstile') */
+  captchaType: string;
   /** Which CAPTCHA provider to use site-wide (CORE — default: 'none') */
   captchaProvider: CaptchaProviderType;
   /** Public site key for the selected provider (on-request) */
@@ -206,6 +208,34 @@ export interface SiteConfig {
   captchaOnContactForm: boolean;
   /** Require CAPTCHA on comment submissions (CORE — default: false) */
   captchaOnComments: boolean;
+  /** Enable Cloudflare Turnstile provider */
+  enableTurnstile: boolean;
+  /** Enable Google reCAPTCHA v3 provider */
+  enableRecaptchaV3: boolean;
+  /** Enable Google reCAPTCHA v2 provider */
+  enableRecaptchaV2: boolean;
+  /** Enable hCaptcha provider */
+  enableHcaptcha: boolean;
+  /** Enable in-house CAPTCHA (final fallback) */
+  enableInhouse: boolean;
+  /** Cloudflare Turnstile public site key */
+  turnstileSiteKey: string | null;
+  /** Google reCAPTCHA v3 public site key */
+  recaptchaV3SiteKey: string | null;
+  /** Google reCAPTCHA v2 public site key */
+  recaptchaV2SiteKey: string | null;
+  /** hCaptcha public site key */
+  hcaptchaSiteKey: string | null;
+  /** In-house captcha code length (CORE — default: 6) */
+  inhouseCodeLength: number;
+  /** Require CAPTCHA on login form */
+  requireCaptchaLogin: boolean;
+  /** Require CAPTCHA on registration form */
+  requireCaptchaRegister: boolean;
+  /** Require CAPTCHA on comment form */
+  requireCaptchaComment: boolean;
+  /** Require CAPTCHA on contact form */
+  requireCaptchaContact: boolean;
 
   // ── Reading / Content ─────────────────────────────────────────────────
   /** Posts displayed per page (CORE — default: 10) */
@@ -451,12 +481,27 @@ export interface NavigationConfig {
 /** Extracts CAPTCHA provider configuration (site-wide). */
 export interface CaptchaConfig {
   captchaEnabled: boolean;
+  captchaType: string;
   captchaProvider: CaptchaProviderType;
   captchaSiteKey: string | null;
   captchaSecretKey: string | null;
   captchaThreshold: number;
   captchaOnContactForm: boolean;
   captchaOnComments: boolean;
+  enableTurnstile: boolean;
+  enableRecaptchaV3: boolean;
+  enableRecaptchaV2: boolean;
+  enableHcaptcha: boolean;
+  enableInhouse: boolean;
+  turnstileSiteKey: string | null;
+  recaptchaV3SiteKey: string | null;
+  recaptchaV2SiteKey: string | null;
+  hcaptchaSiteKey: string | null;
+  inhouseCodeLength: number;
+  requireCaptchaLogin: boolean;
+  requireCaptchaRegister: boolean;
+  requireCaptchaComment: boolean;
+  requireCaptchaContact: boolean;
 }
 
 /** Extracts PWA fields. */
