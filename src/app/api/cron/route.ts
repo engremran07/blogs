@@ -32,13 +32,20 @@ import {
   moderationService,
   captchaAdminSettings,
   distributionService,
+  siteSettingsService,
 } from "@/server/wiring";
+import { sendTransactionalEmail } from "@/server/mail";
 import { syncAdSlotPageTypes } from "@/features/ads/server/scan-pages";
 import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 import { InterlinkService } from "@/features/seo/server/interlink.service";
 import type { InterlinkPrisma } from "@/features/seo/server/interlink.service";
 
 const logger = createLogger("cron");
+
+// ─── HTML escape for digest emails ──────────────────────────────────────────
+function escapeHtmlForDigest(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -388,6 +395,82 @@ export async function GET(request: NextRequest) {
         await prisma.cronLog.deleteMany({
           where: { createdAt: { lt: cutoff } },
         });
+      }),
+    );
+
+    // ── 5t. Newsletter digest ─────────────────────────────────────────────
+    const digestConfig = await siteSettingsService.getDigestConfig();
+    const digestEnabled = digestConfig.emailDigestEnabled;
+    results.push(
+      await runTask("send-newsletter-digest", digestEnabled, async () => {
+        // Determine the lookback window based on frequency
+        const freq = digestConfig.emailDigestFrequency || "weekly";
+        const lookbackMs =
+          freq === "daily" ? 24 * 60 * 60 * 1000
+          : freq === "monthly" ? 30 * 24 * 60 * 60 * 1000
+          : /* weekly */ 7 * 24 * 60 * 60 * 1000;
+
+        const since = new Date(Date.now() - lookbackMs);
+
+        // Fetch recently published posts
+        const recentPosts = await prisma.post.findMany({
+          where: { status: "PUBLISHED", publishedAt: { gte: since } },
+          select: { title: true, slug: true, excerpt: true, publishedAt: true },
+          orderBy: { publishedAt: "desc" },
+          take: 20,
+        });
+
+        if (recentPosts.length === 0) {
+          logger.info("Newsletter digest: no new posts to send");
+          return;
+        }
+
+        // Fetch confirmed subscribers
+        const subscribers = await prisma.newsletterSubscriber.findMany({
+          where: { confirmed: true, unsubscribedAt: null },
+          select: { email: true, name: true, unsubscribeToken: true },
+        });
+
+        if (subscribers.length === 0) {
+          logger.info("Newsletter digest: no confirmed subscribers");
+          return;
+        }
+
+        // Build digest HTML
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || "https://example.com";
+        const siteName = (settings.siteName as string) || "MyBlog";
+        const postsHtml = recentPosts.map((p) =>
+          `<li style="margin-bottom:12px">
+            <a href="${siteUrl}/blog/${p.slug}" style="color:#3b82f6;text-decoration:none;font-weight:600">${escapeHtmlForDigest(p.title)}</a>
+            ${p.excerpt ? `<br/><span style="color:#6b7280;font-size:14px">${escapeHtmlForDigest(p.excerpt)}</span>` : ""}
+          </li>`
+        ).join("\n");
+
+        const getSmtpConfig = () => siteSettingsService.getSmtpConfig();
+
+        let sent = 0;
+        for (const sub of subscribers) {
+          const unsubLink = `${siteUrl}/api/newsletter/unsubscribe?token=${sub.unsubscribeToken}`;
+          const html = `
+            <div style="max-width:600px;margin:0 auto;font-family:system-ui,sans-serif">
+              <h2 style="color:#1f2937">${escapeHtmlForDigest(siteName)} — ${freq.charAt(0).toUpperCase() + freq.slice(1)} Digest</h2>
+              ${sub.name ? `<p>Hi ${escapeHtmlForDigest(sub.name)},</p>` : "<p>Hi there,</p>"}
+              <p>Here are the latest posts from the past ${freq === "daily" ? "day" : freq === "monthly" ? "month" : "week"}:</p>
+              <ul style="padding-left:20px">${postsHtml}</ul>
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+              <p style="font-size:12px;color:#9ca3af">
+                <a href="${unsubLink}" style="color:#9ca3af">Unsubscribe</a>
+              </p>
+            </div>
+          `;
+          try {
+            await sendTransactionalEmail(getSmtpConfig, sub.email, `${siteName} — ${freq} digest`, html);
+            sent++;
+          } catch (err) {
+            logger.warn(`Failed to send digest to ${sub.email}: ${err instanceof Error ? err.message : err}`);
+          }
+        }
+        logger.info(`Newsletter digest sent to ${sent}/${subscribers.length} subscribers`);
       }),
     );
 

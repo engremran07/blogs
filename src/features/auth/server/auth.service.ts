@@ -53,7 +53,6 @@ const consoleLogger: Logger = {
 
 export class AuthService implements UserConfigConsumer {
   private config: UserConfig;
-  private loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
   private readonly logger: Logger;
 
   constructor(
@@ -81,8 +80,11 @@ export class AuthService implements UserConfigConsumer {
   // ─── Credential Validation ──────────────────────────────────────────────
 
   /**
-   * Validate user credentials with rate limiting.
+   * Validate user credentials.
    * Returns a safe user object (no password / reset fields).
+   *
+   * Note: Login rate-limiting is handled at the proxy level via @upstash/ratelimit.
+   * NextAuth's authorize() callback handles actual authentication flow.
    */
   async validateUser(email: string, password: string): Promise<SafeUser> {
     const normalEmail = sanitizeEmail(email);
@@ -90,30 +92,19 @@ export class AuthService implements UserConfigConsumer {
       throw new ValidationError('Invalid email format');
     }
 
-    if (this.isLockedOut(normalEmail)) {
-      const remaining = this.getLockoutRemainingTime(normalEmail);
-      throw new AuthError(
-        `Too many failed login attempts. Please try again in ${Math.ceil(remaining / 60_000)} minutes.`,
-        429,
-      );
-    }
-
     const user = await this.prisma.user.findUnique({
       where: { email: normalEmail },
     });
 
     if (!user) {
-      this.recordFailedAttempt(normalEmail);
       throw new AuthError('Invalid credentials');
     }
 
     const valid = await comparePassword(password, user.password);
     if (!valid) {
-      this.recordFailedAttempt(normalEmail);
       throw new AuthError('Invalid credentials');
     }
 
-    this.clearFailedAttempts(normalEmail);
     return this.stripSensitiveFields(user);
   }
 
@@ -585,56 +576,6 @@ export class AuthService implements UserConfigConsumer {
 
   private errorMsg(err: unknown): string {
     return err instanceof Error ? err.message : String(err);
-  }
-
-  // ─── Rate Limiting (in-memory, per-instance) ─────────────────────────
-
-  private isLockedOut(email: string): boolean {
-    const attempt = this.loginAttempts.get(email);
-    if (!attempt) return false;
-    if (attempt.count >= this.config.maxLoginAttempts) {
-      return Date.now() - attempt.lastAttempt < this.config.lockoutDurationMs;
-    }
-    return false;
-  }
-
-  private getLockoutRemainingTime(email: string): number {
-    const attempt = this.loginAttempts.get(email);
-    if (!attempt) return 0;
-    return Math.max(0, this.config.lockoutDurationMs - (Date.now() - attempt.lastAttempt));
-  }
-
-  private recordFailedAttempt(email: string): void {
-    const attempt = this.loginAttempts.get(email) || { count: 0, lastAttempt: 0 };
-    if (Date.now() - attempt.lastAttempt > this.config.lockoutDurationMs) {
-      attempt.count = 0;
-    }
-    attempt.count++;
-    attempt.lastAttempt = Date.now();
-    this.loginAttempts.set(email, attempt);
-
-    if (attempt.count >= this.config.maxLoginAttempts) {
-      this.logger.warn(`Account locked due to too many failed attempts: ${email}`);
-    }
-  }
-
-  private clearFailedAttempts(email: string): void {
-    this.loginAttempts.delete(email);
-    this.purgeStaleAttempts();
-  }
-
-  /**
-   * Periodic cleanup of stale rate-limit entries to prevent unbounded Map growth.
-   * Runs on every successful login (low frequency). Removes entries whose
-   * lockout window has fully elapsed.
-   */
-  private purgeStaleAttempts(): void {
-    const now = Date.now();
-    for (const [email, attempt] of this.loginAttempts) {
-      if (now - attempt.lastAttempt > this.config.lockoutDurationMs * 2) {
-        this.loginAttempts.delete(email);
-      }
-    }
   }
 
   /** Revoke oldest sessions when user exceeds max active sessions. */

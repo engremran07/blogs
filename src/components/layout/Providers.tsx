@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { ToastContainer } from "@/components/ui/Toast";
+import { CsrfFetchInterceptor } from "@/components/providers/CsrfFetchInterceptor";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -24,6 +25,7 @@ export function Providers({
       disableTransitionOnChange
     >
       <SessionProvider>
+        <CsrfFetchInterceptor />
         {children}
         <ToastContainer />
       </SessionProvider>

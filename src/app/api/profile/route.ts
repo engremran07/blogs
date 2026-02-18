@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/prisma";
-import { userService } from "@/server/wiring";
+import { userService, consentService } from "@/server/wiring";
 
 /**
  * GET /api/profile — GDPR Article 20 data export
@@ -88,6 +88,18 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
 
+    // Log GDPR data export consent event
+    await consentService.log({
+      userId,
+      email: user?.email,
+      consentType: "data_export",
+      granted: true,
+      details: "User initiated GDPR Article 20 data export",
+    });
+
+    // Include consent history in export
+    const consentHistory = await consentService.getUserConsentHistory(userId);
+
     const exportData = {
       exportDate: new Date().toISOString(),
       user,
@@ -95,6 +107,7 @@ export async function GET() {
       sessions,
       emailVerifications,
       emailChanges,
+      consentHistory,
     };
 
     return new NextResponse(JSON.stringify(exportData, null, 2), {
@@ -133,6 +146,15 @@ export async function DELETE(req: NextRequest) {
         { status: 400 },
       );
     }
+
+    // Log account deletion consent event before deleting
+    await consentService.log({
+      userId: session.user.id,
+      email: session.user.email,
+      consentType: "account_deletion",
+      granted: true,
+      details: "User confirmed account self-deletion",
+    });
 
     const result = await userService.deleteMyAccount(session.user.id, password);
     return NextResponse.json({ success: true, message: result.message });

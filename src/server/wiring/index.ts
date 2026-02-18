@@ -18,6 +18,7 @@ import { createLogger } from "@/server/observability/logger";
 import { AuthService } from "@/features/auth/server/auth.service";
 import { UserService } from "@/features/auth/server/user.service";
 import { UserAdminSettingsService } from "@/features/auth/server/admin-settings.service";
+import { ConsentService } from "@/features/auth/server/consent.service";
 
 // Blog
 import { BlogService } from "@/features/blog/server/blog.service";
@@ -330,3 +331,7 @@ export const distributionService = new DistributionService(
     siteBaseUrl: env.NEXT_PUBLIC_SITE_URL ?? "",
   },
 );
+
+// ─── GDPR Consent Module ────────────────────────────────────────────────────
+
+export const consentService = new ConsentService(prisma as unknown as { consentLog: typeof prisma.consentLog });

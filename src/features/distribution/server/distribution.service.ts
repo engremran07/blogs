@@ -413,10 +413,10 @@ export class DistributionService {
     await this.eventBus.emit(DistributionEvent.RETRIED, { recordId: input.recordId });
 
     // Re-execute the distribution
-    // TODO: No dedicated executeDistribution method exists yet.
-    // The record is set to PENDING and will be picked up by processScheduledDistributions
-    // or can be manually re-distributed via distributePost. For now, attempt re-distribution
-    // by looking up the record's post and platform and calling distributePost.
+    // The record is set to PENDING. Attempt re-distribution inline by looking
+    // up the record's post and platform and calling the connector directly.
+    // If this fails the record stays PENDING and will be picked up by
+    // processScheduledDistributions on the next cron run.
     try {
       const fresh = await this.prisma.distributionRecord.findUnique({
         where: { id: record.id },

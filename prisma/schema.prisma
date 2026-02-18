@@ -83,6 +83,7 @@ model User {
   comments             Comment[]
   pages                Page[]
   mediaItems           Media[]
+  consentLogs          ConsentLog[]
 
   @@index([role])
   @@map("users")
@@ -1856,4 +1857,53 @@ model DistributionChannel {
   @@index([platform, enabled])
   @@index([enabled])
   @@map("distribution_channels")
+}
+
+// ============================================================================
+// NEWSLETTER MODULE
+// ============================================================================
+
+model NewsletterSubscriber {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  confirmed       Boolean   @default(false)
+  confirmToken    String?   @unique
+  unsubscribeToken String   @unique
+  subscribedAt    DateTime?
+  unsubscribedAt  DateTime?
+  ipAddress       String?
+  source          String?   @default("website")
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([email])
+  @@index([confirmed])
+  @@index([createdAt])
+  @@map("newsletter_subscribers")
+}
+
+// ============================================================================
+// GDPR / CONSENT MODULE
+// ============================================================================
+
+model ConsentLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  email       String?
+  consentType String   // e.g. "newsletter", "data_processing", "cookies", "terms"
+  granted     Boolean
+  ipAddress   String?
+  userAgent   String?
+  details     String?  @db.Text
+
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([consentType, createdAt])
+  @@index([email])
+  @@map("consent_logs")
 }
