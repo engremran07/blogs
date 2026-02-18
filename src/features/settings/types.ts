@@ -192,6 +192,8 @@ export interface SiteConfig {
   seoBingVerification: string | null;
 
   // ── CAPTCHA (site-wide provider configuration) ────────────────────────
+  /** Master kill-switch for CAPTCHA module (CORE — default: false) */
+  captchaEnabled: boolean;
   /** Which CAPTCHA provider to use site-wide (CORE — default: 'none') */
   captchaProvider: CaptchaProviderType;
   /** Public site key for the selected provider (on-request) */
@@ -350,6 +352,7 @@ export interface CustomCodeConfig {
 export interface ModuleKillSwitchConfig {
   adsEnabled: boolean;
   distributionEnabled: boolean;
+  captchaEnabled: boolean;
 }
 
 /** Extracts only footer fields from SiteConfig. */
@@ -447,6 +450,7 @@ export interface NavigationConfig {
 
 /** Extracts CAPTCHA provider configuration (site-wide). */
 export interface CaptchaConfig {
+  captchaEnabled: boolean;
   captchaProvider: CaptchaProviderType;
   captchaSiteKey: string | null;
   captchaSecretKey: string | null;

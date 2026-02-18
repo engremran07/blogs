@@ -6,6 +6,7 @@
 
 export interface PostListItem {
   id: string;
+  postNumber: number;
   slug: string;
   title: string;
   excerpt: string | null;
@@ -79,6 +80,7 @@ export interface CommentItem {
 
 export interface AdminPostItem {
   id: string;
+  postNumber: number;
   title: string;
   slug: string;
   status: string;

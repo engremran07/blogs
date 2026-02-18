@@ -252,7 +252,7 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
         <div className="mb-6 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
           <Eye className="h-4 w-4" />
           Preview Mode — This post is <span className="font-bold">{post.status}</span> and not visible to the public.
-          <Link href={`/admin/posts/${post.id}/edit`} className="ml-auto text-amber-600 underline hover:text-amber-700 dark:text-amber-400">Edit Post</Link>
+          <Link href={`/admin/posts/${post.postNumber}/edit`} className="ml-auto text-amber-600 underline hover:text-amber-700 dark:text-amber-400">Edit Post</Link>
         </div>
       )}
       <div className="flex gap-8">

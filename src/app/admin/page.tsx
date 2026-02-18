@@ -31,7 +31,7 @@ export default async function AdminDashboard() {
     where: { deletedAt: null },
     orderBy: { createdAt: "desc" },
     take: 5,
-    select: { id: true, title: true, slug: true, status: true, createdAt: true, viewCount: true },
+    select: { id: true, postNumber: true, title: true, slug: true, status: true, createdAt: true, viewCount: true },
   }) as AdminPostItem[];
 
   const recentComments = await prisma.comment.findMany({
@@ -117,7 +117,7 @@ export default async function AdminDashboard() {
             {recentPosts.map((post) => (
               <Link
                 key={post.id}
-                href={`/admin/posts/${post.id}/edit`}
+                href={`/admin/posts/${post.postNumber}/edit`}
                 className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50"
               >
                 <div className="min-w-0 flex-1">

@@ -652,7 +652,7 @@ model TagSettings {
 model CaptchaSettings {
   id                          String   @id @default(cuid())
 
-  captchaEnabled              Boolean  @default(true)
+  captchaEnabled              Boolean  @default(false)
   captchaMode                 String   @default("always")
   defaultProvider             String   @default("turnstile")
   enableFallbackChain         Boolean  @default(true)
@@ -676,11 +676,11 @@ model CaptchaSettings {
 
   scriptLoadTimeoutMs         Int      @default(10000)
 
-  requireCaptchaForLogin          Boolean @default(true)
-  requireCaptchaForRegistration   Boolean @default(true)
-  requireCaptchaForComments       Boolean @default(true)
-  requireCaptchaForContact        Boolean @default(true)
-  requireCaptchaForPasswordReset  Boolean @default(true)
+  requireCaptchaForLogin          Boolean @default(false)
+  requireCaptchaForRegistration   Boolean @default(false)
+  requireCaptchaForComments       Boolean @default(false)
+  requireCaptchaForContact        Boolean @default(false)
+  requireCaptchaForPasswordReset  Boolean @default(false)
   requireCaptchaForNewsletter     Boolean @default(false)
 
   recaptchaV3ScoreThreshold   Float    @default(0.5)
@@ -1269,7 +1269,7 @@ model SiteSettings {
   seoBaiduVerification            String?
 
   // CAPTCHA
-  captchaEnabled                  Boolean  @default(true)
+  captchaEnabled                  Boolean  @default(false)
   captchaType                     String   @default("turnstile")
   captchaProvider                 String   @default("none")
   captchaSiteKey                  String?

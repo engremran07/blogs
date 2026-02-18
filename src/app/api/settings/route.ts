@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
-import { siteSettingsService } from "@/server/wiring";
+import { siteSettingsService, commentAdminSettings } from "@/server/wiring";
 import { updateSiteSettingsSchema } from "@/features/settings/server/schemas";
 import { createLogger } from "@/server/observability/logger";
 
@@ -70,6 +70,18 @@ export async function PATCH(req: NextRequest) {
       parsed.data as Record<string, unknown>,
       updatedBy,
     );
+
+    // Sync enableComments → CommentSettings.commentsEnabled (single source of truth)
+    if ('enableComments' in parsed.data && parsed.data.enableComments !== undefined) {
+      try {
+        await commentAdminSettings.updateSettings(
+          { commentsEnabled: parsed.data.enableComments as boolean },
+          updatedBy ?? "system",
+        );
+      } catch (err) {
+        logger.error("[api/settings] Failed to sync enableComments to CommentSettings", { error: err });
+      }
+    }
 
     if (!result.success) {
       const statusCode = 'error' in result && typeof result.error === 'object' && 'statusCode' in result.error

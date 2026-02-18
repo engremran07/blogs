@@ -11,6 +11,8 @@ export default function ContactForm() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [sending, setSending] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaId, setCaptchaId] = useState("");
+  const [captchaType, setCaptchaType] = useState("");
   const [captchaNonce, setCaptchaNonce] = useState(0);
 
   function update(field: string, value: string) {
@@ -28,7 +30,8 @@ export default function ContactForm() {
       return;
     }
     setSending(true);
-    // In production, POST to a contact API / email service
+    // TODO: POST to /api/contact when endpoint is implemented
+    const _body = { ...form, captchaToken, captchaId, captchaType };
     await new Promise((r) => setTimeout(r, 1000));
     toast("Message sent! We'll get back to you soon.", "success");
     setForm({ name: "", email: "", subject: "", message: "" });
@@ -101,7 +104,11 @@ export default function ContactForm() {
           </div>
           <div className="mb-6">
             <Captcha
-              onVerify={(token) => setCaptchaToken(token)}
+              onVerify={(token, id, type) => {
+                setCaptchaToken(token);
+                if (id) setCaptchaId(id);
+                if (type) setCaptchaType(type);
+              }}
               resetNonce={captchaNonce}
             />
           </div>

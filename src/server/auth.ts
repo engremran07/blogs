@@ -8,12 +8,9 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/server/db/prisma";
 import bcrypt from "bcrypt";
-import { CaptchaVerificationService } from "@/features/captcha/server/verification.service";
+import { captchaVerificationService } from "@/server/wiring";
 import type { UserRole } from "@/features/auth/types";
-import type { CaptchaPrismaClient, CaptchaProviderType } from "@/features/captcha/types";
-
-// Direct captcha verification — no self-fetch HTTP call
-const captchaService = new CaptchaVerificationService(prisma as unknown as CaptchaPrismaClient);
+import type { CaptchaProviderType } from "@/features/captcha/types";
 
 declare module "next-auth" {
   interface User {
@@ -69,22 +66,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const captchaId = credentials.captchaId as string | undefined;
 
         // Check CaptchaSettings — respect the global kill-switch & per-form toggle
-        let captchaRequired = true;
+        let captchaRequired = false;
         try {
           const captchaSettings = await prisma.captchaSettings.findFirst();
           if (captchaSettings) {
-            if (!captchaSettings.captchaEnabled || !captchaSettings.requireCaptchaForLogin) {
-              captchaRequired = false;
+            if (captchaSettings.captchaEnabled && captchaSettings.requireCaptchaForLogin) {
+              captchaRequired = true;
             }
           }
         } catch {
-          // If we can't read settings, default to requiring captcha
+          // If we can't read settings, default to NOT requiring captcha
         }
 
         // Verify CAPTCHA — direct service call (no self-fetch HTTP)
         if (captchaRequired) {
           try {
-            const captchaResult = await captchaService.verify({
+            const captchaResult = await captchaVerificationService.verify({
               token: captchaToken || "",
               clientIp: "127.0.0.1", // IP not available in authorize(); middleware handles rate-limiting
               captchaType: captchaType as CaptchaProviderType | undefined,

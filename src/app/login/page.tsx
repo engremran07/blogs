@@ -27,8 +27,8 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
-  const [captchaId, _setCaptchaId] = useState<string | undefined>();
-  const [captchaType, _setCaptchaType] = useState<string | undefined>();
+  const [captchaId, setCaptchaId] = useState<string | undefined>();
+  const [captchaType, setCaptchaType] = useState<string | undefined>();
   const [captchaNonce, setCaptchaNonce] = useState(0);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -128,7 +128,11 @@ function LoginForm() {
 
           <div className="mt-4">
             <Captcha
-              onVerify={(token) => setCaptchaToken(token)}
+              onVerify={(token, id, type) => {
+                setCaptchaToken(token);
+                setCaptchaId(id);
+                setCaptchaType(type);
+              }}
               resetNonce={captchaNonce}
             />
           </div>

@@ -46,7 +46,7 @@ export const CAPTCHA_DISABLED_TOKEN = '__captcha_disabled__';
 
 export const DEFAULT_CAPTCHA_CONFIG: Required<CaptchaConfig> = {
   // Global
-  captchaEnabled: true,
+  captchaEnabled: false,
   captchaMode: 'always',
   defaultProvider: 'turnstile',
   enableFallbackChain: true,
@@ -75,11 +75,11 @@ export const DEFAULT_CAPTCHA_CONFIG: Required<CaptchaConfig> = {
   scriptLoadTimeoutMs: SCRIPT_LOAD_TIMEOUT_MS,
 
   // Per-service requirements
-  requireCaptchaForLogin: true,
-  requireCaptchaForRegistration: true,
-  requireCaptchaForComments: true,
-  requireCaptchaForContact: true,
-  requireCaptchaForPasswordReset: true,
+  requireCaptchaForLogin: false,
+  requireCaptchaForRegistration: false,
+  requireCaptchaForComments: false,
+  requireCaptchaForContact: false,
+  requireCaptchaForPasswordReset: false,
   requireCaptchaForNewsletter: false,
 
   // Difficulty

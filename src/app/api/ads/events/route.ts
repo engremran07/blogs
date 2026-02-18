@@ -4,7 +4,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { adsService, adsAdminSettings } from "@/server/wiring";
+import { adsService, adsAdminSettings, siteSettingsService } from "@/server/wiring";
 import { recordEventSchema } from "@/features/ads/server/schemas";
 
 /* ── Simple in-memory rate limiter (per IP) ──────────────────────────────── */
@@ -32,6 +32,12 @@ setInterval(() => {
 
 export async function POST(req: NextRequest) {
   try {
+    // Global ads kill switch — don't record events when ads are disabled
+    const siteSettings = await siteSettingsService.getSettings();
+    if (!siteSettings.adsEnabled) {
+      return NextResponse.json({ success: true });
+    }
+
     // Rate limiting
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
     const config = await adsAdminSettings.getConfig();

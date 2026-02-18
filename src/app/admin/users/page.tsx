@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/FormFields";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
+import { PasswordStrengthIndicator, isPasswordValid } from "@/components/ui/PasswordStrengthIndicator";
 import { toast } from "@/components/ui/Toast";
 
 interface UserRow {
@@ -132,6 +133,9 @@ export default function AdminUsersPage() {
     if (!createForm.username || !createForm.email || !createForm.password) {
       toast("All fields required", "error"); return;
     }
+    if (!isPasswordValid(createForm.password)) {
+      toast("Password does not meet the security policy", "error"); return;
+    }
     setCreating(true);
     try {
       const res = await fetch("/api/auth/register", {
@@ -177,6 +181,9 @@ export default function AdminUsersPage() {
 
   async function handleEditSave() {
     if (!editUser) return;
+    if (editForm.password && !isPasswordValid(editForm.password)) {
+      toast("Password does not meet the security policy", "error"); return;
+    }
     setEditSaving(true);
     try {
       const res = await fetch("/api/users", {
@@ -419,11 +426,12 @@ export default function AdminUsersPage() {
           <Input label="Username" value={createForm.username} onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })} placeholder="username" />
           <Input label="Email" type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} placeholder="user@example.com" />
           <div className="relative">
-            <Input label="Password" type={showCreatePassword ? "text" : "password"} value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} placeholder="Min 12 characters" />
+            <Input label="Password" type={showCreatePassword ? "text" : "password"} value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} placeholder="Enter a strong password" />
             <button type="button" onClick={() => setShowCreatePassword(!showCreatePassword)} className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
               {showCreatePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
+          <PasswordStrengthIndicator password={createForm.password} showWhenEmpty />
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
             <select value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
@@ -463,6 +471,7 @@ export default function AdminUsersPage() {
               {showEditPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
+          {editForm.password && <PasswordStrengthIndicator password={editForm.password} />}
 
           <hr className="border-gray-200 dark:border-gray-700" />
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Profile</p>

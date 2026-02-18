@@ -26,7 +26,7 @@ export async function GET() {
         comments: settings.enableComments ?? true,
         ads: settings.adsEnabled ?? true,
         distribution: settings.distributionEnabled ?? false,
-        captcha: settings.captchaProvider !== 'none',
+        captcha: settings.captchaEnabled ?? false,
       },
     });
   } catch {

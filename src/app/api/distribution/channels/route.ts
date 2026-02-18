@@ -5,8 +5,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { auth } from "@/server/auth";
-import { distributionService } from "@/server/wiring";
+import { distributionService, siteSettingsService } from "@/server/wiring";
 import { createChannelSchema } from "@/features/distribution/server/schemas";
+
+async function checkDistributionEnabled() {
+  const settings = await siteSettingsService.getSettings();
+  if (!settings.distributionEnabled) {
+    return NextResponse.json(
+      { success: false, error: "Distribution module is disabled" },
+      { status: 403 },
+    );
+  }
+  return null;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,6 +25,9 @@ export async function GET(req: NextRequest) {
     if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
+
+    const killSwitch = await checkDistributionEnabled();
+    if (killSwitch) return killSwitch;
 
     const enabledOnly = req.nextUrl.searchParams.get("enabledOnly") === "true";
     const channels = await distributionService.getChannels(enabledOnly);
@@ -32,6 +46,9 @@ export async function POST(req: NextRequest) {
     if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
+
+    const killSwitch = await checkDistributionEnabled();
+    if (killSwitch) return killSwitch;
 
     const body = await req.json();
     const input = createChannelSchema.parse(body);

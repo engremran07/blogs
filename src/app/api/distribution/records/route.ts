@@ -4,7 +4,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
-import { distributionService } from "@/server/wiring";
+import { distributionService, siteSettingsService } from "@/server/wiring";
 import { queryDistributionsSchema } from "@/features/distribution/server/schemas";
 
 export async function GET(req: NextRequest) {
@@ -12,6 +12,11 @@ export async function GET(req: NextRequest) {
     const session = await auth();
     if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    const settings = await siteSettingsService.getSettings();
+    if (!settings.distributionEnabled) {
+      return NextResponse.json({ success: false, error: "Distribution module is disabled" }, { status: 403 });
     }
 
     const params = Object.fromEntries(req.nextUrl.searchParams);

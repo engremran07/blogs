@@ -3,7 +3,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
-import { distributionService } from "@/server/wiring";
+import { distributionService, siteSettingsService } from "@/server/wiring";
 
 type Params = { params: Promise<{ postId: string }> };
 
@@ -12,6 +12,11 @@ export async function GET(_req: NextRequest, ctx: Params) {
     const session = await auth();
     if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR", "AUTHOR"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    const settings = await siteSettingsService.getSettings();
+    if (!settings.distributionEnabled) {
+      return NextResponse.json({ success: false, error: "Distribution module is disabled" }, { status: 403 });
     }
 
     const { postId } = await ctx.params;

@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/server/auth";
-import { adsService } from "@/server/wiring";
+import { adsService, siteSettingsService } from "@/server/wiring";
 import {
   createPlacementSchema,
   pageQuerySchema,
@@ -15,6 +15,11 @@ export async function GET(req: NextRequest) {
     // If pageType is provided, return public placements for that page (no auth required)
     const pageType = req.nextUrl.searchParams.get("pageType");
     if (pageType) {
+      // Global ads kill switch
+      const settings = await siteSettingsService.getSettings();
+      if (!settings.adsEnabled) {
+        return NextResponse.json({ success: true, data: [] });
+      }
       const params = Object.fromEntries(req.nextUrl.searchParams);
       const query = pageQuerySchema.parse(params);
       const placements = await adsService.findPlacementsForPage(

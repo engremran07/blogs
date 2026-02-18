@@ -102,6 +102,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   seoBingVerification: null,
 
   // CAPTCHA
+  captchaEnabled: false,
   captchaProvider: 'none',
   captchaSiteKey: null,
   captchaSecretKey: null,

@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { auth } from "@/server/auth";
-import { distributionService } from "@/server/wiring";
+import { distributionService, siteSettingsService } from "@/server/wiring";
 import { updateDistributionSettingsSchema } from "@/features/distribution/server/schemas";
 
 export async function GET() {
@@ -16,6 +16,10 @@ export async function GET() {
     }
 
     // Return current config (safe subset)
+    const settings = await siteSettingsService.getSettings();
+    if (!settings.distributionEnabled) {
+      return NextResponse.json({ success: false, error: "Distribution module is disabled" }, { status: 403 });
+    }
     const stats = await distributionService.getStats();
     return NextResponse.json({ success: true, data: stats });
   } catch {

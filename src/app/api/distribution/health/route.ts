@@ -4,13 +4,18 @@
  */
 import { NextResponse } from "next/server";
 import { auth } from "@/server/auth";
-import { distributionService } from "@/server/wiring";
+import { distributionService, siteSettingsService } from "@/server/wiring";
 
 export async function GET() {
   try {
     const session = await auth();
     if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    const settings = await siteSettingsService.getSettings();
+    if (!settings.distributionEnabled) {
+      return NextResponse.json({ success: false, error: "Distribution module is disabled" }, { status: 403 });
     }
 
     const health = await distributionService.healthCheck();

@@ -282,6 +282,7 @@ export class SiteSettingsService {
   async getCaptchaConfig(): Promise<CaptchaConfig> {
     const s = await this.getSettings();
     return {
+      captchaEnabled: s.captchaEnabled,
       captchaProvider: s.captchaProvider,
       captchaSiteKey: s.captchaSiteKey,
       captchaSecretKey: s.captchaSecretKey,
@@ -764,6 +765,7 @@ export class SiteSettingsService {
     return {
       adsEnabled: s.adsEnabled,
       distributionEnabled: s.distributionEnabled,
+      captchaEnabled: s.captchaEnabled,
     };
   }
 
