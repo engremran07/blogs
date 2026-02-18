@@ -11,6 +11,7 @@ import { Input, Textarea } from "@/components/ui/FormFields";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { PasswordStrengthIndicator, isPasswordValid } from "@/components/ui/PasswordStrengthIndicator";
 import { toast } from "@/components/ui/Toast";
+import { AdminPagination, ADMIN_PAGE_SIZE } from "@/components/ui/AdminPagination";
 
 interface UserRow {
   id: string;
@@ -50,7 +51,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [page, setPage] = useState(1);
-  const perPage = 20;
+  const perPage = ADMIN_PAGE_SIZE;
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -101,7 +102,7 @@ export default function AdminUsersPage() {
       }
     } catch { toast("Failed to fetch users", "error"); }
     finally { setLoading(false); }
-  }, [page, search, roleFilter]);
+  }, [page, search, roleFilter, perPage]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -395,29 +396,7 @@ export default function AdminUsersPage() {
             </div>
           )}
         </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-700">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, totalUsers)} of {totalUsers}</p>
-            <div className="flex items-center gap-1">
-              <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-300">Prev</button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
-                .reduce<(number | string)[]>((acc, p, i, arr) => {
-                  if (i > 0 && arr[i - 1] !== p - 1) acc.push("...");
-                  acc.push(p);
-                  return acc;
-                }, [])
-                .map((p, i) =>
-                  typeof p === "string" ? (
-                    <span key={`ellipsis-${i}`} className="px-2 text-sm text-gray-400">…</span>
-                  ) : (
-                    <button key={p} onClick={() => setPage(p)} className={`rounded px-3 py-1.5 text-sm font-medium ${page === p ? "bg-blue-600 text-white" : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"}`}>{p}</button>
-                  )
-                )}
-              <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-300">Next</button>
-            </div>
-          </div>
-        )}
+        <AdminPagination page={page} totalPages={totalPages} total={totalUsers} onPageChange={setPage} />
       </div>
 
       {/* Create User Modal */}

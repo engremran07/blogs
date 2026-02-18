@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/FormFields";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
+import { AdminPagination, ADMIN_PAGE_SIZE } from "@/components/ui/AdminPagination";
 
 /* ─── Types ─── */
 
@@ -38,6 +39,9 @@ interface Provider {
   supportedFormats: string[];
   maxPerPage: number;
   loadStrategy: string;
+  clientId?: string | null;
+  publisherId?: string | null;
+  scriptUrl?: string | null;
   createdAt: string;
 }
 
@@ -96,6 +100,22 @@ interface Overview {
 
 type Tab = "overview" | "providers" | "slots" | "placements" | "settings" | "compliance";
 
+const scanColorClasses: Record<string, string> = {
+  blue: "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20",
+  green: "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20",
+  amber: "border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20",
+  red: "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20",
+};
+
+const statColorClasses: Record<string, string> = {
+  blue: "text-blue-600 dark:text-blue-400",
+  emerald: "text-emerald-600 dark:text-emerald-400",
+  purple: "text-purple-600 dark:text-purple-400",
+  amber: "text-amber-600 dark:text-amber-400",
+  rose: "text-rose-600 dark:text-rose-400",
+  green: "text-green-600 dark:text-green-400",
+};
+
 /* ─── Page ─── */
 
 export default function AdsAdminPage() {
@@ -106,6 +126,11 @@ export default function AdsAdminPage() {
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [loading, setLoading] = useState(true);
   const [adsOn, setAdsOn] = useState(true);
+
+  // Pagination state for each tab
+  const [provPage, setProvPage] = useState(1);
+  const [slotPage, setSlotPage] = useState(1);
+  const [placePage, setPlacePage] = useState(1);
 
   // Modal state
   const [providerModal, setProviderModal] = useState(false);
@@ -126,7 +151,7 @@ export default function AdsAdminPage() {
   const [slotForm, setSlotForm] = useState({
     name: "", position: "SIDEBAR", format: "DISPLAY",
     isActive: true, responsive: true, pageTypes: "",
-    maxWidth: "", maxHeight: "",
+    maxWidth: "", maxHeight: "", renderPriority: 0,
   });
 
   // Placement modal state
@@ -256,7 +281,7 @@ export default function AdsAdminPage() {
     setEditingProvider(p);
     setProvForm({
       name: p.name, type: p.type, priority: p.priority, isActive: p.isActive,
-      clientId: "", publisherId: "", scriptUrl: "",
+      clientId: p.clientId ?? "", publisherId: p.publisherId ?? "", scriptUrl: p.scriptUrl ?? "",
       maxPerPage: p.maxPerPage, loadStrategy: p.loadStrategy,
     });
     setProviderModal(true);
@@ -300,7 +325,7 @@ export default function AdsAdminPage() {
 
   function openSlotCreate() {
     setEditingSlot(null);
-    setSlotForm({ name: "", position: "SIDEBAR", format: "DISPLAY", isActive: true, responsive: true, pageTypes: "", maxWidth: "", maxHeight: "" });
+    setSlotForm({ name: "", position: "SIDEBAR", format: "DISPLAY", isActive: true, responsive: true, pageTypes: "", maxWidth: "", maxHeight: "", renderPriority: 0 });
     setSlotModal(true);
   }
 
@@ -311,6 +336,7 @@ export default function AdsAdminPage() {
       isActive: s.isActive, responsive: s.responsive,
       pageTypes: (s.pageTypes || []).join(", "),
       maxWidth: s.maxWidth?.toString() ?? "", maxHeight: s.maxHeight?.toString() ?? "",
+      renderPriority: s.renderPriority ?? 0,
     });
     setSlotModal(true);
   }
@@ -325,6 +351,7 @@ export default function AdsAdminPage() {
         format: slotForm.format,
         isActive: slotForm.isActive,
         responsive: slotForm.responsive,
+        renderPriority: slotForm.renderPriority,
         pageTypes: slotForm.pageTypes ? slotForm.pageTypes.split(",").map((s) => s.trim()).filter(Boolean) : [],
       };
       if (slotForm.maxWidth) body.maxWidth = parseInt(slotForm.maxWidth);
@@ -567,7 +594,7 @@ export default function AdsAdminPage() {
               <div key={stat.label} className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{stat.label}</p>
-                  <span className={`text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.icon}</span>
+                  <span className={statColorClasses[stat.color] ?? "text-gray-600 dark:text-gray-400"}>{stat.icon}</span>
                 </div>
                 <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{stat.sub}</p>
@@ -618,7 +645,7 @@ export default function AdsAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                {providers.map((p) => (
+                {providers.slice((provPage - 1) * ADMIN_PAGE_SIZE, provPage * ADMIN_PAGE_SIZE).map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{p.name}</td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
@@ -658,6 +685,7 @@ export default function AdsAdminPage() {
               </tbody>
             </table>
           </div>
+          <AdminPagination page={provPage} totalPages={Math.ceil(providers.length / ADMIN_PAGE_SIZE)} total={providers.length} onPageChange={setProvPage} />
         </div>
       )}
 
@@ -679,7 +707,7 @@ export default function AdsAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                {slots.map((s) => (
+                {slots.slice((slotPage - 1) * ADMIN_PAGE_SIZE, slotPage * ADMIN_PAGE_SIZE).map((s) => (
                   <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{s.name}</td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
@@ -716,6 +744,7 @@ export default function AdsAdminPage() {
               </tbody>
             </table>
           </div>
+          <AdminPagination page={slotPage} totalPages={Math.ceil(slots.length / ADMIN_PAGE_SIZE)} total={slots.length} onPageChange={setSlotPage} />
         </div>
       )}
 
@@ -769,7 +798,7 @@ export default function AdsAdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                {placements.map((pl) => {
+                {placements.slice((placePage - 1) * ADMIN_PAGE_SIZE, placePage * ADMIN_PAGE_SIZE).map((pl) => {
                   const prov = providers.find((p) => p.id === pl.providerId);
                   const slot = slots.find((s) => s.id === pl.slotId);
                   return (
@@ -820,6 +849,7 @@ export default function AdsAdminPage() {
               </tbody>
             </table>
           </div>
+          <AdminPagination page={placePage} totalPages={Math.ceil(placements.length / ADMIN_PAGE_SIZE)} total={placements.length} onPageChange={setPlacePage} />
         </div>
       )}
 
@@ -893,10 +923,15 @@ export default function AdsAdminPage() {
           </div>
           {/* Row 2: Page Types (full width) */}
           <Input label="Page Types" value={slotForm.pageTypes} onChange={(e) => setSlotForm({ ...slotForm, pageTypes: e.target.value })} placeholder="home, blog, category:tech (comma-separated)" hint="Leave empty for all pages" />
-          {/* Row 3: Max Width + Max Height + Active + Responsive */}
+          {/* Row 3: Max Width + Max Height + Render Priority */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Input label="Max Width (px)" type="number" value={slotForm.maxWidth} onChange={(e) => setSlotForm({ ...slotForm, maxWidth: e.target.value })} placeholder="—" />
             <Input label="Max Height (px)" type="number" value={slotForm.maxHeight} onChange={(e) => setSlotForm({ ...slotForm, maxHeight: e.target.value })} placeholder="—" />
+            <Input label="Render Priority" type="number" value={slotForm.renderPriority} onChange={(e) => setSlotForm({ ...slotForm, renderPriority: parseInt(e.target.value) || 0 })} placeholder="0" />
+            <div />
+          </div>
+          {/* Row 4: Active + Responsive */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="flex items-end pb-1">
               <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                 <input type="checkbox" checked={slotForm.isActive} onChange={(e) => setSlotForm({ ...slotForm, isActive: e.target.checked })} className="rounded" />
@@ -1021,7 +1056,7 @@ export default function AdsAdminPage() {
                     { label: "Uncovered", value: scanResults.health.uncoveredPageTypes, color: "amber" },
                     { label: "Over-served", value: scanResults.health.overServedPageTypes, color: "red" },
                   ].map((s) => (
-                    <div key={s.label} className={`rounded-lg border p-3 border-${s.color}-200 bg-${s.color}-50 dark:border-${s.color}-800 dark:bg-${s.color}-900/20`}>
+                    <div key={s.label} className={`rounded-lg border p-3 ${scanColorClasses[s.color] ?? ""}`}>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{s.label}</p>
                       <p className="text-xl font-bold text-gray-900 dark:text-white">{s.value}</p>
                     </div>

@@ -33,7 +33,7 @@ export const concurrencyPolicySchema = z.object({
 // ─── Provider schemas ───────────────────────────────────────────────────────
 export const createProviderSchema = z.object({
   name: z.string().min(2).max(120),
-  slug: z.string().max(150).optional(),
+  slug: z.string().max(150).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase alphanumeric with hyphens").optional(),
   type: z.enum(AD_PROVIDER_TYPES),
   isActive: z.boolean().default(true),
   priority: z.number().int().default(0),
@@ -54,13 +54,15 @@ export const createProviderSchema = z.object({
 export const updateProviderSchema = createProviderSchema.partial();
 
 // ─── Slot schemas ───────────────────────────────────────────────────────────
+const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 export const createSlotSchema = z.object({
   name: z.string().min(2).max(120),
-  slug: z.string().max(150).optional(),
+  slug: z.string().max(150).regex(slugPattern, "Slug must be lowercase alphanumeric with hyphens").optional(),
   position: z.enum(AD_POSITIONS),
   format: z.enum(AD_FORMATS).default("DISPLAY"),
   description: z.string().max(500).nullish(),
-  responsiveSizes: z.any().optional(),
+  responsiveSizes: responsiveSizeMapSchema,
   maxWidth: z.number().int().positive().nullish(),
   maxHeight: z.number().int().positive().nullish(),
   responsive: z.boolean().default(true),
@@ -77,7 +79,7 @@ export const createSlotSchema = z.object({
 export const updateSlotSchema = createSlotSchema.partial();
 
 // ─── Placement schemas ──────────────────────────────────────────────────────
-export const createPlacementSchema = z.object({
+const placementBaseSchema = z.object({
   providerId: z.string().cuid(),
   slotId: z.string().cuid(),
   adUnitId: z.string().nullish(),
@@ -100,7 +102,13 @@ export const createPlacementSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-export const updatePlacementSchema = createPlacementSchema.partial();
+const dateRangeRefine = (d: { startDate?: Date | null; endDate?: Date | null }) =>
+  !d.startDate || !d.endDate || d.startDate < d.endDate;
+const dateRangeMessage = { message: "startDate must be before endDate", path: ["endDate"] as string[] };
+
+export const createPlacementSchema = placementBaseSchema.refine(dateRangeRefine, dateRangeMessage);
+
+export const updatePlacementSchema = placementBaseSchema.partial().refine(dateRangeRefine, dateRangeMessage);
 
 // ─── Event schema ───────────────────────────────────────────────────────────
 export const recordEventSchema = z.object({
@@ -111,7 +119,6 @@ export const recordEventSchema = z.object({
 
 // ─── Config / settings schema ───────────────────────────────────────────────
 export const updateAdsConfigSchema = z.object({
-  adsEnabled: z.boolean().optional(),
   sanitizeAdCode: z.boolean().optional(),
   allowedProviderTypes: z.array(z.enum(AD_PROVIDER_TYPES)).optional(),
   lazyLoadAds: z.boolean().optional(),

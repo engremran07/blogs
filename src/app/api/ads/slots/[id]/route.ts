@@ -12,8 +12,8 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(_req: NextRequest, ctx: Params) {
   try {
     const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const { id } = await ctx.params;

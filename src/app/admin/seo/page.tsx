@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
+import { AdminPagination, ADMIN_PAGE_SIZE } from "@/components/ui/AdminPagination";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -186,7 +187,7 @@ export default function SeoAdminPage() {
   const [auditSort, setAuditSort] = useState<"score-asc" | "score-desc" | "fails">("score-asc");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [auditPage, setAuditPage] = useState(1);
-  const auditPerPage = 15;
+  const auditPerPage = ADMIN_PAGE_SIZE;
 
   // Interlinking state
   const [interlinkReport, setInterlinkReport] = useState<InterlinkReport | null>(null);
@@ -216,7 +217,7 @@ export default function SeoAdminPage() {
 
   const [loading, setLoading] = useState(false);
   const [overviewPage, setOverviewPage] = useState(1);
-  const overviewPerPage = 10;
+  const overviewPerPage = ADMIN_PAGE_SIZE;
 
   const fetchOverview = useCallback(async () => {
     setLoading(true);
@@ -695,15 +696,7 @@ export default function SeoAdminPage() {
             )}
           </div>
 
-          {auditTotalPages > 1 && (
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Showing {(auditPage - 1) * auditPerPage + 1}–{Math.min(auditPage * auditPerPage, filteredAudits.length)} of {filteredAudits.length}</p>
-              <div className="flex gap-1">
-                <button disabled={auditPage <= 1} onClick={() => setAuditPage(auditPage - 1)} className="rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700">Prev</button>
-                <button disabled={auditPage >= auditTotalPages} onClick={() => setAuditPage(auditPage + 1)} className="rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700">Next</button>
-              </div>
-            </div>
-          )}
+          <AdminPagination page={auditPage} totalPages={auditTotalPages} total={filteredAudits.length} pageSize={auditPerPage} onPageChange={setAuditPage} />
         </div>
       )}
 

@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/Modal";
+import { AdminPagination, ADMIN_PAGE_SIZE } from "@/components/ui/AdminPagination";
 
 interface PostRow {
   id: string;
@@ -38,7 +39,7 @@ export default function AdminPostsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const perPage = 15;
+  const perPage = ADMIN_PAGE_SIZE;
 
   // Bulk selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -76,7 +77,7 @@ export default function AdminPostsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter]);
+  }, [page, search, statusFilter, perPage]);
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
@@ -244,15 +245,7 @@ export default function AdminPostsPage() {
           </table>
           {!loading && posts.length === 0 && <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">No posts found</p>}
         </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-700">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}</p>
-            <div className="flex gap-1">
-              <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700">Prev</button>
-              <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700">Next</button>
-            </div>
-          </div>
-        )}
+        <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
       </div>
 
       <ConfirmDialog open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Post" message="Are you sure you want to delete this post?" confirmText="Delete" variant="danger" />

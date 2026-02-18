@@ -58,7 +58,7 @@ export class AdsAdminSettingsService {
       consentModes: (row.consentModes as string[]) ?? DEFAULT_ADS_CONFIG.consentModes,
     };
 
-    await this.cache.set(CACHE_KEYS.CONFIG, config, 300);
+    await this.cache.set(CACHE_KEYS.CONFIG, config, config.cacheTtlSeconds);
     return config;
   }
 

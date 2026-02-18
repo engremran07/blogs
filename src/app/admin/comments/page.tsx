@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/Modal";
+import { AdminPagination, ADMIN_PAGE_SIZE } from "@/components/ui/AdminPagination";
 
 interface CommentRow {
   id: string;
@@ -49,7 +50,7 @@ export default function AdminCommentsPage() {
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [moduleEnabled, setModuleEnabled] = useState(true);
-  const perPage = 20;
+  const perPage = ADMIN_PAGE_SIZE;
 
   // Bulk
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -79,7 +80,7 @@ export default function AdminCommentsPage() {
       setTotal(data.total || 0);
     } catch { toast("Failed to fetch comments", "error"); }
     finally { setLoading(false); }
-  }, [statusFilter, page, search]);
+  }, [statusFilter, page, search, perPage]);
 
   useEffect(() => { fetchComments(); }, [fetchComments]);
   useEffect(() => { setSelected(new Set()); }, [page, statusFilter]);
@@ -310,16 +311,7 @@ export default function AdminCommentsPage() {
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}</p>
-          <div className="flex gap-1">
-            <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700">Prev</button>
-            <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700">Next</button>
-          </div>
-        </div>
-      )}
+      <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
       <ConfirmDialog open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Comment" message="This comment will be soft-deleted and can be restored later." confirmText="Delete" variant="danger" />
       <ConfirmDialog open={!!bulkConfirm} onClose={() => { setBulkConfirm(null); setBulkMenuOpen(false); }} onConfirm={executeBulkAction} title={`Bulk ${bulkConfirm?.label || ""}`} message={`${bulkConfirm?.label} ${selected.size} comment(s)?`} confirmText={bulkConfirm?.action === "delete" ? "Delete All" : "Confirm"} variant={bulkConfirm?.action === "delete" ? "danger" : "primary"} />

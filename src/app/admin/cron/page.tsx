@@ -12,12 +12,11 @@ import {
   AlertTriangle,
   Shield,
   History,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { clsx } from "clsx";
+import { AdminPagination, ADMIN_PAGE_SIZE } from "@/components/ui/AdminPagination";
 
 /* ───────────────────────── Types ───────────────────────── */
 
@@ -190,7 +189,7 @@ export default function CronAdminPage() {
     if (!secret.trim()) return;
     setHistoryLoading(true);
     try {
-      const res = await fetch(`/api/cron/history?page=${page}&limit=10`, {
+      const res = await fetch(`/api/cron/history?page=${page}&limit=${ADMIN_PAGE_SIZE}`, {
         headers: { Authorization: `Bearer ${secret}` },
       });
       if (res.ok) {
@@ -469,25 +468,6 @@ export default function CronAdminPage() {
                 {historyTotal} total run{historyTotal !== 1 ? "s" : ""}
               </span>
             </h2>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => fetchHistory(historyPage - 1)}
-                disabled={historyPage <= 1 || historyLoading}
-                icon={<ChevronLeft className="h-4 w-4" />}
-              >
-                Prev
-              </Button>
-              <span className="text-xs text-gray-500">
-                {historyPage} / {historyTotalPages}
-              </span>
-              <Button
-                onClick={() => fetchHistory(historyPage + 1)}
-                disabled={historyPage >= historyTotalPages || historyLoading}
-                icon={<ChevronRight className="h-4 w-4" />}
-              >
-                Next
-              </Button>
-            </div>
           </div>
           <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
             {history.map((log) => (
@@ -561,6 +541,7 @@ export default function CronAdminPage() {
               </div>
             ))}
           </div>
+          <AdminPagination page={historyPage} totalPages={historyTotalPages} total={historyTotal} pageSize={ADMIN_PAGE_SIZE} onPageChange={fetchHistory} />
         </div>
       )}
 

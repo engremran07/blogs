@@ -13,7 +13,6 @@ export type {
   AdSlotWithCount,
   AdPlacement,
   AdPlacementDetail,
-  PublicPlacement,
   AdsConfig,
   WidgetAdConfig,
   ConcurrencyPolicy,
@@ -28,7 +27,6 @@ export type {
   ComplianceScanResult,
   AdsPrismaClient,
   CacheProvider,
-  AiComplianceProvider,
 } from "./types";
 
 export {

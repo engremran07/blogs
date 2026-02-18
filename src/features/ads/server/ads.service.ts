@@ -46,10 +46,6 @@ export class AdsService {
 
   async createProvider(input: Record<string, any>): Promise<any> {
     const slug = input.slug || generateSlug(input.name);
-    const config = await this.getConfig();
-    if (config.sanitizeAdCode && input.adCode) {
-      input.adCode = sanitizeAdCode(input.adCode);
-    }
     const provider = await this.prisma.adProvider.create({
       data: { ...input, slug } as any,
       include: { _count: { select: { placements: true } } },
@@ -153,17 +149,17 @@ export class AdsService {
 
   async findPlacementsForPage(
     pageType?: string,
-    _category?: string,
-    _containerWidth?: number,
+    category?: string,
+    containerWidth?: number,
   ): Promise<any[]> {
     const now = new Date();
     const where: any = {
       isActive: true,
       provider: { isActive: true, killSwitch: false },
       slot: { isActive: true },
-      OR: [
-        { startDate: null },
-        { startDate: { lte: now } },
+      AND: [
+        { OR: [{ startDate: null }, { startDate: { lte: now } }] },
+        { OR: [{ endDate: null }, { endDate: { gte: now } }] },
       ],
     };
 
@@ -175,6 +171,25 @@ export class AdsService {
           { pageTypes: { has: pageType } },
         ],
       };
+    }
+
+    if (category) {
+      where.slot = {
+        ...where.slot,
+        OR: [
+          ...(where.slot.OR ?? []),
+          { categories: { isEmpty: true } },
+          { categories: { has: category } },
+        ],
+      };
+    }
+
+    if (containerWidth && containerWidth > 0) {
+      where.OR = [
+        { minContainerWidth: 0, maxContainerWidth: 0 },
+        { minContainerWidth: { lte: containerWidth }, maxContainerWidth: { gte: containerWidth } },
+        { minContainerWidth: { lte: containerWidth }, maxContainerWidth: 0 },
+      ];
     }
 
     return this.prisma.adPlacement.findMany({
@@ -383,17 +398,38 @@ export class AdsService {
   // ── Ads.txt ──────────────────────────────────────────────────────────────
 
   async generateAdsTxt(): Promise<string> {
-    const providers = await this.prisma.adProvider.findMany({
-      where: { isActive: true, killSwitch: false },
-    });
+    const [providers, config] = await Promise.all([
+      this.prisma.adProvider.findMany({
+        where: { isActive: true, killSwitch: false },
+      }),
+      this.getConfig(),
+    ]);
+
+    const DOMAIN_MAP: Record<string, string> = {
+      ADSENSE: "google.com",
+      AD_MANAGER: "google.com",
+      MEDIA_NET: "media.net",
+      AMAZON_APS: "amazon.com",
+      SOVRN: "sovrn.com",
+      OUTBRAIN: "outbrain.com",
+    };
 
     let txt = DEFAULT_ADS_TXT;
     for (const p of providers) {
       if (p.publisherId) {
-        const domain = p.type === "ADSENSE" ? "google.com" : p.type.toLowerCase() + ".com";
+        const domain = DOMAIN_MAP[p.type] ?? `${p.type.toLowerCase().replace(/_/g, "")}.com`;
         txt += `${domain}, ${p.publisherId}, DIRECT\n`;
       }
     }
+
+    // Append custom entries from settings
+    if (config.adsTxtCustomEntries && config.adsTxtCustomEntries.length > 0) {
+      txt += "\n# Custom entries\n";
+      for (const entry of config.adsTxtCustomEntries) {
+        txt += `${entry}\n`;
+      }
+    }
+
     return txt;
   }
 
@@ -446,16 +482,9 @@ export class AdsService {
   // ── Global Kill Switch ───────────────────────────────────────────────────
 
   async globalKillSwitch(killed: boolean): Promise<void> {
-    // Update all providers in one batch query
-    const providers = await this.prisma.adProvider.findMany();
-    await Promise.all(
-      providers.map((p: any) =>
-        this.prisma.adProvider.update({
-          where: { id: p.id },
-          data: { killSwitch: killed },
-        }),
-      ),
-    );
+    await this.prisma.adProvider.updateMany({
+      data: { killSwitch: killed },
+    });
     await this.cache.invalidatePrefix("ads:");
   }
 }

@@ -217,47 +217,6 @@ export interface ConcurrencyPolicy {
 
 export type SafeAdProvider = Omit<AdProvider, 'apiKey' | 'config'>;
 
-export interface PublicPlacement {
-  id: string;
-  adUnitId: string | null;
-  adCode: string | null;
-  customHtml: string | null;
-  autoResize: boolean;
-  minContainerWidth: number;
-  maxContainerWidth: number;
-  visibleBreakpoints: ResponsiveBreakpoint[];
-  autoPlace: boolean;
-  autoStrategy: AutoAdStrategy;
-  minParagraphs: number;
-  paragraphGap: number;
-  maxAdsPerPage: number;
-  lazyOffset: number;
-  refreshIntervalSec: number;
-  closeable: boolean;
-  provider: {
-    name: string;
-    type: AdProviderType;
-    scriptUrl: string | null;
-    publisherId: string | null;
-    dataAttributes: Record<string, string>;
-    loadStrategy: 'eager' | 'lazy' | 'intersection' | 'idle';
-    allowConcurrent: boolean;
-    maxPerPage: number;
-  };
-  slot: {
-    name: string;
-    position: AdPosition;
-    format: AdFormat;
-    responsiveSizes: ResponsiveSizeMap;
-    maxWidth: number | null;
-    maxHeight: number | null;
-    responsive: boolean;
-    containerSelector: string | null;
-    multiProvider: boolean;
-    renderPriority: number;
-  };
-}
-
 export interface AdProviderWithCount extends AdProvider { _count: { placements: number } }
 export interface AdSlotWithCount extends AdSlot { _count: { placements: number } }
 export interface AdPlacementDetail extends AdPlacement {
@@ -377,10 +336,6 @@ export interface CacheProvider {
   get<T>(key: string): Promise<T | null>;
   set(key: string, value: unknown, ttlSeconds: number): Promise<void>;
   invalidatePrefix(prefix: string): Promise<void>;
-}
-
-export interface AiComplianceProvider {
-  scanTemplates(templates: Array<{ id: string; code: string }>): Promise<ComplianceScanResult>;
 }
 
 /* ── Lightweight DB-record shapes (mirroring Prisma models) ──────────────── */
@@ -522,6 +477,7 @@ export interface AdsPrismaClient {
     findMany(a?: Record<string, unknown>): Promise<AdProviderRecord[]>;
     findUnique(a: { where: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdProviderRecord | null>;
     update(a: { where: Record<string, unknown>; data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdProviderRecord>;
+    updateMany(a: { where?: Record<string, unknown>; data: Record<string, unknown> }): Promise<{ count: number }>;
     delete(a: { where: Record<string, unknown> }): Promise<AdProviderRecord>;
     count(a?: Record<string, unknown>): Promise<number>;
   };

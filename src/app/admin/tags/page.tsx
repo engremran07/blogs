@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/FormFields";
 import { Modal, ConfirmDialog } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
+import { AdminPagination, ADMIN_PAGE_SIZE } from "@/components/ui/AdminPagination";
 
 interface TagRow {
   id: string;
@@ -52,7 +53,7 @@ export default function AdminTagsPage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const perPage = 20;
+  const perPage = ADMIN_PAGE_SIZE;
   const [form, setForm] = useState({ name: "", slug: "", description: "", color: "#3b82f6", metaTitle: "", metaDescription: "", icon: "", ogImage: "", parentId: "", synonyms: "", protected: false });
 
   // Bulk
@@ -352,16 +353,7 @@ export default function AdminTagsPage() {
           </table>
           {!loading && filteredTags.length === 0 && <p className="py-8 text-center text-sm text-gray-500">No tags found</p>}
         </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-700">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, filteredTags.length)} of {filteredTags.length}</p>
-            <div className="flex gap-1">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button key={i} onClick={() => setPage(i + 1)} className={`rounded px-3 py-1 text-sm ${page === i + 1 ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"}`}>{i + 1}</button>
-              ))}
-            </div>
-          </div>
-        )}
+        <AdminPagination page={page} totalPages={totalPages} total={filteredTags.length} onPageChange={setPage} />
       </div>
 
       {/* ─── Create / Edit Modal ─── */}

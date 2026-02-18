@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/Modal";
+import { AdminPagination, ADMIN_PAGE_SIZE } from "@/components/ui/AdminPagination";
 
 interface PageRow {
   id: string;
@@ -38,7 +39,7 @@ export default function AdminPagesPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const perPage = 20;
+  const perPage = ADMIN_PAGE_SIZE;
 
   // Bulk
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -69,7 +70,7 @@ export default function AdminPagesPage() {
       setTotalCount(data.total ?? 0);
     } catch { toast("Failed to fetch pages", "error"); }
     finally { setLoading(false); }
-  }, [page, search, statusFilter]);
+  }, [page, search, statusFilter, perPage]);
 
   useEffect(() => { fetchPages(); }, [fetchPages]);
 
@@ -221,15 +222,7 @@ export default function AdminPagesPage() {
           </table>
           {!loading && pages.length === 0 && <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">No pages found</p>}
         </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 dark:border-gray-700">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, totalCount)} of {totalCount}</p>
-            <div className="flex gap-1">
-              <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700">Prev</button>
-              <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700">Next</button>
-            </div>
-          </div>
-        )}
+        <AdminPagination page={page} totalPages={totalPages} total={totalCount} onPageChange={setPage} />
       </div>
 
       <ConfirmDialog open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={handleDelete} title="Delete Page" message="Are you sure you want to delete this page?" confirmText="Delete" variant="danger" />
