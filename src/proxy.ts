@@ -33,7 +33,31 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // ── 2. Rate limiting on mutation API routes ──────────────────────────────
+  // ── 2. CSRF validation on mutation API routes ────────────────────────────
+  // Validates x-csrf-token header against csrf_token cookie for all
+  // state-changing requests. Skips auth (NextAuth handles it) and cron.
+  if (
+    pathname.startsWith("/api/") &&
+    !pathname.startsWith("/api/auth") &&
+    !pathname.startsWith("/api/cron") &&
+    req.method !== "GET" &&
+    req.method !== "HEAD" &&
+    req.method !== "OPTIONS"
+  ) {
+    const csrfEnabled = await isCsrfEnabled();
+    if (csrfEnabled) {
+      const headerToken = req.headers.get("x-csrf-token");
+      const cookieToken = req.cookies.get("csrf_token")?.value;
+      if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+        return NextResponse.json(
+          { error: "Invalid or missing CSRF token" },
+          { status: 403 },
+        );
+      }
+    }
+  }
+
+  // ── 3. Rate limiting on mutation API routes ──────────────────────────────
   // Only apply to POST/PUT/PATCH/DELETE on API routes (not GET reads).
   // Uses @upstash/ratelimit if UPSTASH env vars are configured.
   if (
@@ -52,7 +76,19 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  // Inject CSRF cookie if not present (for SPA clients to read)
+  const response = NextResponse.next();
+  if (!req.cookies.get("csrf_token")?.value) {
+    const token = generateCsrfToken();
+    response.cookies.set("csrf_token", token, {
+      httpOnly: false, // Client JS needs to read it
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 86400,
+    });
+  }
+  return response;
 }
 
 // ── Rate limiter (lazy-initialised) ─────────────────────────────────────────
@@ -96,6 +132,37 @@ async function checkRateLimit(req: NextRequest): Promise<boolean> {
   } catch {
     return false; // Fail open — don't block if Redis is down
   }
+}
+
+// ── CSRF helpers ────────────────────────────────────────────────────────────
+
+let _csrfEnabled: boolean | null = null;
+let _csrfCheckedAt = 0;
+
+async function isCsrfEnabled(): Promise<boolean> {
+  // Cache the DB lookup for 60 seconds
+  if (_csrfEnabled !== null && Date.now() - _csrfCheckedAt < 60_000) {
+    return _csrfEnabled;
+  }
+  try {
+    // Dynamic import to avoid edge runtime issues
+    const { prisma } = await import("@/server/db/prisma");
+    const row = await (prisma as unknown as Record<string, { findFirst: (args: Record<string, unknown>) => Promise<{ value: unknown } | null> }>).siteSettings.findFirst({
+      where: { key: "csrfEnabled" },
+      select: { value: true },
+    });
+    _csrfEnabled = row?.value === "true" || row?.value === true;
+  } catch {
+    _csrfEnabled = true; // Default to enabled if DB unavailable
+  }
+  _csrfCheckedAt = Date.now();
+  return _csrfEnabled!;
+}
+
+function generateCsrfToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 // ── Matcher ─────────────────────────────────────────────────────────────────

@@ -553,6 +553,8 @@ export interface SmtpConfig {
   smtpUser: string | null;
   smtpPassword: string | null;
   smtpSecure: boolean;
+  emailFromName: string | null;
+  emailFromAddress: string | null;
 }
 
 /** Extracts email notification toggles. */

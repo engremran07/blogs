@@ -518,6 +518,8 @@ export class SiteSettingsService {
       smtpUser: (raw.smtpUser as string) ?? null,
       smtpPassword: (raw.smtpPassword as string) ?? null,
       smtpSecure: (raw.smtpSecure as boolean) ?? true,
+      emailFromName: (raw.emailFromName as string) ?? null,
+      emailFromAddress: (raw.emailFromAddress as string) ?? null,
     };
   }
 

@@ -167,21 +167,20 @@ const revalidateCallback = async (paths: string | string[]) => {
   }
 };
 
-// ─── Stub Providers (replace with real implementations) ─────────────────────
-import type { JwtSigner, MailProvider } from "@/features/auth/types";
+// ─── Providers ──────────────────────────────────────────────────────────────
+import type { JwtSigner } from "@/features/auth/types";
+import { NodemailerMailProvider } from "@/server/mail";
 
-const stubJwt: JwtSigner = {
-  sign: async () => "stub-token",
+// Auth flows use NextAuth — the JwtSigner interface is unused but required by AuthService constructor.
+const noopJwt: JwtSigner = {
+  sign: async () => "noop-jwt",
   verify: async <T extends Record<string, unknown>>() => ({}) as T,
 };
 
-const stubMail: MailProvider = {
-  sendWelcomeEmail: async () => {},
-  sendEmailVerification: async () => {},
-  sendPasswordReset: async () => {},
-  sendPasswordResetConfirmation: async () => {},
-  sendEmailChangeVerification: async () => {},
-};
+// Real mail provider — reads SMTP config from SiteSettings at send-time
+// (reuses the SiteSettingsService import above and SiteSettingsPrismaClient type)
+const _smtpSettingsService = new SiteSettingsService(prisma as unknown as SiteSettingsPrismaClient);
+const mailProvider = new NodemailerMailProvider(() => _smtpSettingsService.getSmtpConfig());
 
 const commentEventBus = new CommentEventBus();
 
@@ -216,13 +215,13 @@ export const menuBuilderService = new MenuBuilderService(prisma as unknown as Me
 // Core services
 export const authService = new AuthService(
   prisma as unknown as UsersPrismaClient,
-  stubJwt,
-  stubMail,
+  noopJwt,
+  mailProvider,
   captchaProvider,
   {},
   { log: authLogger.info, warn: authLogger.warn, error: authLogger.error },
 );
-export const userService = new UserService(prisma as unknown as UsersPrismaClient, stubMail);
+export const userService = new UserService(prisma as unknown as UsersPrismaClient, mailProvider);
 
 export const blogService = new BlogService({
   prisma: prisma as unknown as BlogPrismaClient,

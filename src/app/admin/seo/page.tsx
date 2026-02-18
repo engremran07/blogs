@@ -178,7 +178,7 @@ function ScoreCircle({ score, size = "lg" }: { score: number; size?: "sm" | "md"
 // ─── Main ───────────────────────────────────────────────────────────────
 
 export default function SeoAdminPage() {
-  const [tab, setTab] = useState<"overview" | "audit" | "interlinking">("overview");
+  const [tab, setTab] = useState<"overview" | "audit" | "interlinking" | "redirects">("overview");
   const [overview, setOverview] = useState<SeoOverview | null>(null);
   const [auditResults, setAuditResults] = useState<AuditItem[]>([]);
   const [auditFilter, setAuditFilter] = useState<"all" | "posts" | "pages">("all");
@@ -207,6 +207,13 @@ export default function SeoAdminPage() {
   const [newExclPhrase, setNewExclPhrase] = useState("");
   const [newExclReason, setNewExclReason] = useState("");
   const [interlinkSubTab, setInterlinkSubTab] = useState<"overview" | "links" | "exclusions">("overview");
+
+  // Redirects state
+  const [redirects, setRedirects] = useState<{ id: string; fromPath: string; toPath: string; statusCode: number; isActive: boolean; hitCount: number }[]>([]);
+  const [redirectForm, setRedirectForm] = useState({ fromPath: "", toPath: "", statusCode: 301, isActive: true });
+  const [redirectEditing, setRedirectEditing] = useState<string | null>(null);
+  const [redirectSaving, setRedirectSaving] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [overviewPage, setOverviewPage] = useState(1);
   const overviewPerPage = 10;
@@ -295,6 +302,42 @@ export default function SeoAdminPage() {
     } catch { /* ignore */ }
   };
 
+  // ─── Redirects API ───
+  const fetchRedirects = useCallback(async () => {
+    try {
+      const res = await fetch("/api/seo/redirects");
+      const data = await res.json();
+      if (data.success) setRedirects(data.data || []);
+    } catch { /* ignore */ }
+  }, []);
+
+  const saveRedirect = async () => {
+    if (!redirectForm.fromPath || !redirectForm.toPath) return;
+    setRedirectSaving(true);
+    try {
+      if (redirectEditing) {
+        // Update — using DELETE + re-create since the API may not have PATCH
+        await fetch("/api/seo/redirects", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: redirectEditing }) });
+      }
+      const res = await fetch("/api/seo/redirects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(redirectForm) });
+      const data = await res.json();
+      if (data.success) {
+        setRedirectForm({ fromPath: "", toPath: "", statusCode: 301, isActive: true });
+        setRedirectEditing(null);
+        fetchRedirects();
+      }
+    } catch { /* ignore */ }
+    setRedirectSaving(false);
+  };
+
+  const deleteRedirect = async (id: string) => {
+    try {
+      const res = await fetch("/api/seo/redirects", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      const data = await res.json();
+      if (data.success) fetchRedirects();
+    } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     if (tab === "overview") fetchOverview();
     else if (tab === "audit") fetchAudit();
@@ -302,8 +345,10 @@ export default function SeoAdminPage() {
       fetchInterlinkReport();
       fetchPersistedLinks();
       fetchExclusions();
+    } else if (tab === "redirects") {
+      fetchRedirects();
     }
-  }, [tab, fetchOverview, fetchAudit, fetchInterlinkReport, fetchPersistedLinks, fetchExclusions]);
+  }, [tab, fetchOverview, fetchAudit, fetchInterlinkReport, fetchPersistedLinks, fetchExclusions, fetchRedirects]);
 
   const filteredAudits = auditResults
     .filter(a => !auditSearch || a.title.toLowerCase().includes(auditSearch.toLowerCase()) || a.slug.toLowerCase().includes(auditSearch.toLowerCase()))
@@ -341,7 +386,7 @@ export default function SeoAdminPage() {
 
       {/* Tabs */}
       <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
-        {(["overview", "audit", "interlinking"] as const).map(t => (
+        {(["overview", "audit", "interlinking", "redirects"] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -350,7 +395,7 @@ export default function SeoAdminPage() {
               tab === t ? "bg-white text-gray-900 shadow dark:bg-gray-700 dark:text-white" : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
             )}
           >
-            {t === "overview" ? "Overview" : t === "audit" ? "Content Audit" : "Interlinking"}
+            {t === "overview" ? "Overview" : t === "audit" ? "Content Audit" : t === "interlinking" ? "Interlinking" : "Redirects"}
           </button>
         ))}
       </div>
@@ -1250,6 +1295,125 @@ export default function SeoAdminPage() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {/* ─── REDIRECTS TAB ─── */}
+      {tab === "redirects" && (
+        <div className="space-y-6">
+          {/* Add / Edit form */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+              {redirectEditing ? "Edit Redirect" : "Add Redirect"}
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-4">
+              <div className="sm:col-span-1">
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">From Path</label>
+                <input
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  placeholder="/old-path"
+                  value={redirectForm.fromPath}
+                  onChange={(e) => setRedirectForm((f) => ({ ...f, fromPath: e.target.value }))}
+                />
+              </div>
+              <div className="sm:col-span-1">
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">To Path</label>
+                <input
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  placeholder="/new-path"
+                  value={redirectForm.toPath}
+                  onChange={(e) => setRedirectForm((f) => ({ ...f, toPath: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Type</label>
+                <select
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  value={redirectForm.statusCode}
+                  onChange={(e) => setRedirectForm((f) => ({ ...f, statusCode: Number(e.target.value) }))}
+                >
+                  <option value={301}>301 Permanent</option>
+                  <option value={302}>302 Temporary</option>
+                  <option value={307}>307 Temporary (strict)</option>
+                  <option value={308}>308 Permanent (strict)</option>
+                </select>
+              </div>
+              <div className="flex items-end gap-2">
+                <button
+                  onClick={saveRedirect}
+                  disabled={redirectSaving || !redirectForm.fromPath || !redirectForm.toPath}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {redirectSaving ? "Saving..." : redirectEditing ? "Update" : "Add"}
+                </button>
+                {redirectEditing && (
+                  <button
+                    onClick={() => { setRedirectEditing(null); setRedirectForm({ fromPath: "", toPath: "", statusCode: 301, isActive: true }); }}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Redirects list */}
+          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+            <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+              <h3 className="font-semibold text-gray-900 dark:text-white">
+                Active Redirects ({redirects.length})
+              </h3>
+            </div>
+            {redirects.length > 0 ? (
+              <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                {redirects.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between px-6 py-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={clsx(
+                        "shrink-0 rounded px-2 py-0.5 text-xs font-medium",
+                        r.statusCode === 301 || r.statusCode === 308 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                      )}>
+                        {r.statusCode}
+                      </span>
+                      <span className="truncate text-sm font-mono text-gray-900 dark:text-white">{r.fromPath}</span>
+                      <span className="text-gray-400">→</span>
+                      <span className="truncate text-sm font-mono text-blue-600 dark:text-blue-400">{r.toPath}</span>
+                      {r.hitCount > 0 && (
+                        <span className="text-xs text-gray-400">{r.hitCount} hits</span>
+                      )}
+                      {!r.isActive && (
+                        <span className="rounded bg-gray-200 px-1.5 py-0.5 text-xs text-gray-500 dark:bg-gray-600 dark:text-gray-400">disabled</span>
+                      )}
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        onClick={() => {
+                          setRedirectEditing(r.id);
+                          setRedirectForm({ fromPath: r.fromPath, toPath: r.toPath, statusCode: r.statusCode, isActive: r.isActive });
+                        }}
+                        className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+                        title="Edit"
+                      >
+                        <Database className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => deleteRedirect(r.id)}
+                        className="rounded p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="px-6 py-12 text-center text-sm text-gray-400">
+                No redirects configured. Add one above.
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

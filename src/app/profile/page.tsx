@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Save, User, Mail, Lock, Eye, EyeOff, Camera, ArrowLeft } from "lucide-react";
+import { Save, User, Mail, Lock, Eye, EyeOff, Camera, ArrowLeft, Download, Trash2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/FormFields";
@@ -42,6 +42,11 @@ export default function ProfilePage() {
   });
   const [showPasswords, setShowPasswords] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [showDeleteSection, setShowDeleteSection] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -263,6 +268,111 @@ export default function ProfilePage() {
           </Button>
         </div>
       </form>
+
+      {/* Data Export */}
+      <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+          <Download className="mr-2 inline h-5 w-5" />
+          Export Your Data
+        </h3>
+        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+          Download a copy of all your personal data in JSON format (GDPR Article 20).
+        </p>
+        <Button
+          variant="outline"
+          loading={exporting}
+          icon={<Download className="h-4 w-4" />}
+          onClick={async () => {
+            setExporting(true);
+            try {
+              const res = await fetch("/api/profile");
+              if (!res.ok) throw new Error("Export failed");
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `my-data-export.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+              toast("Data export downloaded.", "success");
+            } catch {
+              toast("Failed to export data. Please try again.", "error");
+            }
+            setExporting(false);
+          }}
+        >
+          Download My Data
+        </Button>
+      </div>
+
+      {/* Delete Account */}
+      <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950/20">
+        <h3 className="mb-2 text-lg font-semibold text-red-700 dark:text-red-400">
+          <AlertTriangle className="mr-2 inline h-5 w-5" />
+          Delete Account
+        </h3>
+        <p className="mb-4 text-sm text-red-600 dark:text-red-400">
+          Permanently delete your account and all associated data. This action cannot be undone.
+        </p>
+        {!showDeleteSection ? (
+          <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-100 dark:border-red-800 dark:text-red-400"
+            onClick={() => setShowDeleteSection(true)} icon={<Trash2 className="h-4 w-4" />}>
+            I want to delete my account
+          </Button>
+        ) : (
+          <div className="space-y-4">
+            <Input
+              label="Enter your password"
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder="Your current password"
+              leftIcon={<Lock className="h-4 w-4" />}
+            />
+            <Input
+              label='Type "DELETE MY ACCOUNT" to confirm'
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              placeholder="DELETE MY ACCOUNT"
+            />
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => { setShowDeleteSection(false); setDeletePassword(""); setDeleteConfirm(""); }}>
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                className="border-red-300 bg-red-600 text-white hover:bg-red-700"
+                loading={deleting}
+                disabled={deleteConfirm !== "DELETE MY ACCOUNT" || !deletePassword}
+                icon={<Trash2 className="h-4 w-4" />}
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    const res = await fetch("/api/profile", {
+                      method: "DELETE",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ password: deletePassword, confirmText: deleteConfirm }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                      toast(data.error || "Failed to delete account", "error");
+                      setDeleting(false);
+                      return;
+                    }
+                    toast("Account deleted. Redirecting...", "success");
+                    setTimeout(() => router.push("/"), 2000);
+                  } catch {
+                    toast("Network error. Please try again.", "error");
+                    setDeleting(false);
+                  }
+                }}
+              >
+                Permanently Delete Account
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

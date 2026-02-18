@@ -32,13 +32,25 @@ export default function ContactForm({ contactInfo }: {
       return;
     }
     setSending(true);
-    // TODO: POST to /api/contact when endpoint is implemented
-    const _body = { ...form, captchaToken, captchaId, captchaType };
-    await new Promise((r) => setTimeout(r, 1000));
-    toast("Message sent! We'll get back to you soon.", "success");
-    setForm({ name: "", email: "", subject: "", message: "" });
-    setCaptchaNonce((n) => n + 1);
-    setCaptchaToken("");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, captchaToken, captchaId, captchaType }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast(data.error || "Failed to send message. Please try again.", "error");
+        setSending(false);
+        return;
+      }
+      toast("Message sent! We'll get back to you soon.", "success");
+      setForm({ name: "", email: "", subject: "", message: "" });
+      setCaptchaNonce((n) => n + 1);
+      setCaptchaToken("");
+    } catch {
+      toast("Network error. Please check your connection and try again.", "error");
+    }
     setSending(false);
   }
 
