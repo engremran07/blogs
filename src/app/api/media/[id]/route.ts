@@ -20,6 +20,14 @@ export async function GET(req: NextRequest, context: RouteContext) {
         { status: 401 }
       );
     }
+    // SEC-005: Require content role
+    const role = (session.user as { role?: string })?.role;
+    if (!["AUTHOR", "EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role || "")) {
+      return NextResponse.json(
+        { success: false, error: "Insufficient permissions" },
+        { status: 403 }
+      );
+    }
 
     const { id } = await context.params;
     const result = await mediaService.getById(id);
@@ -48,6 +56,14 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+    // SEC-005: Require content role
+    const role = (session.user as { role?: string })?.role;
+    if (!["AUTHOR", "EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role || "")) {
+      return NextResponse.json(
+        { success: false, error: "Insufficient permissions" },
+        { status: 403 }
       );
     }
 

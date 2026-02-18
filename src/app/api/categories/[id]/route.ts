@@ -58,6 +58,14 @@ export async function PATCH(
         { status: 401 },
       );
     }
+    // SEC-003: Require content-management role
+    const role = session.user.role;
+    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
+      return NextResponse.json(
+        { success: false, error: "Insufficient permissions" },
+        { status: 403 },
+      );
+    }
 
     const { id } = await params;
     const body = await req.json();
@@ -95,6 +103,14 @@ export async function DELETE(
       return NextResponse.json(
         { success: false, error: "Authentication required" },
         { status: 401 },
+      );
+    }
+    // SEC-003: Require content-management role
+    const role = session.user.role;
+    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
+      return NextResponse.json(
+        { success: false, error: "Insufficient permissions" },
+        { status: 403 },
       );
     }
 

@@ -536,20 +536,36 @@ export class DistributionService {
   async updateConfig(input: Partial<DistributionConfig>): Promise<DistributionConfig> {
     this.config = { ...this.config, ...input };
 
-    // Persist to DB via SiteSetting (key: distributionConfig)
+    // DIST-001: Persist to DB via SiteSettings.distributionConfig JSON column
     try {
-      await (this.prisma as any).siteSettings.upsert({
-        where: { key: "distributionConfig" },
-        create: { key: "distributionConfig", value: JSON.stringify(this.config) },
-        update: { value: JSON.stringify(this.config) },
-      });
+      const existing = await (this.prisma as any).siteSettings.findFirst();
+      if (existing) {
+        await (this.prisma as any).siteSettings.update({
+          where: { id: existing.id },
+          data: { distributionConfig: this.config },
+        });
+      }
     } catch {
       // Non-critical: in-memory config still updated
-      console.warn("[DistributionService] Failed to persist config to DB");
+      console.warn("[DistributionService] Failed to persist config to DB — distributionConfig column may not exist yet");
     }
 
     await this.eventBus.emit(DistributionEvent.SETTINGS_UPDATED, { config: this.config });
     return this.config;
+  }
+
+  /** Load config from DB on first use (lazy initialization). */
+  async loadConfigFromDb(): Promise<void> {
+    try {
+      const settings = await (this.prisma as any).siteSettings.findFirst({
+        select: { distributionConfig: true },
+      });
+      if (settings?.distributionConfig && typeof settings.distributionConfig === "object") {
+        this.config = { ...DEFAULT_CONFIG, ...settings.distributionConfig };
+      }
+    } catch {
+      // distributionConfig column may not exist yet — use in-memory defaults
+    }
   }
 
   // ── Scheduled Processing ─────────────────────────────────────────────────

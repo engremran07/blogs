@@ -46,6 +46,13 @@ export async function POST(req: NextRequest) {
             { status: 400 },
           );
         }
+        // SEC-009: Only ADMINISTRATOR/SUPER_ADMIN can permanently delete
+        if (parsed.data.permanent && !["ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
+          return NextResponse.json(
+            { success: false, error: "Only administrators can permanently delete pages" },
+            { status: 403 },
+          );
+        }
         const result = await pageService.bulkDelete(
           parsed.data.ids,
           parsed.data.permanent,

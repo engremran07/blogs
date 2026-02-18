@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/Toast";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import type { MediaItem } from "@/features/media/types";
+import type { EditorAdminProps } from "@/features/editor/types";
 
 const RichTextEditor = dynamic(() => import("@/features/editor/ui/RichTextEditor"), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" /> });
 const MediaManager = dynamic(() => import("@/features/media/ui/MediaManager").then(m => ({ default: m.MediaManager })), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" /> });
@@ -93,8 +94,17 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
   const [codeOpen, setCodeOpen] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [editorSettings, setEditorSettings] = useState<EditorAdminProps | undefined>(undefined);
 
   const [form, setForm] = useState<PageForm>({ ...defaultForm });
+
+  useEffect(() => {
+    // Fetch editor settings for RichTextEditor admin configuration
+    fetch("/api/settings/editor")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.success) setEditorSettings(d.data); })
+      .catch(() => { /* editor settings unavailable — use defaults */ });
+  }, []);
 
   useEffect(() => {
     if (!isNew && pageId) {
@@ -281,6 +291,7 @@ export default function PageEditor({ pageId, isNew }: { pageId?: string; isNew: 
                 if (!data.success) throw new Error(data.error || "Upload failed");
                 return data.data.url;
               }}
+              adminSettings={editorSettings}
               placeholder="Write your page content here..."
               minHeight="400px"
               maxHeight="800px"

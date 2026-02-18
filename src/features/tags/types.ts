@@ -445,5 +445,6 @@ export interface TagsPrismaClient {
   tagFollow: PrismaDelegate;
   tagSettings: PrismaDelegate;
   post: PrismaDelegate;
+  $transaction<T>(fn: (tx: TagsPrismaClient) => Promise<T>): Promise<T>;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

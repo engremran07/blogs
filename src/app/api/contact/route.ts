@@ -14,6 +14,22 @@ const contactSchema = z.object({
   captchaType: z.string().optional(),
 });
 
+// ── In-memory rate limiter (per-IP, fallback when Upstash is unavailable) ──
+const contactRateMap = new Map<string, { count: number; resetAt: number }>();
+const CONTACT_RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const CONTACT_RATE_MAX = 5; // max 5 submissions per window per IP
+
+function isContactRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = contactRateMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    contactRateMap.set(ip, { count: 1, resetAt: now + CONTACT_RATE_WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  return entry.count > CONTACT_RATE_MAX;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -28,7 +44,18 @@ export async function POST(req: NextRequest) {
 
     const { name, email, subject, message } = parsed.data;
 
-    // Verify CAPTCHA if available
+    // ── Rate limiting (in-memory fallback; middleware also rate-limits mutations) ──
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      || req.headers.get("x-real-ip")
+      || "unknown";
+    if (isContactRateLimited(clientIp)) {
+      return NextResponse.json(
+        { success: false, error: "Too many submissions. Please try again later." },
+        { status: 429 },
+      );
+    }
+
+    // Verify CAPTCHA — fail-closed: deny on any unexpected error
     try {
       const { captchaVerificationService } = await import("@/server/wiring");
       const result = await captchaVerificationService.verify({
@@ -43,8 +70,13 @@ export async function POST(req: NextRequest) {
           { status: 400 },
         );
       }
-    } catch {
-      // CAPTCHA not configured — allow submission
+    } catch (err) {
+      // SECURITY: fail-closed — if captcha service errors, deny the request
+      console.error("[Contact] CAPTCHA verification error:", (err as Error).message);
+      return NextResponse.json(
+        { success: false, error: "Security verification failed. Please try again." },
+        { status: 400 },
+      );
     }
 
     // Get settings to find recipient email

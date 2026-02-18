@@ -22,7 +22,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const result = await pageService.findAll(parsed.data);
+    // SEC-008: Non-admin users can only see PUBLISHED pages
+    const session = await auth();
+    const isAdmin = session?.user && ["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role);
+    const findOpts = { ...parsed.data };
+    if (!isAdmin) {
+      findOpts.status = "PUBLISHED" as typeof findOpts.status;
+      findOpts.includeDeleted = false;
+    }
+
+    const result = await pageService.findAll(findOpts);
 
     return NextResponse.json({
       success: true,

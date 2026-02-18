@@ -59,7 +59,7 @@ export {
   pageQuerySchema,
 } from "./server/schemas";
 
-export { sanitizeAdCode, sanitizeCustomHtml, escapeHtml, escapeHtmlAttr, detectDangerousPatterns, findUntrustedScripts } from "./server/sanitization.util";
+export { sanitizeAdCode, sanitizeCustomHtml, sanitizeUrl, sanitizeAltText, escapeHtml, escapeHtmlAttr, detectDangerousPatterns, findUntrustedScripts } from "./server/sanitization.util";
 export type { DangerousMatch, UntrustedScript } from "./server/sanitization.util";
 
 export {

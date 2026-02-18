@@ -112,12 +112,20 @@ export async function POST(request: Request) {
         username,
         email,
         password: hashedPassword,
+        displayName: name || undefined,
         firstName,
         lastName,
         role: config.defaultRole,
       },
       select: { id: true, username: true, email: true, role: true },
     });
+
+    // TODO: Send email verification link after registration.
+    // The User model has `isEmailVerified` / `emailVerifiedAt` fields and
+    // auth schemas already define verifyEmailTokenSchema / verifyEmailCodeSchema,
+    // but wiring to the mail infrastructure (sendTransactionalEmail, token
+    // generation, verification endpoint) is non-trivial. Wire this once the
+    // email-verification flow is fully implemented.
 
     return NextResponse.json({ success: true, data: user }, { status: 201 });
   } catch (error) {

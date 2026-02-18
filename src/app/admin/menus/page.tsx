@@ -36,6 +36,16 @@ interface MenuData {
   items: MenuItem[];
 }
 
+// ─── URL Safety ─────────────────────────────────────────────────────────────
+
+/** Dangerous URI schemes that must be rejected in menu URLs. */
+const DANGEROUS_URL_PATTERN = /^\s*(javascript|data|vbscript)\s*:/i;
+
+/** Returns true if the URL is safe for use in navigation. */
+function isSafeMenuUrl(url: string): boolean {
+  return !DANGEROUS_URL_PATTERN.test(url);
+}
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function AdminMenusPage() {
@@ -135,6 +145,11 @@ export default function AdminMenusPage() {
   }, [activeMenuId]);
 
   const updateMenuItem = useCallback((menuId: string, itemId: string, field: string, value: string | boolean) => {
+    // Reject dangerous URL schemes (javascript:, data:, vbscript:)
+    if (field === "url" && typeof value === "string" && !isSafeMenuUrl(value)) {
+      toast("Unsafe URL scheme rejected (javascript:, data:, vbscript: are not allowed)", "error");
+      return;
+    }
     setMenus((prev) =>
       prev.map((m) =>
         m.id === menuId
@@ -155,6 +170,16 @@ export default function AdminMenusPage() {
   }, []);
 
   async function handleSave() {
+    // Final safety check: reject any menus containing dangerous URLs
+    for (const menu of menus) {
+      for (const item of menu.items) {
+        if (!isSafeMenuUrl(item.url)) {
+          toast(`Menu "${menu.name}" contains an unsafe URL in "${item.label}". Remove it before saving.`, "error");
+          return;
+        }
+      }
+    }
+
     setSaving(true);
     try {
       const res = await fetch("/api/settings", {

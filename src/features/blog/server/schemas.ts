@@ -33,6 +33,7 @@ export const CreatePostSchema = z.object({
     .min(BLOG_LIMITS.TITLE_MIN_LENGTH, `Title must be at least ${BLOG_LIMITS.TITLE_MIN_LENGTH} characters`)
     .max(BLOG_LIMITS.TITLE_MAX_LENGTH, `Title must be at most ${BLOG_LIMITS.TITLE_MAX_LENGTH} characters`)
     .transform(s => s.trim()),
+  slug: z.string().max(200).nullish(),
   content: z.string().min(1, 'Content is required'),
   excerpt: z.string().max(BLOG_LIMITS.EXCERPT_MAX_LENGTH).nullish(),
   status: z.enum(POST_STATUSES).default('DRAFT'),
@@ -47,12 +48,26 @@ export const CreatePostSchema = z.object({
   twitterTitle: z.string().max(100).nullish(),
   twitterDescription: z.string().max(200).nullish(),
   twitterImage: urlOrNull,
+  twitterCard: z.string().max(50).nullish(),
+
+  // SEO
+  seoTitle: z.string().max(100).nullish(),
+  seoDescription: z.string().max(300).nullish(),
+  seoKeywords: z.array(z.string().max(50)).max(20).default([]),
+  noIndex: z.boolean().default(false),
+  noFollow: z.boolean().default(false),
+  structuredData: z.record(z.string(), z.unknown()).nullish(),
 
   // Scheduling
   scheduledFor: z.coerce.date().nullish(),
 
   // Taxonomy
+  tagIds: z.array(idSchema).max(20).default([]),
   categoryIds: z.array(idSchema).max(BLOG_LIMITS.MAX_CATEGORIES_PER_POST).default([]),
+
+  // Featured / Pinned
+  isFeatured: z.boolean().default(false),
+  isPinned: z.boolean().default(false),
 
   // Series
   seriesId: idSchema.nullish(),
@@ -104,6 +119,25 @@ export const UpdatePostSchema = z.object({
   twitterTitle: z.string().max(100).nullish(),
   twitterDescription: z.string().max(200).nullish(),
   twitterImage: urlOrNull,
+  twitterCard: z.string().max(50).nullish(),
+
+  // SEO
+  seoTitle: z.string().max(100).nullish(),
+  seoDescription: z.string().max(300).nullish(),
+  seoKeywords: z.array(z.string().max(50)).max(20).optional(),
+  noIndex: z.boolean().optional(),
+  noFollow: z.boolean().optional(),
+  structuredData: z.record(z.string(), z.unknown()).nullish(),
+
+  // Featured / Pinned
+  isFeatured: z.boolean().optional(),
+  isPinned: z.boolean().optional(),
+
+  // Slug
+  slug: z.string().max(200).nullish(),
+
+  // Taxonomy
+  tagIds: z.array(idSchema).max(20).optional(),
 
   scheduledFor: z.coerce.date().nullish(),
   publishedAt: z.coerce.date().nullish(),

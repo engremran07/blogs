@@ -31,6 +31,7 @@ export type SortOrder = (typeof SORT_ORDERS)[number];
 /** Blog post — core content entity. */
 export interface Post {
   id: string;
+  postNumber: number;
   title: string;
   slug: string;
   content: string;
@@ -47,6 +48,16 @@ export interface Post {
   twitterTitle: string | null;
   twitterDescription: string | null;
   twitterImage: string | null;
+  twitterCard: string | null;
+
+  // SEO
+  seoTitle: string | null;
+  seoDescription: string | null;
+  seoKeywords: string[];
+  autoTags: string[];
+  noIndex: boolean;
+  noFollow: boolean;
+  structuredData: unknown;
 
   // Metrics
   viewCount: number;

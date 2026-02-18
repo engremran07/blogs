@@ -23,6 +23,7 @@ import { toast } from "@/components/ui/Toast";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import type { MediaItem } from "@/features/media/types";
+import type { EditorAdminProps } from "@/features/editor/types";
 
 const RichTextEditor = dynamic(() => import("@/features/editor/ui/RichTextEditor"), { ssr: false, loading: () => <div className="h-80 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" /> });
 const MediaManager = dynamic(() => import("@/features/media/ui/MediaManager").then(m => ({ default: m.MediaManager })), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" /> });
@@ -107,6 +108,7 @@ export default function PostEditor({
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [seoOpen, setSeoOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [editorSettings, setEditorSettings] = useState<EditorAdminProps | undefined>(undefined);
 
   const [form, setForm] = useState<PostForm>({
     title: "",
@@ -150,6 +152,12 @@ export default function PostEditor({
     fetch("/api/categories")
       .then((r) => r.json())
       .then((d) => setCategories(d.data || []));
+
+    // Fetch editor settings for RichTextEditor admin configuration
+    fetch("/api/settings/editor")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.success) setEditorSettings(d.data); })
+      .catch(() => { /* editor settings unavailable — use defaults */ });
 
     if (!isNew && postId) {
       fetch(`/api/posts/${postId}`)
@@ -405,6 +413,7 @@ export default function PostEditor({
                 if (!data.success) throw new Error(data.error || "Upload failed");
                 return data.data.url;
               }}
+              adminSettings={editorSettings}
               placeholder="Write your post content here..."
               minHeight="400px"
               maxHeight="800px"

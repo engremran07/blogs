@@ -4,6 +4,7 @@ import { mediaService } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
 import { UploadMediaSchema } from "@/features/media/server/schemas";
 import { MEDIA_LIMITS } from "@/features/media/server/constants";
+import { z } from "zod";
 
 const logger = createLogger("api/media");
 
@@ -11,6 +12,30 @@ const logger = createLogger("api/media");
 const VALID_SORT_FIELDS = ["name", "size", "date", "type"] as const;
 const VALID_SORT_DIRS = ["asc", "desc"] as const;
 const VALID_MEDIA_TYPES = ["IMAGE", "VIDEO", "AUDIO", "DOCUMENT", "OTHER"] as const;
+
+/** Zod schema for GET /api/media query parameters. */
+const mediaListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MEDIA_LIMITS.MAX_PAGE_SIZE)
+    .default(MEDIA_LIMITS.DEFAULT_PAGE_SIZE),
+  search: z
+    .string()
+    .max(200, "Search query too long")
+    .transform((s) => s.trim())
+    .optional(),
+  folder: z
+    .string()
+    .max(500, "Folder path too long")
+    .refine((f) => !/\.\.|[<>"'`;]/.test(f), "Invalid folder path")
+    .optional(),
+  mediaType: z.enum(VALID_MEDIA_TYPES).optional(),
+  sortField: z.enum(VALID_SORT_FIELDS).default("date"),
+  sortDir: z.enum(VALID_SORT_DIRS).default("desc"),
+});
 
 /**
  * GET /api/media — List media items with filtering, sorting, pagination.
@@ -27,32 +52,25 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
 
-    // Validate and clamp pagination params
-    const rawPage = parseInt(searchParams.get("page") || "1", 10);
-    const rawPageSize = parseInt(searchParams.get("pageSize") || "30", 10);
-    const page = Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : 1;
-    const pageSize = Number.isFinite(rawPageSize)
-      ? Math.min(Math.max(rawPageSize, 1), MEDIA_LIMITS.MAX_PAGE_SIZE)
-      : MEDIA_LIMITS.DEFAULT_PAGE_SIZE;
+    // Validate all query params through Zod
+    const parsed = mediaListQuerySchema.safeParse({
+      page: searchParams.get("page") ?? undefined,
+      pageSize: searchParams.get("pageSize") ?? undefined,
+      search: searchParams.get("search") || undefined,
+      folder: searchParams.get("folder") || undefined,
+      mediaType: searchParams.get("mediaType") || undefined,
+      sortField: searchParams.get("sortField") || undefined,
+      sortDir: searchParams.get("sortDir") || undefined,
+    });
 
-    const search = searchParams.get("search") || undefined;
-    const folder = searchParams.get("folder") || undefined;
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: "Invalid query parameters", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
 
-    // Validate mediaType
-    const rawMediaType = searchParams.get("mediaType");
-    const mediaType = rawMediaType && (VALID_MEDIA_TYPES as readonly string[]).includes(rawMediaType)
-      ? (rawMediaType as "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT" | "OTHER")
-      : undefined;
-
-    // Validate sort params
-    const rawSortField = searchParams.get("sortField") || "date";
-    const rawSortDir = searchParams.get("sortDir") || "desc";
-    const sortField = (VALID_SORT_FIELDS as readonly string[]).includes(rawSortField)
-      ? (rawSortField as "name" | "size" | "date" | "type")
-      : "date";
-    const sortDir = (VALID_SORT_DIRS as readonly string[]).includes(rawSortDir)
-      ? (rawSortDir as "asc" | "desc")
-      : "desc";
+    const { page, pageSize, search, folder, mediaType, sortField, sortDir } = parsed.data;
 
     const filter = {
       ...(search && { search }),

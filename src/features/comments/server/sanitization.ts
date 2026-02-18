@@ -4,29 +4,35 @@
 import sanitizeHtml from 'sanitize-html';
 
 export class Sanitize {
+  /**
+   * Sanitize user-provided HTML for comments.
+   * SECURITY: Only allow basic formatting tags — no images, iframes, scripts,
+   * tables, structural elements, or wildcard attributes.
+   */
   static html(html: string): string {
     if (!html) return '';
     return sanitizeHtml(html, {
       allowedTags: [
-        'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'p', 'br', 'strong', 'em', 'u', 's',
         'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
-        'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
-        'span', 'div', 'section', 'article',
+        'a',
       ],
       allowedAttributes: {
-        a: ['href', 'title', 'target', 'rel'],
-        img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
-        '*': ['class', 'id', 'aria-label', 'aria-hidden', 'role', 'data-*'],
+        a: ['href', 'title', 'rel'],
       },
-      allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+      allowedSchemes: ['http', 'https', 'mailto'],
       allowProtocolRelative: false,
       transformTags: {
         a: (tagName: string, attribs: Record<string, string>) => {
-          if (attribs.target === '_blank') {
-            const rel = attribs.rel || 'noopener noreferrer';
-            return { tagName, attribs: { ...attribs, rel } };
-          }
-          return { tagName, attribs };
+          // Force all links to open safely
+          return {
+            tagName,
+            attribs: {
+              ...attribs,
+              target: '_blank',
+              rel: 'noopener noreferrer nofollow',
+            },
+          };
         },
       },
     });

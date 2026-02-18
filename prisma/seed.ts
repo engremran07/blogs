@@ -544,6 +544,12 @@ const GUEST_NAMES = [
 // ─── Main ───────────────────────────────────────────────────────────────
 
 async function main() {
+  // Safety: never run the seed script against a production database
+  if (process.env.NODE_ENV === "production") {
+    console.error("❌ Refusing to seed a production database. Set NODE_ENV to something else to proceed.");
+    process.exit(1);
+  }
+
   console.log("🌱 Seeding database with rich data...\n");
 
   // ─── Create Users ──────────────────────────────────────────────────

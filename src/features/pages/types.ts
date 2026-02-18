@@ -160,6 +160,7 @@ export interface PageTreeNode extends Page {
 
 export interface CreatePageInput {
   title: string;
+  slug?: string | null;
   content: string;
   excerpt?: string | null;
   status?: PageStatus;
@@ -446,6 +447,8 @@ export interface PagesPrismaClient {
     create(args: { data: Record<string, unknown> }): Promise<any>;
     update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<any>;
   };
+  $transaction<T>(fn: (tx: PagesPrismaClient) => Promise<T>): Promise<T>;
+  $transaction(args: unknown[]): Promise<unknown[]>;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 

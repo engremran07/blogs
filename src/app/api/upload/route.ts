@@ -22,6 +22,14 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+    // SEC-004: Require content role for uploads
+    const role = (session.user as { role?: string })?.role;
+    if (!["AUTHOR", "EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role || "")) {
+      return NextResponse.json(
+        { success: false, error: "Insufficient permissions" },
+        { status: 403 }
+      );
+    }
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

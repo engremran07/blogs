@@ -813,6 +813,27 @@ model EditorSettings {
 
   sanitizeOnSave Boolean @default(true)
 
+  // Phase 3: Advanced editor features
+  enableSlashCommands        Boolean @default(true)
+  enableCaseChange           Boolean @default(true)
+  enableFormatPainter        Boolean @default(true)
+  enableFocusMode            Boolean @default(true)
+  enableContentTemplates     Boolean @default(true)
+  enableAutosaveIndicator    Boolean @default(true)
+  enableButtonBlock          Boolean @default(true)
+  enableSpacerBlock          Boolean @default(true)
+  enableGallery              Boolean @default(true)
+  enableBookmarkCard         Boolean @default(true)
+  enableAudioEmbed           Boolean @default(true)
+  enableFileAttach           Boolean @default(true)
+  enableDropCap              Boolean @default(true)
+  enableFootnotes            Boolean @default(true)
+  enableMathBlocks           Boolean @default(true)
+  enableAnchorLinks          Boolean @default(true)
+  enableKeyboardShortcutsHelp Boolean @default(true)
+  enableAdBlock              Boolean @default(true)
+  enableSeoScore             Boolean @default(true)
+
   updatedBy String?
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -1400,6 +1421,7 @@ model SiteSettings {
   // Kill Switches — Ads & Distribution
   adsEnabled                      Boolean  @default(true)
   distributionEnabled             Boolean  @default(false)
+  distributionConfig              Json?
 
   // Audit
   updatedBy                       String?

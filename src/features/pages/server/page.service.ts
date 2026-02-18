@@ -87,8 +87,8 @@ export class PageService implements PagesConfigConsumer {
       throw new PageError('Title is too short', 'TITLE_TOO_SHORT', 400);
     }
 
-    // Generate unique slug
-    const baseSlug = generateSlug(title);
+    // Generate unique slug — use custom slug if provided, otherwise auto-generate from title
+    const baseSlug = input.slug ? sanitizeSlug(input.slug) : generateSlug(title);
     const slug = await this.generateUniqueSlug(baseSlug);
 
     // Content enrichment
@@ -505,9 +505,11 @@ export class PageService implements PagesConfigConsumer {
       throw new PageError('System pages cannot be permanently deleted', 'SYSTEM_PAGE_PROTECTED', 403);
     }
 
-    // Delete revisions first
-    await this.prisma.pageRevision.deleteMany({ where: { pageId: id } });
-    await this.prisma.page.delete({ where: { id } });
+    // Delete revisions and page atomically
+    await this.prisma.$transaction([
+      this.prisma.pageRevision.deleteMany({ where: { pageId: id } }),
+      this.prisma.page.delete({ where: { id } }),
+    ]);
 
     this.logger?.log(`Page hard-deleted: ${id}`);
     await this.invalidateCache();

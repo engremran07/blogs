@@ -287,14 +287,15 @@ export class TagService {
       throw new Error('Tag is protected and cannot be deleted');
     }
 
-    // Disconnect many-to-many with posts
-    await this.prisma.tag.update({
-      where: { id },
-      data: { posts: { set: [] } },
+    // Atomic: disconnect posts, remove followers, delete tag
+    await this.prisma.$transaction(async (tx) => {
+      await tx.tag.update({
+        where: { id },
+        data: { posts: { set: [] } },
+      });
+      await tx.tagFollow.deleteMany({ where: { tagId: id } });
+      await tx.tag.delete({ where: { id } });
     });
-    // Remove follower records
-    await this.prisma.tagFollow.deleteMany({ where: { tagId: id } });
-    await this.prisma.tag.delete({ where: { id } });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -324,31 +325,34 @@ export class TagService {
       src.synonyms.forEach((s: string) => mergedSynonyms.add(s));
     }
 
-    // Move followers
-    await this.prisma.tagFollow.updateMany({
-      where: { tagId: { in: sourceIds } },
-      data: { tagId: targetId },
-    });
-
-    // Update target with merged data
-    await this.prisma.tag.update({
-      where: { id: targetId },
-      data: {
-        posts: { set: [...allPostIds].map((pid) => ({ id: pid })) },
-        usageCount: allPostIds.size,
-        mergeCount: { increment: sourceIds.length },
-        synonyms: [...mergedSynonyms],
-      },
-    });
-
-    // Delete source tags (disconnect their posts first)
-    for (const src of sourceTags) {
-      await this.prisma.tag.update({
-        where: { id: src.id },
-        data: { posts: { set: [] } },
+    // Atomic: move followers, update target, disconnect & delete sources
+    await this.prisma.$transaction(async (tx) => {
+      // Move followers
+      await tx.tagFollow.updateMany({
+        where: { tagId: { in: sourceIds } },
+        data: { tagId: targetId },
       });
-    }
-    await this.prisma.tag.deleteMany({ where: { id: { in: sourceIds } } });
+
+      // Update target with merged data
+      await tx.tag.update({
+        where: { id: targetId },
+        data: {
+          posts: { set: [...allPostIds].map((pid) => ({ id: pid })) },
+          usageCount: allPostIds.size,
+          mergeCount: { increment: sourceIds.length },
+          synonyms: [...mergedSynonyms],
+        },
+      });
+
+      // Delete source tags (disconnect their posts first)
+      for (const src of sourceTags) {
+        await tx.tag.update({
+          where: { id: src.id },
+          data: { posts: { set: [] } },
+        });
+      }
+      await tx.tag.deleteMany({ where: { id: { in: sourceIds } } });
+    });
 
     return (await this.findById(targetId))!;
   }
@@ -406,12 +410,14 @@ export class TagService {
       .map((t) => t.id);
     if (allowed.length === 0) return { deleted: 0 };
 
-    // Disconnect posts, remove followers, then delete
-    for (const id of allowed) {
-      await this.prisma.tag.update({ where: { id }, data: { posts: { set: [] } } });
-    }
-    await this.prisma.tagFollow.deleteMany({ where: { tagId: { in: allowed } } });
-    const result = await this.prisma.tag.deleteMany({ where: { id: { in: allowed } } });
+    // Atomic: disconnect posts, remove followers, then delete
+    const result = await this.prisma.$transaction(async (tx) => {
+      for (const id of allowed) {
+        await tx.tag.update({ where: { id }, data: { posts: { set: [] } } });
+      }
+      await tx.tagFollow.deleteMany({ where: { tagId: { in: allowed } } });
+      return tx.tag.deleteMany({ where: { id: { in: allowed } } });
+    });
     return { deleted: result.count };
   }
 
@@ -775,31 +781,31 @@ export class TagService {
       }
       mergedSynonyms.delete(target.name.toLowerCase()); // don't add self
 
-      // Transfer followers
-      await this.prisma.tagFollow.updateMany({
-        where: { tagId: { in: sourceIds } },
-        data: { tagId: targetId },
-      });
-
-      // Update survivor: reconnect all posts, bump synonyms & usage
-      await this.prisma.tag.update({
-        where: { id: targetId },
-        data: {
-          posts: { set: [...allPostIds].map((pid) => ({ id: pid })) },
-          usageCount: allPostIds.size,
-          mergeCount: { increment: sourceIds.length },
-          synonyms: [...mergedSynonyms],
-        },
-      });
-
-      // Disconnect posts from sources, then delete
-      for (const src of sourceTags) {
-        await this.prisma.tag.update({
-          where: { id: src.id },
-          data: { posts: { set: [] } },
+      // Atomic: transfer followers, update survivor, disconnect & delete sources
+      await this.prisma.$transaction(async (tx) => {
+        await tx.tagFollow.updateMany({
+          where: { tagId: { in: sourceIds } },
+          data: { tagId: targetId },
         });
-      }
-      await this.prisma.tag.deleteMany({ where: { id: { in: sourceIds } } });
+
+        await tx.tag.update({
+          where: { id: targetId },
+          data: {
+            posts: { set: [...allPostIds].map((pid) => ({ id: pid })) },
+            usageCount: allPostIds.size,
+            mergeCount: { increment: sourceIds.length },
+            synonyms: [...mergedSynonyms],
+          },
+        });
+
+        for (const src of sourceTags) {
+          await tx.tag.update({
+            where: { id: src.id },
+            data: { posts: { set: [] } },
+          });
+        }
+        await tx.tag.deleteMany({ where: { id: { in: sourceIds } } });
+      });
 
       merges.push({
         survivorId: targetId,

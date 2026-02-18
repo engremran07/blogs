@@ -9,6 +9,7 @@ import {
 import { autoDistributePost } from "@/features/distribution";
 import { InterlinkService } from "@/features/seo/server/interlink.service";
 import type { InterlinkPrisma } from "@/features/seo/server/interlink.service";
+import { CreatePostSchema } from "@/features/blog/server/schemas";
 
 const logger = createLogger("api/posts");
 
@@ -57,7 +58,16 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("take") || searchParams.get("limit") || "20", 10)));
     const skip = (page - 1) * limit;
-    const all = searchParams.get("all") === "true"; // admin: include all statuses
+    const allParam = searchParams.get("all") === "true";
+
+    // SEC-001: Gate ?all=true behind authentication — only content roles can see non-published posts
+    let all = false;
+    if (allParam) {
+      const session = await auth();
+      if (session?.user && ["AUTHOR", "EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
+        all = true;
+      }
+    }
 
     const where: Record<string, unknown> = { deletedAt: null };
     if (!all) {
@@ -120,29 +130,34 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    // Validate required fields
-    if (!body.title || typeof body.title !== "string" || body.title.trim().length < 5) {
+    // Inject authenticated user as author before validation
+    body.authorId = session.user.id;
+
+    // Validate with Zod schema
+    const parsed = CreatePostSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "Title is required (min 5 characters)" },
+        { success: false, error: parsed.error.flatten() },
         { status: 400 }
       );
     }
-    const authorId = session.user.id;
+    const data = parsed.data;
+    const authorId = data.authorId;
 
     // Sanitize inputs
-    const title = sanitizeText(body.title);
-    const content = body.content ? sanitizeContent(body.content) : "";
-    const wordCount = body.wordCount ?? countWords(content);
-    const readingTime = body.readingTime ?? calculateReadingTime(wordCount);
-    const excerpt = body.excerpt ? sanitizeText(body.excerpt) : generateExcerpt(content, 200);
+    const title = sanitizeText(data.title);
+    const content = data.content ? sanitizeContent(data.content) : "";
+    const wordCount = countWords(content);
+    const readingTime = calculateReadingTime(wordCount);
+    const excerpt = data.excerpt ? sanitizeText(data.excerpt) : generateExcerpt(content, 200);
 
     // Sanitize slug
-    if (body.slug) {
-      body.slug = body.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    }
+    const sanitizedSlug = data.slug
+      ? data.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      : null;
 
     // Auto-generate unique slug if not provided
-    const baseSlug = body.slug ? body.slug : generateSlug(title);
+    const baseSlug = sanitizedSlug || generateSlug(title);
     let slug = baseSlug;
     let counter = 1;
     while (await prisma.post.findUnique({ where: { slug }, select: { id: true } })) {
@@ -151,11 +166,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Extract tag/category IDs
-    const tagIds: string[] | undefined = body.tagIds;
-    const categoryIds: string[] | undefined = body.categoryIds;
+    const tagIds = data.tagIds;
+    const categoryIds = data.categoryIds;
 
-    const allowedStatuses = ["DRAFT", "PUBLISHED", "SCHEDULED", "ARCHIVED"];
-    const status = allowedStatuses.includes(body.status) ? body.status : "DRAFT";
+    const status = data.status;
 
     const post = await prisma.post.create({
       data: {
@@ -165,32 +179,32 @@ export async function POST(req: NextRequest) {
         excerpt,
         status,
         authorId,
-        featuredImage: body.featuredImage ?? null,
-        featuredImageAlt: body.featuredImageAlt ?? null,
-        seoTitle: body.seoTitle ?? null,
-        seoDescription: body.seoDescription ?? null,
-        ogTitle: body.ogTitle ?? null,
-        ogDescription: body.ogDescription ?? null,
-        ogImage: body.ogImage ?? null,
-        twitterTitle: body.twitterTitle ?? null,
-        twitterDescription: body.twitterDescription ?? null,
-        twitterImage: body.twitterImage ?? null,
-        isFeatured: body.isFeatured ?? false,
-        isPinned: body.isPinned ?? false,
-        allowComments: body.allowComments ?? true,
+        featuredImage: data.featuredImage ?? null,
+        featuredImageAlt: data.featuredImageAlt ?? null,
+        seoTitle: data.seoTitle ?? null,
+        seoDescription: data.seoDescription ?? null,
+        ogTitle: data.ogTitle ?? null,
+        ogDescription: data.ogDescription ?? null,
+        ogImage: data.ogImage ?? null,
+        twitterTitle: data.twitterTitle ?? null,
+        twitterDescription: data.twitterDescription ?? null,
+        twitterImage: data.twitterImage ?? null,
+        isFeatured: data.isFeatured,
+        isPinned: data.isPinned,
+        allowComments: data.allowComments,
         wordCount,
         readingTime,
-        isGuestPost: body.isGuestPost ?? false,
-        guestAuthorName: body.guestAuthorName ?? null,
-        guestAuthorEmail: body.guestAuthorEmail ?? null,
-        guestAuthorBio: body.guestAuthorBio ?? null,
-        guestAuthorAvatar: body.guestAuthorAvatar ?? null,
-        guestAuthorUrl: body.guestAuthorUrl ?? null,
-        canonicalUrl: body.canonicalUrl ?? null,
-        language: body.language ?? null,
-        region: body.region ?? null,
+        isGuestPost: data.isGuestPost ?? false,
+        guestAuthorName: data.guestAuthorName ?? null,
+        guestAuthorEmail: data.guestAuthorEmail ?? null,
+        guestAuthorBio: data.guestAuthorBio ?? null,
+        guestAuthorAvatar: data.guestAuthorAvatar ?? null,
+        guestAuthorUrl: data.guestAuthorUrl ?? null,
+        canonicalUrl: data.canonicalUrl ?? null,
+        language: data.language ?? null,
+        region: data.region ?? null,
         ...(status === "PUBLISHED" && { publishedAt: new Date() }),
-        ...(status === "SCHEDULED" && body.scheduledFor && { scheduledFor: new Date(body.scheduledFor) }),
+        ...(status === "SCHEDULED" && data.scheduledFor && { scheduledFor: new Date(data.scheduledFor) }),
         ...(tagIds?.length && {
           tags: { connect: tagIds.map((id: string) => ({ id })) },
         }),

@@ -315,19 +315,31 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (target.role === "SUPER_ADMIN") {
-      const count = await prisma.user.count({ where: { role: "SUPER_ADMIN" } });
-      if (count <= 1) {
-        return NextResponse.json(
-          { success: false, error: "Cannot delete the last Super Admin" },
-          { status: 403 }
-        );
-      }
       if (session.user.role !== "SUPER_ADMIN") {
         return NextResponse.json(
           { success: false, error: "Only Super Admins can delete Super Admin users" },
           { status: 403 }
         );
       }
+
+      // Use a transaction to atomically verify count and delete
+      const txResult = await prisma.$transaction(async (tx) => {
+        const count = await tx.user.count({ where: { role: "SUPER_ADMIN" } });
+        if (count <= 1) {
+          return { blocked: true } as const;
+        }
+        await tx.user.delete({ where: { id } });
+        return { blocked: false } as const;
+      });
+
+      if (txResult.blocked) {
+        return NextResponse.json(
+          { success: false, error: "Cannot delete the last Super Admin" },
+          { status: 403 }
+        );
+      }
+
+      return NextResponse.json({ success: true, message: "User deleted" });
     }
 
     await prisma.user.delete({ where: { id } });

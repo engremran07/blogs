@@ -89,6 +89,27 @@ export class AdsService {
     return provider;
   }
 
+  /**
+   * Strip sensitive / internal fields from a placement before sending to the public.
+   */
+  stripForPublicResponse(placement: any): Record<string, any> {
+    const {
+      impressions: _i,
+      clicks: _c,
+      revenue: _r,
+      providerId: _pid,
+      slotId: _sid,
+      adUnitId: _auid,
+      startDate: _sd,
+      endDate: _ed,
+      createdAt: _ca,
+      updatedAt: _ua,
+      logs: _logs,
+      ...safe
+    } = placement;
+    return safe;
+  }
+
   // ── Slots ────────────────────────────────────────────────────────────────
 
   async findAllSlots(activeOnly = false): Promise<any[]> {
@@ -192,14 +213,41 @@ export class AdsService {
       ];
     }
 
-    return this.prisma.adPlacement.findMany({
+    const placements = await this.prisma.adPlacement.findMany({
       where,
       include: {
-        provider: true,
-        slot: true,
+        provider: {
+          select: {
+            name: true,
+            type: true,
+            slug: true,
+            loadStrategy: true,
+            scriptUrl: true,
+            dataAttributes: true,
+            supportedFormats: true,
+          },
+        },
+        slot: {
+          select: {
+            name: true,
+            slug: true,
+            position: true,
+            format: true,
+            pageTypes: true,
+            categories: true,
+            responsiveSizes: true,
+            maxWidth: true,
+            maxHeight: true,
+            responsive: true,
+            containerSelector: true,
+            excludeSelectors: true,
+          },
+        },
       },
       orderBy: { slot: { renderPriority: "desc" } },
     } as any);
+
+    return placements.map((p: any) => this.stripForPublicResponse(p));
   }
 
   async findAllPlacements(): Promise<any[]> {

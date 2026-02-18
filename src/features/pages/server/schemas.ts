@@ -36,6 +36,7 @@ export const CreatePageSchema = z.object({
     .min(PAGE_LIMITS.TITLE_MIN_LENGTH, `Title must be at least ${PAGE_LIMITS.TITLE_MIN_LENGTH} characters`)
     .max(PAGE_LIMITS.TITLE_MAX_LENGTH, `Title must be at most ${PAGE_LIMITS.TITLE_MAX_LENGTH} characters`)
     .transform(s => s.trim()),
+  slug: z.string().max(200).nullish(),
   content: z.string().default(''),
   excerpt: z.string().max(PAGE_LIMITS.EXCERPT_MAX_LENGTH).nullish(),
   status: z.enum(PAGE_STATUSES).default('DRAFT'),

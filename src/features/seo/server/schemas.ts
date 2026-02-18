@@ -314,7 +314,38 @@ export const seoMetaSchema = z.object({
 });
 
 /* ========================================================================== */
-/*  SECTION 10 — SEO API Route Schema                                         */
+/*  SECTION 10 — Redirect Schemas                                             */
+/* ========================================================================== */
+
+export const createRedirectSchema = z.object({
+  fromPath: z.string().min(1).max(2000),
+  toPath: z.string().min(1).max(2000),
+  statusCode: z.number().int().refine(v => v === 301 || v === 302, {
+    message: 'Status code must be 301 or 302',
+  }).default(301),
+  isActive: z.boolean().default(true),
+  note: z.string().max(500).nullish(),
+});
+
+export const updateRedirectSchema = z.object({
+  fromPath: z.string().min(1).max(2000).optional(),
+  toPath: z.string().min(1).max(2000).optional(),
+  statusCode: z.number().int().refine(v => v === 301 || v === 302, {
+    message: 'Status code must be 301 or 302',
+  }).optional(),
+  isActive: z.boolean().optional(),
+  note: z.string().max(500).nullish(),
+});
+
+export const listRedirectsSchema = z.object({
+  isActive: z.boolean().optional(),
+  search: z.string().max(200).optional(),
+  page: z.number().int().min(1).default(1),
+  pageSize: z.number().int().min(1).max(100).default(20),
+});
+
+/* ========================================================================== */
+/*  SECTION 11 — SEO API Route Schema                                         */
 /* ========================================================================== */
 
 export const seoApiBodySchema = z.object({

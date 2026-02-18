@@ -104,24 +104,11 @@ export class EditorAdminSettingsService {
     }
 
     try {
-      // Strip Phase 3 fields that don't exist in Prisma schema yet
-      /* eslint-disable @typescript-eslint/no-unused-vars */
-      const {
-        enableSlashCommands, enableCaseChange, enableFormatPainter,
-        enableFocusMode, enableContentTemplates, enableAutosaveIndicator,
-        enableButtonBlock, enableSpacerBlock, enableGallery,
-        enableBookmarkCard, enableAudioEmbed, enableFileAttach,
-        enableDropCap, enableFootnotes, enableMathBlocks,
-        enableAnchorLinks, enableKeyboardShortcutsHelp,
-        enableAdBlock, enableSeoScore,
-        ...prismaInput
-      } = input;
-      /* eslint-enable @typescript-eslint/no-unused-vars */
-
+      // Phase 3 fields now exist in Prisma schema — pass all fields through
       this.row = await this.prisma.editorSettings.update({
         where: { id: this.row.id },
         data: {
-          ...prismaInput,
+          ...input,
           updatedBy: adminUserId,
           updatedAt: new Date(),
         },

@@ -36,6 +36,15 @@ export async function GET(
         { status: 404 },
       );
     }
+    // SEC-008: Non-admin users can only view PUBLISHED pages
+    const session = await auth();
+    const isAdmin = session?.user && ["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role);
+    if (!isAdmin && (page as unknown as Record<string, unknown>).status !== "PUBLISHED") {
+      return NextResponse.json(
+        { success: false, error: "Page not found" },
+        { status: 404 },
+      );
+    }
     return NextResponse.json({ success: true, data: page });
   } catch (error) {
     logger.error("[api/pages/[id]] GET error:", { error });

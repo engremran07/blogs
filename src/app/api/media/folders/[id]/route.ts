@@ -20,6 +20,14 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         { status: 401 }
       );
     }
+    // SEC-006: Require content-management role for folder operations
+    const role = (session.user as { role?: string })?.role;
+    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role || "")) {
+      return NextResponse.json(
+        { success: false, error: "Insufficient permissions" },
+        { status: 403 }
+      );
+    }
 
     const { id } = await context.params;
     const body = await req.json();

@@ -80,7 +80,17 @@ export async function POST(req: NextRequest) {
             { status: 403 }
           );
         }
-        await prisma.user.deleteMany({ where: { id: { in: safeIds } } });
+        await prisma.$transaction(async (tx) => {
+          // Re-verify SUPER_ADMIN count inside transaction to prevent race conditions
+          if (superAdmins.length > 0 && callerRole === "SUPER_ADMIN") {
+            const currentCount = await tx.user.count({ where: { role: "SUPER_ADMIN" } });
+            const deletingSuperAdminCount = superAdmins.filter((u) => safeIds.includes(u.id)).length;
+            if (currentCount - deletingSuperAdminCount < 1) {
+              throw new Error("Cannot delete the last Super Admin account");
+            }
+          }
+          await tx.user.deleteMany({ where: { id: { in: safeIds } } });
+        });
         return NextResponse.json({ success: true, message: `${safeIds.length} users deleted` });
       }
       case "changeRole": {

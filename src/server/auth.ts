@@ -139,7 +139,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (isAdmin) {
         if (!auth?.user) return false;
         const role = (auth.user as { role?: string }).role;
-        return role === "ADMINISTRATOR" || role === "SUPER_ADMIN";
+        // ADM-001: Allow EDITOR role to access admin panel
+        return role === "EDITOR" || role === "ADMINISTRATOR" || role === "SUPER_ADMIN";
       }
       return true;
     },

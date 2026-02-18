@@ -4,6 +4,12 @@
  * PURPOSE:  Next.js-compatible auth middleware helpers.
  *           Replaces NestJS guards, decorators, and Passport strategies.
  *
+ * @deprecated This module is superseded by NextAuth's `auth()` helper from
+ *             `@/server/auth`. All API routes now use `auth()` for session
+ *             checks. These JWT-based wrappers (`withAuth`, `withRoles`, etc.)
+ *             are retained for reference only and should NOT be used in new
+ *             code.  Remove once all legacy references are cleaned up.
+ *
  * Usage (Next.js App Router API Route):
  *
  *   import { withAuth, withRoles } from '@/features/auth';
