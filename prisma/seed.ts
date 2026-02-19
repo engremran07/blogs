@@ -587,7 +587,6 @@ async function main() {
     { model: "siteSettings", data: { siteName: "My Blog", siteTagline: "A modern blog built with Next.js", language: "en", timezone: "UTC", siteDescription: "Discover insightful articles on web development, programming, and technology.", adsEnabled: true, cookieConsentEnabled: true, gdprEnabled: true, cookieConsentMessage: "We use cookies to enhance your browsing experience, serve personalized ads, and analyze our traffic. By clicking \"Accept All\", you consent to our use of cookies." } },
     { model: "userSettings", data: {} },
     { model: "commentSettings", data: {} },
-    { model: "editorSettings", data: {} },
     { model: "tagSettings", data: {} },
     { model: "captchaSettings", data: {} },
     { model: "pageSettings", data: {} },

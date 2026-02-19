@@ -5,19 +5,33 @@
  * so the in-memory cache stays consistent with the DB.
  */
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/server/auth";
 import { siteSettingsService } from "@/server/wiring";
+
+const killSwitchSchema = z.object({
+  enabled: z.boolean({ message: "'enabled' must be a boolean" }),
+});
 
 export async function GET() {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    if (
+      !session?.user ||
+      !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
     }
 
     const settings = await siteSettingsService.getSettings();
     const enabled = settings.distributionEnabled ?? false;
-    return NextResponse.json({ success: true, data: { distributionEnabled: enabled } });
+    return NextResponse.json({
+      success: true,
+      data: { distributionEnabled: enabled },
+    });
   } catch {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
@@ -29,12 +43,28 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    if (
+      !session?.user ||
+      !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
     }
 
-    const { enabled } = await req.json();
-    const isEnabled = enabled === true;
+    const body = await req.json();
+    const parsed = killSwitchSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: parsed.error.issues[0]?.message || "Invalid input",
+        },
+        { status: 400 },
+      );
+    }
+    const isEnabled = parsed.data.enabled;
 
     // Use siteSettingsService so the in-memory cache is updated atomically
     const result = await siteSettingsService.updateSettings(

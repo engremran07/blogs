@@ -42,6 +42,7 @@ import type {
   ContactConfig,
   CustomCodeConfig,
   ModuleKillSwitchConfig,
+  AdminBarConfig,
 } from '../types';
 import { DEFAULT_SITE_CONFIG } from './constants';
 import { updateSiteSettingsSchema } from './schemas';
@@ -823,6 +824,30 @@ export class SiteSettingsService {
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+  }
+
+  // ─── Admin Bar Config ─────────────────────────────────────────────────
+
+  async getAdminBarConfig(): Promise<AdminBarConfig> {
+    const s = await this.getSettings();
+    return {
+      adminBarEnabled: s.adminBarEnabled ?? true,
+      adminBarShowBreadcrumbs: s.adminBarShowBreadcrumbs ?? true,
+      adminBarShowNewButton: s.adminBarShowNewButton ?? true,
+      adminBarShowSeoScore: s.adminBarShowSeoScore ?? true,
+      adminBarShowStatusToggle: s.adminBarShowStatusToggle ?? true,
+      adminBarShowWordCount: s.adminBarShowWordCount ?? true,
+      adminBarShowLastSaved: s.adminBarShowLastSaved ?? true,
+      adminBarShowSaveButton: s.adminBarShowSaveButton ?? true,
+      adminBarShowPublishButton: s.adminBarShowPublishButton ?? true,
+      adminBarShowPreviewButton: s.adminBarShowPreviewButton ?? true,
+      adminBarShowViewSiteButton: s.adminBarShowViewSiteButton ?? true,
+      adminBarShowSiteNameDropdown: s.adminBarShowSiteNameDropdown ?? true,
+      adminBarShowUserDropdown: s.adminBarShowUserDropdown ?? true,
+      adminBarShowEnvBadge: s.adminBarShowEnvBadge ?? true,
+      adminBarBackgroundColor: s.adminBarBackgroundColor ?? '#0d0d18',
+      adminBarAccentColor: s.adminBarAccentColor ?? '#6c63ff',
+    };
   }
 
   // ─── Public Page Config (optimised frontend payload) ──────────────────

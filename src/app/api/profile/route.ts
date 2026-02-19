@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/prisma";
 import { userService, consentService } from "@/server/wiring";
+import { deleteAccountSchema } from "@/features/auth/server/schemas";
 
 /**
  * GET /api/profile — GDPR Article 20 data export
@@ -12,80 +13,94 @@ import { userService, consentService } from "@/server/wiring";
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
+    return NextResponse.json(
+      { success: false, error: "Authentication required" },
+      { status: 401 },
+    );
   }
 
   const userId = session.user.id;
 
   try {
-    const [user, comments, sessions, emailVerifications, emailChanges] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          firstName: true,
-          lastName: true,
-          displayName: true,
-          nickname: true,
-          bio: true,
-          website: true,
-          phoneNumber: true,
-          alternateEmail: true,
-          address: true,
-          city: true,
-          state: true,
-          zipCode: true,
-          country: true,
-          role: true,
-          isEmailVerified: true,
-          createdAt: true,
-          updatedAt: true,
-          facebook: true,
-          twitter: true,
-          instagram: true,
-          linkedin: true,
-          youtube: true,
-          github: true,
-          telegram: true,
-        },
-      }),
-      prisma.comment.findMany({
-        where: { userId },
-        select: {
-          id: true,
-          content: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-          postId: true,
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.userSession.findMany({
-        where: { userId },
-        select: {
-          id: true,
-          ipAddress: true,
-          userAgent: true,
-          createdAt: true,
-          expiresAt: true,
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.emailVerificationToken.findMany({
-        where: { userId },
-        select: { createdAt: true, expiresAt: true },
-      }),
-      prisma.emailChangeRequest.findMany({
-        where: { userId },
-        select: { oldEmail: true, newEmail: true, createdAt: true, completedAt: true, oldEmailVerified: true, newEmailVerified: true },
-      }),
-    ]);
+    const [user, comments, sessions, emailVerifications, emailChanges] =
+      await Promise.all([
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            displayName: true,
+            nickname: true,
+            bio: true,
+            website: true,
+            phoneNumber: true,
+            alternateEmail: true,
+            address: true,
+            city: true,
+            state: true,
+            zipCode: true,
+            country: true,
+            role: true,
+            isEmailVerified: true,
+            createdAt: true,
+            updatedAt: true,
+            facebook: true,
+            twitter: true,
+            instagram: true,
+            linkedin: true,
+            youtube: true,
+            github: true,
+            telegram: true,
+          },
+        }),
+        prisma.comment.findMany({
+          where: { userId },
+          select: {
+            id: true,
+            content: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            postId: true,
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.userSession.findMany({
+          where: { userId },
+          select: {
+            id: true,
+            ipAddress: true,
+            userAgent: true,
+            createdAt: true,
+            expiresAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.emailVerificationToken.findMany({
+          where: { userId },
+          select: { createdAt: true, expiresAt: true },
+        }),
+        prisma.emailChangeRequest.findMany({
+          where: { userId },
+          select: {
+            oldEmail: true,
+            newEmail: true,
+            createdAt: true,
+            completedAt: true,
+            oldEmailVerified: true,
+            newEmailVerified: true,
+          },
+        }),
+      ]);
 
     if (!user) {
-      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 },
+      );
     }
 
     // Log GDPR data export consent event
@@ -119,7 +134,10 @@ export async function GET() {
     });
   } catch (err) {
     console.error("[Profile Export] Error:", err);
-    return NextResponse.json({ success: false, error: "Failed to export data" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to export data" },
+      { status: 500 },
+    );
   }
 }
 
@@ -130,22 +148,27 @@ export async function GET() {
 export async function DELETE(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
+    return NextResponse.json(
+      { success: false, error: "Authentication required" },
+      { status: 401 },
+    );
   }
 
   try {
     const body = await req.json();
-    const { password, confirmText } = body;
 
-    if (!password || typeof password !== "string") {
-      return NextResponse.json({ success: false, error: "Password is required" }, { status: 400 });
-    }
-    if (confirmText !== "DELETE MY ACCOUNT") {
+    // Validate with Zod schema
+    const parsed = deleteAccountSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'You must type "DELETE MY ACCOUNT" to confirm' },
+        {
+          success: false,
+          error: parsed.error.issues[0]?.message || "Invalid input",
+        },
         { status: 400 },
       );
     }
+    const { password } = parsed.data;
 
     // Log account deletion consent event before deleting
     await consentService.log({
@@ -159,7 +182,8 @@ export async function DELETE(req: NextRequest) {
     const result = await userService.deleteMyAccount(session.user.id, password);
     return NextResponse.json({ success: true, message: result.message });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to delete account";
+    const message =
+      err instanceof Error ? err.message : "Failed to delete account";
     const status = (err as { statusCode?: number }).statusCode || 400;
     return NextResponse.json({ success: false, error: message }, { status });
   }

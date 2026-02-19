@@ -479,3 +479,23 @@ export const updateModuleKillSwitchSchema = z.object({
   distributionEnabled: optBool,
 });
 export type UpdateModuleKillSwitchInput = z.infer<typeof updateModuleKillSwitchSchema>;
+
+export const updateAdminBarSchema = z.object({
+  adminBarEnabled: optBool,
+  adminBarShowBreadcrumbs: optBool,
+  adminBarShowNewButton: optBool,
+  adminBarShowSeoScore: optBool,
+  adminBarShowStatusToggle: optBool,
+  adminBarShowWordCount: optBool,
+  adminBarShowLastSaved: optBool,
+  adminBarShowSaveButton: optBool,
+  adminBarShowPublishButton: optBool,
+  adminBarShowPreviewButton: optBool,
+  adminBarShowViewSiteButton: optBool,
+  adminBarShowSiteNameDropdown: optBool,
+  adminBarShowUserDropdown: optBool,
+  adminBarShowEnvBadge: optBool,
+  adminBarBackgroundColor: z.string().max(20).optional(),
+  adminBarAccentColor: z.string().max(20).optional(),
+});
+export type UpdateAdminBarInput = z.infer<typeof updateAdminBarSchema>;

@@ -84,6 +84,7 @@ model User {
   pages                Page[]
   mediaItems           Media[]
   consentLogs          ConsentLog[]
+  tagFollows           TagFollow[]           @relation("UserTagFollows")
 
   @@index([role])
   @@map("users")
@@ -329,7 +330,7 @@ model Category {
   postCount   Int      @default(0)
 
   parentId String?
-  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[] @relation("CategoryHierarchy")
 
   posts Post[] @relation("PostCategories")
@@ -594,7 +595,8 @@ model TagFollow {
   tagId     String
   tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
-  userId    String
+  userId    String   // User relation managed at app level; cascade on user delete
+  user      User     @relation("UserTagFollows", fields: [userId], references: [id], onDelete: Cascade)
 
   weight    Float    @default(1.0)
 
@@ -732,112 +734,6 @@ model CaptchaChallenge {
   @@index([expiresAt])
   @@index([clientIp, createdAt])
   @@map("captcha_challenges")
-}
-
-// ============================================================================
-// EDITOR MODULE
-// ============================================================================
-
-model EditorSettings {
-  id String @id @default(cuid())
-
-  editorEnabled Boolean @default(true)
-
-  enableBold             Boolean @default(true)
-  enableItalic           Boolean @default(true)
-  enableUnderline        Boolean @default(true)
-  enableStrikethrough    Boolean @default(true)
-  enableHeadings         Boolean @default(true)
-  allowedHeadingLevels   Int[]   @default([1, 2, 3, 4, 5, 6])
-  enableLists            Boolean @default(true)
-  enableTaskLists        Boolean @default(true)
-  enableBlockquotes      Boolean @default(true)
-  enableCodeBlocks       Boolean @default(true)
-  enableInlineCode       Boolean @default(true)
-  enableLinks            Boolean @default(true)
-  enableImages           Boolean @default(true)
-  enableVideoEmbeds      Boolean @default(true)
-  enableTables           Boolean @default(true)
-  enableHorizontalRule   Boolean @default(true)
-  enableTextColor        Boolean @default(true)
-  enableBackgroundColor  Boolean @default(true)
-  enableAlignment        Boolean @default(true)
-  enableFullscreen       Boolean @default(true)
-  enableUndoRedo         Boolean @default(true)
-  enableMarkdownShortcuts Boolean @default(true)
-  enableDragDropUpload   Boolean @default(true)
-
-  // Enhanced toolbar features
-  enableInlineCodeButton Boolean @default(true)
-  enableRemoveLink       Boolean @default(true)
-  enableClearFormatting  Boolean @default(true)
-  enableSuperscript      Boolean @default(true)
-  enableSubscript        Boolean @default(true)
-  enableIndentButtons    Boolean @default(true)
-  enableFontSize         Boolean @default(true)
-  enableLineHeight       Boolean @default(true)
-  enableBlockTypeDropdown Boolean @default(true)
-  enableFindReplace      Boolean @default(true)
-  enableSourceView       Boolean @default(true)
-  enableEmoji            Boolean @default(true)
-  enableSpecialChars     Boolean @default(true)
-  enablePrint            Boolean @default(true)
-  enableTableOfContents  Boolean @default(true)
-
-  maxWordCount Int @default(0)
-  maxCharCount Int @default(0)
-
-  maxImageSizeBytes  Int      @default(10485760)
-  allowedImageTypes  String[] @default(["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"])
-  defaultImageWidth  Int      @default(1200)
-  defaultImageHeight Int      @default(675)
-
-  allowedVideoProviders String[] @default(["youtube", "vimeo"])
-
-  maxTableRows Int @default(20)
-  maxTableCols Int @default(10)
-
-  colorPalette     String[] @default(["#000000", "#333333", "#666666", "#999999", "#cccccc", "#ffffff", "#e74c3c", "#e67e22", "#f1c40f", "#2ecc71", "#3498db", "#9b59b6", "#c0392b", "#d35400", "#f39c12", "#27ae60", "#2980b9", "#8e44ad", "#fadbd8", "#fdebd0", "#fef9e7", "#d5f5e3", "#d6eaf8", "#ebdef0"])
-  defaultTextColor String @default("#000000")
-
-  // Font & spacing presets
-  fontSizePresets   Int[]   @default([12, 14, 16, 18, 20, 24, 28, 32, 36, 48])
-  lineHeightPresets Float[] @default([1.0, 1.25, 1.5, 1.75, 2.0])
-
-  maxHistorySize     Int    @default(50)
-  autoSaveDebounceMs Int    @default(2000)
-  readingWpm         Int    @default(200)
-  defaultPlaceholder String @default("Start writing your content here...")
-  defaultMinHeight   String @default("300px")
-  defaultMaxHeight   String @default("600px")
-
-  sanitizeOnSave Boolean @default(true)
-
-  // Phase 3: Advanced editor features
-  enableSlashCommands        Boolean @default(true)
-  enableCaseChange           Boolean @default(true)
-  enableFormatPainter        Boolean @default(true)
-  enableFocusMode            Boolean @default(true)
-  enableContentTemplates     Boolean @default(true)
-  enableAutosaveIndicator    Boolean @default(true)
-  enableButtonBlock          Boolean @default(true)
-  enableSpacerBlock          Boolean @default(true)
-  enableGallery              Boolean @default(true)
-  enableBookmarkCard         Boolean @default(true)
-  enableAudioEmbed           Boolean @default(true)
-  enableFileAttach           Boolean @default(true)
-  enableDropCap              Boolean @default(true)
-  enableFootnotes            Boolean @default(true)
-  enableMathBlocks           Boolean @default(true)
-  enableAnchorLinks          Boolean @default(true)
-  enableKeyboardShortcutsHelp Boolean @default(true)
-  enableAdBlock              Boolean @default(true)
-  enableSeoScore             Boolean @default(true)
-
-  updatedBy String?
-  updatedAt DateTime @default(now()) @updatedAt
-
-  @@map("editor_settings")
 }
 
 // ============================================================================
@@ -1422,6 +1318,24 @@ model SiteSettings {
   adsEnabled                      Boolean  @default(true)
   distributionEnabled             Boolean  @default(false)
   distributionConfig              Json?
+
+  // Admin Bar
+  adminBarEnabled                 Boolean  @default(true)
+  adminBarShowBreadcrumbs         Boolean  @default(true)
+  adminBarShowNewButton           Boolean  @default(true)
+  adminBarShowSeoScore            Boolean  @default(true)
+  adminBarShowStatusToggle        Boolean  @default(true)
+  adminBarShowWordCount           Boolean  @default(true)
+  adminBarShowLastSaved           Boolean  @default(true)
+  adminBarShowSaveButton          Boolean  @default(true)
+  adminBarShowPublishButton       Boolean  @default(true)
+  adminBarShowPreviewButton       Boolean  @default(true)
+  adminBarShowViewSiteButton      Boolean  @default(true)
+  adminBarShowSiteNameDropdown    Boolean  @default(true)
+  adminBarShowUserDropdown        Boolean  @default(true)
+  adminBarShowEnvBadge            Boolean  @default(true)
+  adminBarBackgroundColor         String   @default("#0d0d18")
+  adminBarAccentColor             String   @default("#6c63ff")
 
   // Audit
   updatedBy                       String?

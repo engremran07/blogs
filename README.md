@@ -54,7 +54,7 @@ A production-ready, feature-rich blog platform and content management system bui
 | --- | --- |
 | **Content Management** | Posts, pages, categories, tags, series, revisions, guest posts, scheduled publishing, soft delete |
 | **Admin Dashboard** | 13-section admin panel with role-based access, module kill switches, responsive sidebar |
-| **Rich Text Editor** | Custom contentEditable WYSIWYG with 22 toggleable features, markdown shortcuts, drag-and-drop images, tables, code blocks, auto-save |
+| **Rich Text Editor** | TipTap WYSIWYG editor with 33+ extensions, syntax-highlighted code blocks, tables, drag-and-drop images, callouts, columns, task lists, typography |
 | **SEO Engine** | Per-content scoring (0–100), 8 audit categories, JSON-LD structured data, dynamic OG image generation (Edge runtime), auto-sitemap, robots.txt, keyword tracking |
 | **Media Library** | Grid/list views, folder tree, drag-and-drop/paste/URL upload, image optimization (WebP/AVIF), bulk operations, deduplication |
 | **Comments** | Threaded comments, moderation queue, spam detection, upvoting, guest comments, per-post settings |
@@ -87,7 +87,7 @@ A production-ready, feature-rich blog platform and content management system bui
 | **Auth** | [NextAuth v5](https://authjs.dev/) (Auth.js) — Credentials provider, JWT strategy, PrismaAdapter |
 | **Caching** | [Upstash Redis](https://upstash.com/) with in-memory no-op fallback for local dev |
 | **Rate Limiting** | [@upstash/ratelimit](https://github.com/upstash/ratelimit) — sliding window, 30 req/60s per IP |
-| **Editor** | Custom contentEditable WYSIWYG — 22 toggleable features, zero external editor deps |
+| **Editor** | [TipTap v3](https://tiptap.dev/) — 33+ MIT-licensed extensions, ProseMirror-based WYSIWYG |
 | **Validation** | [Zod 4](https://zod.dev/) — schema validation on every API route |
 | **Security** | bcrypt 6, sanitize-html, HSTS/CSP/X-Frame headers, server-only imports |
 | **AI** | [OpenAI SDK](https://platform.openai.com/) — SEO suggestions, content assistance (optional) |

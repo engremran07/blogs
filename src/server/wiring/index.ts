@@ -48,8 +48,7 @@ import { SiteSettingsService } from "@/features/settings/server/site-settings.se
 import { ThemeService } from "@/features/settings/theme/server/theme.service";
 import { MenuBuilderService } from "@/features/settings/menu-builder/server/menu-builder.service";
 
-// Editor
-import { EditorAdminSettingsService } from "@/features/editor/server/admin-settings.service";
+
 
 // Captcha
 import { CaptchaAdminSettingsService } from "@/features/captcha/server/admin-settings.service";
@@ -77,7 +76,7 @@ import { DistributionEventBus } from "@/features/distribution/server/events";
 import type { UsersPrismaClient } from "@/features/auth/types";
 import type { CommentsPrismaClient } from "@/features/comments/types";
 import type { TagsPrismaClient } from "@/features/tags/types";
-import type { EditorPrismaClient } from "@/features/editor/types";
+
 import type { CaptchaPrismaClient } from "@/features/captcha/types";
 import type { PagesPrismaClient } from "@/features/pages/types";
 import type { SiteSettingsPrismaClient } from "@/features/settings/types";
@@ -191,7 +190,6 @@ const commentEventBus = new CommentEventBus();
 export const userAdminSettings = new UserAdminSettingsService(prisma as unknown as UsersPrismaClient);
 export const commentAdminSettings = new CommentAdminSettingsService(prisma as unknown as CommentsPrismaClient);
 export const tagAdminSettings = new TagAdminSettingsService(prisma as unknown as TagsPrismaClient);
-export const editorAdminSettings = new EditorAdminSettingsService(prisma as unknown as EditorPrismaClient);
 export const captchaAdminSettings = new CaptchaAdminSettingsService(prisma as unknown as CaptchaPrismaClient);
 export const captchaVerificationService = new CaptchaVerificationService(prisma as unknown as CaptchaPrismaClient);
 

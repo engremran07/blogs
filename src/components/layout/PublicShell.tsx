@@ -2,11 +2,17 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { TopBar } from "./TopBar";
-import { CookieConsentBanner, type CookieConsentSettings } from "./CookieConsentBanner";
+import {
+  CookieConsentBanner,
+  type CookieConsentSettings,
+} from "./CookieConsentBanner";
 import { AnalyticsScripts } from "./AnalyticsScripts";
+
+const ADMIN_BAR_ROLES = new Set(["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"]);
 
 interface TopBarSettings {
   topBarEnabled: boolean;
@@ -57,7 +63,14 @@ export function PublicShell({
 }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
+  const { data: session, status: sessionStatus } = useSession();
   const [settings, setSettings] = useState<PublicSettings | null>(null);
+
+  // Only apply admin bar padding after session is resolved to avoid SSR mismatch
+  // During SSR, sessionStatus is always "loading" so hasAdminBar is false on both sides
+  const hasAdminBar =
+    sessionStatus === "authenticated" &&
+    ADMIN_BAR_ROLES.has(session?.user?.role as string);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -88,20 +101,28 @@ export function PublicShell({
 
   const siteName = settings?.siteName || "MyBlog";
   const logoUrl = settings?.logoUrl ?? null;
-  const showDarkModeToggle = (settings?.darkModeEnabled ?? true) && (settings?.navShowDarkModeToggle ?? true);
-  const socialLinks = settings ? {
-    github: settings.socialGithub,
-    twitter: settings.socialTwitter,
-    facebook: settings.socialFacebook,
-    instagram: settings.socialInstagram,
-    linkedin: settings.socialLinkedin,
-    youtube: settings.socialYoutube,
-  } : null;
+  const showDarkModeToggle =
+    (settings?.darkModeEnabled ?? true) &&
+    (settings?.navShowDarkModeToggle ?? true);
+  const socialLinks = settings
+    ? {
+        github: settings.socialGithub,
+        twitter: settings.socialTwitter,
+        facebook: settings.socialFacebook,
+        instagram: settings.socialInstagram,
+        linkedin: settings.socialLinkedin,
+        youtube: settings.socialYoutube,
+      }
+    : null;
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className={`flex min-h-screen flex-col${hasAdminBar ? " pt-[44px]" : ""}`}>
       {settings && <TopBar settings={settings} />}
-      <Header siteName={siteName} logoUrl={logoUrl} showDarkModeToggle={showDarkModeToggle} />
+      <Header
+        siteName={siteName}
+        logoUrl={logoUrl}
+        showDarkModeToggle={showDarkModeToggle}
+      />
       {headerAdSlot}
       <main className="flex-1">{children}</main>
       {footerAdSlot}

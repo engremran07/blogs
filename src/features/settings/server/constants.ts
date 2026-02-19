@@ -197,4 +197,22 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   // Module Kill Switches
   adsEnabled: false,
   distributionEnabled: false,
+
+  // Admin Bar
+  adminBarEnabled: true,
+  adminBarShowBreadcrumbs: true,
+  adminBarShowNewButton: true,
+  adminBarShowSeoScore: true,
+  adminBarShowStatusToggle: true,
+  adminBarShowWordCount: true,
+  adminBarShowLastSaved: true,
+  adminBarShowSaveButton: true,
+  adminBarShowPublishButton: true,
+  adminBarShowPreviewButton: true,
+  adminBarShowViewSiteButton: true,
+  adminBarShowSiteNameDropdown: true,
+  adminBarShowUserDropdown: true,
+  adminBarShowEnvBadge: true,
+  adminBarBackgroundColor: '#0d0d18',
+  adminBarAccentColor: '#6c63ff',
 };

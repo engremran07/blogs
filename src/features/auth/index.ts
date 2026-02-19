@@ -30,13 +30,13 @@ export type {
   ApiSuccess,
   ApiError,
   ApiResponse,
-} from './types';
+} from "./types";
 
-export { USER_ROLES, DISPLAY_NAME_OPTIONS, SAME_SITE_OPTIONS } from './types';
-export { AuthError, ValidationError, NotFoundError } from './types';
+export { USER_ROLES, DISPLAY_NAME_OPTIONS, SAME_SITE_OPTIONS } from "./types";
+export { AuthError, ValidationError, NotFoundError } from "./types";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-export { DEFAULT_USER_CONFIG, msToExpiresIn } from './server/constants';
+export { DEFAULT_USER_CONFIG, msToExpiresIn } from "./server/constants";
 export {
   BCRYPT_ROUNDS,
   MAX_LOGIN_ATTEMPTS,
@@ -54,7 +54,7 @@ export {
   PASSWORD_SPECIAL_CHARS,
   USER_SENSITIVE_FIELDS,
   DEFAULT_USER_ROLE,
-} from './server/constants';
+} from "./server/constants";
 
 // ─── Schemas (Zod) ──────────────────────────────────────────────────────────
 export {
@@ -80,7 +80,7 @@ export {
   deleteAccountSchema,
   adminCreateUserSchema,
   adminResetPasswordSchema,
-} from './server/schemas';
+} from "./server/schemas";
 
 export type {
   LoginInput,
@@ -105,7 +105,7 @@ export type {
   DeleteAccountInput,
   AdminCreateUserInput,
   AdminResetPasswordInput,
-} from './server/schemas';
+} from "./server/schemas";
 
 // ─── Capabilities ───────────────────────────────────────────────────────────
 export {
@@ -119,13 +119,13 @@ export {
   isAdminRole,
   isModeratorRole,
   getLoginRedirectPath,
-} from './server/capabilities';
-export type { Capability } from './server/capabilities';
+} from "./server/capabilities";
+export type { Capability } from "./server/capabilities";
 
 // ─── Services ───────────────────────────────────────────────────────────────
-export { AuthService } from './server/auth.service';
-export { UserService } from './server/user.service';
-export { UserAdminSettingsService } from './server/admin-settings.service';
+export { AuthService } from "./server/auth.service";
+export { UserService } from "./server/user.service";
+export { UserAdminSettingsService } from "./server/admin-settings.service";
 
 // ─── Utilities ──────────────────────────────────────────────────────────────
 export {
@@ -133,26 +133,16 @@ export {
   comparePassword,
   validatePasswordStrength,
   getPasswordPolicySummary,
-} from './server/password.util';
+} from "./server/password.util";
 
 export {
   sanitizeText,
   sanitizeEmail,
   sanitizeURL,
   sanitizeSlug,
-} from './server/sanitization.util';
+} from "./server/sanitization.util";
 
-// ─── Middleware (Next.js) ───────────────────────────────────────────────────
-export {
-  getTokenFromRequest,
-  verifyAccessToken,
-  withAuth,
-  withRoles,
-  withCapability,
-  buildAuthCookies,
-  buildClearAuthCookies,
-  buildCsrfCookie,
-  validateCsrf,
-  getServerSession,
-} from './server/middleware';
-export type { CookieOptions } from './server/middleware';
+// ─── Middleware ──────────────────────────────────────────────────────────────
+// The legacy auth middleware (getTokenFromRequest, withAuth, withRoles, etc.)
+// has been removed — auth is now handled by NextAuth's `auth()` helper, and
+// CSRF validation lives in src/proxy.ts (Next.js middleware).

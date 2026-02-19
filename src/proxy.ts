@@ -1,23 +1,40 @@
 /**
- * Root Next.js Proxy — runs at the edge before every matched request.
+ * Root Next.js Middleware — runs before every matched request.
  *
  * Responsibilities:
- *  1. CRON secret verification on /api/cron
- *  2. Rate limiting on mutation API routes (via @upstash/ratelimit)
- *  3. Security: block common attack paths
+ *  1. CSP nonce generation (injected into response headers)
+ *  2. CRON secret verification on /api/cron
+ *  3. CSRF validation on mutation API routes
+ *  4. Rate limiting on mutation API routes (via @upstash/ratelimit)
  *
  * Auth is handled by NextAuth's `authorized` callback in auth.ts.
- * This proxy handles everything ELSE that should happen before
+ * This middleware handles everything ELSE that should happen before
  * a function cold-starts.
  */
 import { NextRequest, NextResponse } from "next/server";
+
+/** Public mutation endpoints that skip CSRF (they have own protections). */
+const CSRF_SKIP_PREFIXES = [
+  "/api/auth",
+  "/api/cron",
+  "/api/contact",
+  "/api/newsletter",
+  "/api/captcha",
+  "/api/ads/events",
+  "/api/ads/ads-txt",
+  "/api/ads/reserved-slots",
+  "/api/health",
+  "/api/settings/public",
+];
+
+function shouldSkipCsrf(pathname: string): boolean {
+  return CSRF_SKIP_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // ── 1. CRON secret gate ──────────────────────────────────────────────────
-  // Vercel calls /api/cron on schedule — verify the secret header so
-  // external actors can't trigger it.
   if (pathname.startsWith("/api/cron")) {
     const cronSecret = process.env.CRON_SECRET;
     if (cronSecret) {
@@ -25,59 +42,47 @@ export async function proxy(req: NextRequest) {
         req.headers.get("x-cron-secret") ||
         req.headers.get("authorization")?.replace("Bearer ", "");
       if (provided !== cronSecret) {
-        return NextResponse.json(
-          { error: "Forbidden" },
-          { status: 403 },
-        );
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
   }
 
   // ── 2. CSRF validation on mutation API routes ────────────────────────────
-  // Validates x-csrf-token header against csrf_token cookie for all
-  // state-changing requests. Skips auth (NextAuth handles it) and cron.
-  if (
-    pathname.startsWith("/api/") &&
-    !pathname.startsWith("/api/auth") &&
-    !pathname.startsWith("/api/cron") &&
+  const isMutation =
     req.method !== "GET" &&
     req.method !== "HEAD" &&
-    req.method !== "OPTIONS"
-  ) {
-    const csrfEnabled = await isCsrfEnabled();
-    if (csrfEnabled) {
-      const headerToken = req.headers.get("x-csrf-token");
-      const cookieToken = req.cookies.get("csrf_token")?.value;
-      if (!headerToken || !cookieToken || headerToken !== cookieToken) {
-        return NextResponse.json(
-          { error: "Invalid or missing CSRF token" },
-          { status: 403 },
-        );
-      }
+    req.method !== "OPTIONS";
+
+  if (pathname.startsWith("/api/") && isMutation && !shouldSkipCsrf(pathname)) {
+    const headerToken = req.headers.get("x-csrf-token");
+    const cookieToken = req.cookies.get("csrf_token")?.value;
+    if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+      return NextResponse.json(
+        { success: false, error: "Invalid or missing CSRF token" },
+        { status: 403 },
+      );
     }
   }
 
   // ── 3. Rate limiting on mutation API routes ──────────────────────────────
-  // Only apply to POST/PUT/PATCH/DELETE on API routes (not GET reads).
-  // Uses @upstash/ratelimit if UPSTASH env vars are configured.
-  if (
-    pathname.startsWith("/api/") &&
-    !pathname.startsWith("/api/auth") && // NextAuth handles its own
-    req.method !== "GET" &&
-    req.method !== "HEAD" &&
-    req.method !== "OPTIONS"
-  ) {
+  if (pathname.startsWith("/api/") && isMutation && !pathname.startsWith("/api/auth")) {
     const rateLimited = await checkRateLimit(req);
     if (rateLimited) {
       return NextResponse.json(
-        { error: "Too many requests. Please try again later." },
+        { success: false, error: "Too many requests. Please try again later." },
         { status: 429, headers: { "Retry-After": "60" } },
       );
     }
   }
 
-  // Inject CSRF cookie if not present (for SPA clients to read)
-  const response = NextResponse.next();
+  // ── 4. Build response with CSRF cookie + CSP nonce ───────────────────────
+  const nonce = generateNonce();
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-nonce", nonce);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+
+  // Inject CSRF cookie if not present
   if (!req.cookies.get("csrf_token")?.value) {
     const token = generateCsrfToken();
     response.cookies.set("csrf_token", token, {
@@ -88,12 +93,31 @@ export async function proxy(req: NextRequest) {
       maxAge: 86400,
     });
   }
+
+  // Set CSP header with nonce (replaces static 'unsafe-inline' for scripts)
+  const csp = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com https://www.google.com https://www.gstatic.com https://js.hcaptcha.com https://www.googletagmanager.com`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "frame-src https://challenges.cloudflare.com https://www.google.com https://newassets.hcaptcha.com",
+    "connect-src 'self' https:",
+    "media-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+  response.headers.set("Content-Security-Policy", csp);
+
   return response;
 }
 
 // ── Rate limiter (lazy-initialised) ─────────────────────────────────────────
 
-let rateLimiter: { limit: (id: string) => Promise<{ success: boolean }> } | null = null;
+let rateLimiter: {
+  limit: (id: string) => Promise<{ success: boolean }>;
+} | null = null;
 let rateLimiterInitialised = false;
 
 async function checkRateLimit(req: NextRequest): Promise<boolean> {
@@ -108,8 +132,6 @@ async function checkRateLimit(req: NextRequest): Promise<boolean> {
         const redis = new Redis({ url, token });
         rateLimiter = new Ratelimit({
           redis,
-          // 30 mutations per 60 seconds per IP — generous for normal use,
-          // blocks automated attacks. Adjust as needed.
           limiter: Ratelimit.slidingWindow(30, "60 s"),
           analytics: false,
           prefix: "myblog:ratelimit",
@@ -134,30 +156,7 @@ async function checkRateLimit(req: NextRequest): Promise<boolean> {
   }
 }
 
-// ── CSRF helpers ────────────────────────────────────────────────────────────
-
-let _csrfEnabled: boolean | null = null;
-let _csrfCheckedAt = 0;
-
-async function isCsrfEnabled(): Promise<boolean> {
-  // Cache the DB lookup for 60 seconds
-  if (_csrfEnabled !== null && Date.now() - _csrfCheckedAt < 60_000) {
-    return _csrfEnabled;
-  }
-  try {
-    // Dynamic import to avoid edge runtime issues
-    const { prisma } = await import("@/server/db/prisma");
-    const row = await (prisma as unknown as Record<string, { findFirst: (args: Record<string, unknown>) => Promise<{ value: unknown } | null> }>).siteSettings.findFirst({
-      where: { key: "csrfEnabled" },
-      select: { value: true },
-    });
-    _csrfEnabled = row?.value === "true" || row?.value === true;
-  } catch {
-    _csrfEnabled = true; // Default to enabled if DB unavailable
-  }
-  _csrfCheckedAt = Date.now();
-  return _csrfEnabled!;
-}
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function generateCsrfToken(): string {
   const bytes = new Uint8Array(32);
@@ -165,11 +164,17 @@ function generateCsrfToken(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function generateNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes));
+}
+
 // ── Matcher ─────────────────────────────────────────────────────────────────
-// Only run on routes that actually need the proxy.
+// Run on API routes + all page routes (for CSP nonce injection).
 // Skip static files, images, fonts, Next.js internals.
 export const config = {
   matcher: [
-    "/api/:path*",
+    "/((?!_next/static|_next/image|favicon\\.ico|uploads/).*)",
   ],
 };

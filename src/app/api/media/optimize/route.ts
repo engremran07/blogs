@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/server/auth";
 import { mediaService } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
+
+const optimizeMediaSchema = z.object({
+  id: z.string().min(1).optional(),
+  filter: z.record(z.string(), z.unknown()).optional(),
+});
 
 const logger = createLogger("api/media/optimize");
 
@@ -17,25 +23,33 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const role = (session.user as { role?: string })?.role;
-    if (
-      !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(role || "")
-    ) {
+    if (!["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(role || "")) {
       return NextResponse.json(
         { success: false, error: "Insufficient permissions" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const body = await req.json();
+    const parsed = optimizeMediaSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: parsed.error.issues[0]?.message || "Invalid input",
+        },
+        { status: 400 },
+      );
+    }
 
-    if (body.id) {
+    if (parsed.data.id) {
       // Single item optimization
-      const result = await mediaService.optimizeMedia(body.id);
+      const result = await mediaService.optimizeMedia(parsed.data.id);
       if (!result.success) {
         const status = result.error?.code === "NOT_FOUND" ? 404 : 400;
         return NextResponse.json(result, { status });
@@ -44,13 +58,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Bulk optimization
-    const result = await mediaService.bulkOptimize(body.filter);
+    const result = await mediaService.bulkOptimize(parsed.data.filter);
     return NextResponse.json(result);
   } catch (error) {
     logger.error("[api/media/optimize] POST error:", { error });
     return NextResponse.json(
       { success: false, error: "Optimization failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

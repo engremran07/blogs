@@ -34,6 +34,7 @@ import {
   updateContactSchema,
   updateCustomCodeSchema,
   updateModuleKillSwitchSchema,
+  updateAdminBarSchema,
 } from "@/features/settings/server/schemas";
 import { createLogger } from "@/server/observability/logger";
 import type { ZodSchema } from "zod";
@@ -81,6 +82,7 @@ function getGroupSpec(group: string): GroupSpec | null {
     contact: { getter: () => siteSettingsService.getContactConfig(), schema: updateContactSchema },
     "custom-code": { getter: () => siteSettingsService.getCustomCodeConfig(), schema: updateCustomCodeSchema },
     "kill-switches": { getter: () => siteSettingsService.getModuleKillSwitchConfig(), schema: updateModuleKillSwitchSchema },
+    "admin-bar": { getter: () => siteSettingsService.getAdminBarConfig(), schema: updateAdminBarSchema },
   };
   return specs[group] ?? null;
 }

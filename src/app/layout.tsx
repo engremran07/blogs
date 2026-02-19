@@ -1,13 +1,21 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/layout/Providers";
 import { PublicShell } from "@/components/layout/PublicShell";
-import { HeaderAdBanner, FooterAdBanner, OverlayAdSlots } from "@/features/ads/ui/GlobalAdSlots";
+import { AdminBar } from "@/components/admin/admin-bar";
+import {
+  HeaderAdBanner,
+  FooterAdBanner,
+  OverlayAdSlots,
+} from "@/features/ads/ui/GlobalAdSlots";
 import { siteSettingsService } from "@/server/wiring";
 import { serializeJsonLd } from "@/features/seo/server/json-ld.util";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
+).replace(/\/$/, "");
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,8 +29,15 @@ const geistMono = Geist_Mono({
 
 /* ── Google Fonts helper ── */
 const GOOGLE_FONT_NAMES = new Set([
-  "Inter", "Roboto", "Open Sans", "Lato", "Poppins",
-  "Nunito", "Merriweather", "Playfair Display", "Montserrat",
+  "Inter",
+  "Roboto",
+  "Open Sans",
+  "Lato",
+  "Poppins",
+  "Nunito",
+  "Merriweather",
+  "Playfair Display",
+  "Montserrat",
 ]);
 
 function extractGoogleFontName(css: string): string | null {
@@ -97,9 +112,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const verification: Record<string, string> = {};
   if (googleVerification) verification.google = googleVerification;
   if (bingVerification) verification["msvalidate.01"] = bingVerification;
-  if (yandexVerification) verification["yandex-verification"] = yandexVerification;
-  if (pinterestVerification) verification["p:domain_verify"] = pinterestVerification;
-  if (baiduVerification) verification["baidu-site-verification"] = baiduVerification;
+  if (yandexVerification)
+    verification["yandex-verification"] = yandexVerification;
+  if (pinterestVerification)
+    verification["p:domain_verify"] = pinterestVerification;
+  if (baiduVerification)
+    verification["baidu-site-verification"] = baiduVerification;
 
   return {
     title: { default: siteName, template: titleTemplate },
@@ -107,23 +125,33 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(SITE_URL),
     alternates: { canonical: SITE_URL },
     icons: { icon: faviconUrl },
-    ...(Object.keys(verification).length > 0 ? {
-      verification: {
-        ...(googleVerification ? { google: googleVerification } : {}),
-        ...(Object.keys(verification).length > 1 ? {
-          other: Object.fromEntries(
-            Object.entries(verification).filter(([k]) => k !== "google")
-          ),
-        } : {}),
-      },
-    } : {}),
+    ...(Object.keys(verification).length > 0
+      ? {
+          verification: {
+            ...(googleVerification ? { google: googleVerification } : {}),
+            ...(Object.keys(verification).length > 1
+              ? {
+                  other: Object.fromEntries(
+                    Object.entries(verification).filter(
+                      ([k]) => k !== "google",
+                    ),
+                  ),
+                }
+              : {}),
+          },
+        }
+      : {}),
     openGraph: {
       type: "website",
       siteName,
       locale: "en_US",
       description,
       url: SITE_URL,
-      ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630, alt: siteName }] } : {}),
+      ...(ogImage
+        ? {
+            images: [{ url: ogImage, width: 1200, height: 630, alt: siteName }],
+          }
+        : {}),
     },
     twitter: {
       card: "summary_large_image",
@@ -165,6 +193,10 @@ export default async function RootLayout({
 }>) {
   const webSiteJsonLd = await getWebSiteJsonLd();
 
+  /* ── CSP nonce (injected by middleware) ── */
+  const hdrs = await headers();
+  const nonce = hdrs.get("x-nonce") ?? undefined;
+
   /* ── Appearance settings ── */
   let primaryColor = "#3b82f6";
   let secondaryColor = "#64748b";
@@ -203,23 +235,31 @@ export default async function RootLayout({
         {googleFontsUrl && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+            <link
+              rel="preconnect"
+              href="https://fonts.gstatic.com"
+              crossOrigin=""
+            />
             <link rel="stylesheet" href={googleFontsUrl} />
           </>
         )}
         {/* Admin custom CSS */}
-        {customCss && (
-          <style dangerouslySetInnerHTML={{ __html: customCss }} />
-        )}
+        {customCss && <style dangerouslySetInnerHTML={{ __html: customCss }} />}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <script
+          nonce={nonce}
+          suppressHydrationWarning
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(webSiteJsonLd) }}
         />
-        <Providers darkModeEnabled={darkModeEnabled} darkModeDefault={darkModeDefault}>
+        <Providers
+          darkModeEnabled={darkModeEnabled}
+          darkModeDefault={darkModeDefault}
+        >
+          <AdminBar />
           <PublicShell
             headerAdSlot={<HeaderAdBanner />}
             footerAdSlot={<FooterAdBanner />}

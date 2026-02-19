@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
-import { hashPassword, validatePasswordStrength } from "@/features/auth/server/password.util";
+import {
+  hashPassword,
+  validatePasswordStrength,
+} from "@/features/auth/server/password.util";
 import { registerSchema } from "@/features/auth/server/schemas";
-import { sanitizeEmail, sanitizeSlug } from "@/features/auth/server/sanitization.util";
+import {
+  sanitizeEmail,
+  sanitizeSlug,
+} from "@/features/auth/server/sanitization.util";
 import { DEFAULT_USER_CONFIG } from "@/features/auth/server/constants";
 import { createLogger } from "@/server/observability/logger";
-import { captchaVerificationService, captchaAdminSettings } from "@/server/wiring";
+import {
+  captchaVerificationService,
+  captchaAdminSettings,
+} from "@/server/wiring";
 
 const logger = createLogger("api/auth/register");
 
@@ -15,32 +24,46 @@ export async function POST(request: Request) {
     let config = DEFAULT_USER_CONFIG;
     try {
       const settings = await prisma.userSettings.findFirst();
-      if (settings) config = { ...DEFAULT_USER_CONFIG, ...settings } as typeof config;
-    } catch { /* use defaults */ }
+      if (settings)
+        config = { ...DEFAULT_USER_CONFIG, ...settings } as typeof config;
+    } catch {
+      /* use defaults */
+    }
 
     if (!config.registrationEnabled) {
-      return NextResponse.json({ error: "Registration is currently disabled" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Registration is currently disabled" },
+        { status: 403 },
+      );
     }
 
     // Also check SiteSettings.enableRegistration (admin toggle on settings page)
     try {
       const siteSettings = await prisma.siteSettings.findFirst();
       if (siteSettings && siteSettings.enableRegistration === false) {
-        return NextResponse.json({ error: "Registration is currently disabled" }, { status: 403 });
+        return NextResponse.json(
+          { success: false, error: "Registration is currently disabled" },
+          { status: 403 },
+        );
       }
-    } catch { /* proceed if SiteSettings unavailable */ }
+    } catch {
+      /* proceed if SiteSettings unavailable */
+    }
 
     const body = await request.json();
 
     // ── CAPTCHA verification ──
     const captchaRequired = await captchaAdminSettings.isCaptchaRequired({
-      service: 'registration',
+      service: "registration",
     });
 
     if (captchaRequired.required) {
       const { captchaToken, captchaType, captchaId } = body;
       if (!captchaToken) {
-        return NextResponse.json({ error: "CAPTCHA verification is required" }, { status: 400 });
+        return NextResponse.json(
+          { success: false, error: "CAPTCHA verification is required" },
+          { status: 400 },
+        );
       }
 
       const clientIp =
@@ -56,7 +79,10 @@ export async function POST(request: Request) {
       });
 
       if (!captchaResult.success) {
-        return NextResponse.json({ error: "CAPTCHA verification failed" }, { status: 403 });
+        return NextResponse.json(
+          { success: false, error: "CAPTCHA verification failed" },
+          { status: 403 },
+        );
       }
     }
 
@@ -64,29 +90,49 @@ export async function POST(request: Request) {
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
       const messages = parsed.error.issues.map((e) => e.message).join(", ");
-      return NextResponse.json({ error: messages }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: messages },
+        { status: 400 },
+      );
     }
 
-    const { email: rawEmail, password, name, username: rawUsername } = parsed.data;
+    const {
+      email: rawEmail,
+      password,
+      name,
+      username: rawUsername,
+    } = parsed.data;
 
     // Sanitize email
     const email = sanitizeEmail(rawEmail);
     if (!email) {
-      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Invalid email format" },
+        { status: 400 },
+      );
     }
 
     // Validate password strength against admin-configured policy
     try {
       validatePasswordStrength(password, config);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Password does not meet requirements";
-      return NextResponse.json({ error: message }, { status: 400 });
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Password does not meet requirements";
+      return NextResponse.json(
+        { success: false, error: message },
+        { status: 400 },
+      );
     }
 
     // Check existing user by email
     const existingEmail = await prisma.user.findUnique({ where: { email } });
     if (existingEmail) {
-      return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+      return NextResponse.json(
+        { success: false, error: "Email already in use" },
+        { status: 409 },
+      );
     }
 
     // Generate unique username
@@ -98,7 +144,14 @@ export async function POST(request: Request) {
       username = `${baseUsername}${counter}`;
       counter++;
       if (counter > MAX_USERNAME_ATTEMPTS) {
-        return NextResponse.json({ error: "Unable to generate a unique username. Please provide a different username." }, { status: 409 });
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Unable to generate a unique username. Please provide a different username.",
+          },
+          { status: 409 },
+        );
       }
     }
 
@@ -130,6 +183,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, data: user }, { status: 201 });
   } catch (error) {
     logger.error("Registration error:", { error });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

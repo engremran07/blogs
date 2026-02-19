@@ -358,6 +358,40 @@ export interface SiteConfig {
   adsEnabled: boolean;
   /** Enable distribution module (CORE — default: false) */
   distributionEnabled: boolean;
+
+  // ── Admin Bar ─────────────────────────────────────────────────────────
+  /** Enable admin bar globally (CORE — default: true) */
+  adminBarEnabled: boolean;
+  /** Show breadcrumb trail (CORE — default: true) */
+  adminBarShowBreadcrumbs: boolean;
+  /** Show +New quick-create button (CORE — default: true) */
+  adminBarShowNewButton: boolean;
+  /** Show SEO score pill in editor (CORE — default: true) */
+  adminBarShowSeoScore: boolean;
+  /** Show status toggle pill in editor (CORE — default: true) */
+  adminBarShowStatusToggle: boolean;
+  /** Show word count in editor (CORE — default: true) */
+  adminBarShowWordCount: boolean;
+  /** Show last-saved indicator in editor (CORE — default: true) */
+  adminBarShowLastSaved: boolean;
+  /** Show save button in editor (CORE — default: true) */
+  adminBarShowSaveButton: boolean;
+  /** Show publish button in editor (CORE — default: true) */
+  adminBarShowPublishButton: boolean;
+  /** Show preview button in editor (CORE — default: true) */
+  adminBarShowPreviewButton: boolean;
+  /** Show view-site / admin toggle (CORE — default: true) */
+  adminBarShowViewSiteButton: boolean;
+  /** Show site-name dropdown (CORE — default: true) */
+  adminBarShowSiteNameDropdown: boolean;
+  /** Show user dropdown (CORE — default: true) */
+  adminBarShowUserDropdown: boolean;
+  /** Show environment badge (CORE — default: true) */
+  adminBarShowEnvBadge: boolean;
+  /** Admin bar background colour (CORE — default: '#0d0d18') */
+  adminBarBackgroundColor: string;
+  /** Admin bar accent colour (CORE — default: '#6c63ff') */
+  adminBarAccentColor: string;
 }
 
 // ─── Convenience Sub-types ──────────────────────────────────────────────────
@@ -409,6 +443,26 @@ export interface ModuleKillSwitchConfig {
   adsEnabled: boolean;
   distributionEnabled: boolean;
   captchaEnabled: boolean;
+}
+
+/** Extracts admin bar configuration fields from SiteConfig. */
+export interface AdminBarConfig {
+  adminBarEnabled: boolean;
+  adminBarShowBreadcrumbs: boolean;
+  adminBarShowNewButton: boolean;
+  adminBarShowSeoScore: boolean;
+  adminBarShowStatusToggle: boolean;
+  adminBarShowWordCount: boolean;
+  adminBarShowLastSaved: boolean;
+  adminBarShowSaveButton: boolean;
+  adminBarShowPublishButton: boolean;
+  adminBarShowPreviewButton: boolean;
+  adminBarShowViewSiteButton: boolean;
+  adminBarShowSiteNameDropdown: boolean;
+  adminBarShowUserDropdown: boolean;
+  adminBarShowEnvBadge: boolean;
+  adminBarBackgroundColor: string;
+  adminBarAccentColor: string;
 }
 
 /** Extracts only footer fields from SiteConfig. */
