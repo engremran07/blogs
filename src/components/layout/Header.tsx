@@ -29,7 +29,7 @@ const navLinks = [
   { href: "/blog", label: "Blog" },
   { href: "/tags", label: "Tags" },
   { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: "/contact", label: "Contact Us" },
 ];
 
 /* SSR-safe mounted check without triggering set-state-in-effect rule */
@@ -56,21 +56,32 @@ export function Header({
   const isAdmin = isModeratorRole(session?.user?.role);
 
   return (
-    <header className={clsx(
-      "sticky z-40 border-b border-gray-200 bg-white/80 backdrop-blur-lg dark:border-gray-800 dark:bg-gray-950/80",
-      isAdmin ? "top-[44px]" : "top-0",
-    )}>
+    <header
+      className={clsx(
+        "sticky z-40 border-b border-gray-200 bg-white/80 backdrop-blur-lg dark:border-gray-800 dark:bg-gray-950/80",
+        isAdmin ? "top-11" : "top-0",
+      )}
+    >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           {logoUrl ? (
-            <Image src={logoUrl} alt={siteName} width={128} height={32} className="h-8 w-auto max-w-32 object-contain" unoptimized />
+            <Image
+              src={logoUrl}
+              alt={siteName}
+              width={128}
+              height={32}
+              className="h-8 w-auto max-w-32 object-contain"
+              unoptimized
+            />
           ) : (
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-bold text-white">
               {siteName.charAt(0).toUpperCase()}
             </div>
           )}
-          <span className="text-lg font-bold text-gray-900 dark:text-white">{siteName}</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-white">
+            {siteName}
+          </span>
         </Link>
 
         {/* Desktop Nav */}
@@ -81,7 +92,11 @@ export function Header({
               href={link.href}
               className={clsx(
                 "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href))
+                (
+                  link.href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(link.href)
+                )
                   ? "bg-gray-100 text-primary dark:bg-gray-800"
                   : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white",
               )}
@@ -96,7 +111,9 @@ export function Header({
           {/* Dark mode toggle */}
           {showDarkModeToggle && mounted && (
             <button
-              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              onClick={() =>
+                setTheme(resolvedTheme === "dark" ? "light" : "dark")
+              }
               className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
               aria-label="Toggle dark mode"
             >
@@ -131,13 +148,18 @@ export function Header({
 
               {userMenuOpen && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setUserMenuOpen(false)}
+                  />
                   <div className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-800">
                     <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-700">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {session.user.name || session.user.username}
                       </p>
-                      <p className="text-xs text-gray-500">{session.user.email}</p>
+                      <p className="text-xs text-gray-500">
+                        {session.user.email}
+                      </p>
                     </div>
                     {isAdmin && (
                       <Link
@@ -196,7 +218,11 @@ export function Header({
             onClick={() => setMobileOpen(!mobileOpen)}
             className="rounded-lg p-2 text-gray-500 md:hidden dark:text-gray-400"
           >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </button>
         </div>
       </div>
@@ -212,7 +238,11 @@ export function Header({
                 onClick={() => setMobileOpen(false)}
                 className={clsx(
                   "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href))
+                  (
+                    link.href === "/"
+                      ? pathname === "/"
+                      : pathname.startsWith(link.href)
+                  )
                     ? "bg-primary/10 text-primary"
                     : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800",
                 )}

@@ -3,20 +3,29 @@ import Image from "next/image";
 import { prisma } from "@/server/db/prisma";
 import { ArrowRight, Calendar, Clock, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/Card";
+import { PostImageFallback } from "@/components/blog/PostImageFallback";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
-import { buildOrganizationJsonLd, serializeJsonLd } from "@/features/seo/server/json-ld.util";
+import {
+  buildOrganizationJsonLd,
+  serializeJsonLd,
+} from "@/features/seo/server/json-ld.util";
 import type { Metadata } from "next";
 import type { PostListItem, TagDetail } from "@/types/prisma-helpers";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
+).replace(/\/$/, "");
 
 export const revalidate = 900; // ISR: rebuild at most every 15 minutes
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await prisma.siteSettings.findFirst();
   const siteName = settings?.siteName || "MyBlog";
-  const description = settings?.siteDescription || "A modern blog platform built with Next.js";
-  const ogImage = (settings as Record<string, unknown>)?.seoDefaultImage as string | null;
+  const description =
+    settings?.siteDescription || "A modern blog platform built with Next.js";
+  const ogImage = (settings as Record<string, unknown>)?.seoDefaultImage as
+    | string
+    | null;
 
   return {
     title: { absolute: siteName },
@@ -29,7 +38,11 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       siteName,
       locale: "en_US",
-      ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630, alt: siteName }] } : {}),
+      ...(ogImage
+        ? {
+            images: [{ url: ogImage, width: 1200, height: 630, alt: siteName }],
+          }
+        : {}),
     },
     twitter: {
       card: "summary_large_image",
@@ -60,6 +73,7 @@ async function getFeaturedPost() {
     include: {
       author: { select: { id: true, username: true, displayName: true } },
       tags: { select: { id: true, name: true, slug: true } },
+      categories: { select: { id: true, name: true, slug: true } },
     },
   });
 }
@@ -80,9 +94,18 @@ export default async function HomePage() {
   ]);
 
   const siteName = settings?.siteName || "MyBlog";
-  const siteDescription = settings?.siteDescription || "Exploring ideas, sharing knowledge, and building things. Dive into articles on technology, development, and more.";
+  const siteDescription =
+    settings?.siteDescription ||
+    "Exploring ideas, sharing knowledge, and building things. Dive into articles on technology, development, and more.";
   const s = settings as Record<string, unknown> | null;
-  const socialLinks = [s?.socialFacebook, s?.socialTwitter, s?.socialInstagram, s?.socialLinkedin, s?.socialYoutube, s?.socialGithub].filter(Boolean) as string[];
+  const socialLinks = [
+    s?.socialFacebook,
+    s?.socialTwitter,
+    s?.socialInstagram,
+    s?.socialLinkedin,
+    s?.socialYoutube,
+    s?.socialGithub,
+  ].filter(Boolean) as string[];
   const organizationJsonLd = buildOrganizationJsonLd({
     name: siteName,
     url: SITE_URL,
@@ -98,7 +121,9 @@ export default async function HomePage() {
       {/* Organization JSON-LD */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(organizationJsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd(organizationJsonLd),
+        }}
       />
       {/* Hero Section */}
       <section className="mb-16 text-center">
@@ -148,9 +173,11 @@ export default async function HomePage() {
                   />
                 </div>
               ) : (
-                <div className="flex aspect-video items-center justify-center bg-linear-to-br from-blue-500 to-purple-600">
-                  <span className="text-6xl font-bold text-white/30">Featured</span>
-                </div>
+                <PostImageFallback
+                  title={featured.title}
+                  category={featured.categories?.[0]?.name}
+                  className="aspect-video"
+                />
               )}
               <div className="flex flex-col justify-center p-8">
                 <div className="mb-3 flex flex-wrap gap-2">
@@ -172,11 +199,14 @@ export default async function HomePage() {
                   <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     {featured.publishedAt
-                      ? new Date(featured.publishedAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
+                      ? new Date(featured.publishedAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          },
+                        )
                       : "Draft"}
                   </span>
                   {featured.readingTime > 0 && (
@@ -195,7 +225,9 @@ export default async function HomePage() {
       {/* Latest Posts */}
       <section className="mb-16">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Latest Articles</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Latest Articles
+          </h2>
           <Link
             href="/blog"
             className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
@@ -229,11 +261,11 @@ export default async function HomePage() {
                     />
                   </div>
                 ) : (
-                  <div className="flex aspect-video items-center justify-center bg-linear-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
-                    <span className="text-3xl font-bold text-gray-300 dark:text-gray-500">
-                      {post.title.charAt(0)}
-                    </span>
-                  </div>
+                  <PostImageFallback
+                    title={post.title}
+                    category={post.categories?.[0]?.name}
+                    className="aspect-video"
+                  />
                 )}
                 <div className="flex flex-1 flex-col p-5">
                   <div className="mb-2 flex flex-wrap gap-1.5">
@@ -252,13 +284,18 @@ export default async function HomePage() {
                     </p>
                   )}
                   <div className="mt-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                    <span>{post.author?.displayName || post.author?.username}</span>
+                    <span>
+                      {post.author?.displayName || post.author?.username}
+                    </span>
                     <span>
                       {post.publishedAt
-                        ? new Date(post.publishedAt).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })
+                        ? new Date(post.publishedAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                            },
+                          )
                         : "Draft"}
                     </span>
                   </div>
@@ -278,7 +315,9 @@ export default async function HomePage() {
       {tags.length > 0 && (
         <section>
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Popular Tags</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Popular Tags
+            </h2>
             <Link
               href="/tags"
               className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
@@ -295,7 +334,9 @@ export default async function HomePage() {
               >
                 <Tag className="h-3.5 w-3.5" />
                 {tag.name}
-                <span className="text-xs text-gray-400">({tag.usageCount})</span>
+                <span className="text-xs text-gray-400">
+                  ({tag.usageCount})
+                </span>
               </Link>
             ))}
           </div>

@@ -33,7 +33,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * On-demand SEO score hook — zero API calls until `refresh()` is invoked.
- * Caches the result for 5 minutes.
+ * Caches the result for 5 minutes. Uses AbortController to prevent race conditions.
  */
 export function useSeoScore({
   resourceType,
@@ -49,6 +49,7 @@ export function useSeoScore({
     data: SeoScoreResult;
     ts: number;
   } | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(() => {
     if (!resourceType || !resourceId) return;
@@ -67,13 +68,22 @@ export function useSeoScore({
       return;
     }
 
+    // Abort any in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     const action = resourceType === "post" ? "audit-post" : "audit-page";
+    const url = `/api/seo?action=${action}&id=${encodeURIComponent(resourceId)}`;
 
     setLoading(true);
     setError(null);
 
-    fetch(`/api/seo?action=${action}&id=${resourceId}`)
-      .then((r) => r.json())
+    fetch(url, { signal: controller.signal })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         if (data.success && data.data?.audit) {
           const audit: SeoScoreResult = data.data.audit;
@@ -86,10 +96,13 @@ export function useSeoScore({
         }
       })
       .catch((err: Error) => {
+        if (err.name === "AbortError") return; // Ignore aborted requests
         setError(err.message || "Network error");
       })
       .finally(() => {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       });
   }, [resourceType, resourceId]);
 

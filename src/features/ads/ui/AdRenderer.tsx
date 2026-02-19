@@ -50,7 +50,12 @@ interface AdRendererProps {
   requireConsent?: boolean;
 }
 
-export function AdRenderer({ placement, className = "", eager = false, requireConsent = false }: AdRendererProps) {
+export function AdRenderer({
+  placement,
+  className = "",
+  eager = false,
+  requireConsent = false,
+}: AdRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const impressionTracked = useRef(false);
   const scriptInjected = useRef(false);
@@ -59,7 +64,8 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
   const [closed, setClosed] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const { consented, categories } = useCookieConsent();
-  const consentBlocked = requireConsent && (!consented || !categories.marketing);
+  const consentBlocked =
+    requireConsent && (!consented || !categories.marketing);
 
   // ── Track event ────────────────────────────────────────────────────
   const trackEvent = useCallback(
@@ -182,7 +188,9 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
         aria-label="Ad placeholder — consent required"
       >
         <div>
-          <p className="text-xs font-medium text-gray-400 dark:text-gray-500">Advertisement</p>
+          <p className="text-xs font-medium text-gray-400 dark:text-gray-500">
+            Advertisement
+          </p>
           <p className="mt-1 text-[10px] text-gray-300 dark:text-gray-600">
             Enable marketing cookies to view this ad
           </p>
@@ -197,13 +205,15 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
   const html = placement.customHtml || placement.adCode || "";
 
   const containerStyle: React.CSSProperties = {};
-  if (placement.slot.maxWidth) containerStyle.maxWidth = placement.slot.maxWidth;
+  if (placement.slot.maxWidth)
+    containerStyle.maxWidth = placement.slot.maxWidth;
   if (placement.slot.responsive) containerStyle.width = "100%";
 
   // Inner content gets the height constraint — the outer container stays
   // overflow-visible so nothing is clipped at the edges.
   const contentStyle: React.CSSProperties = {};
-  if (placement.slot.maxHeight) contentStyle.maxHeight = placement.slot.maxHeight;
+  if (placement.slot.maxHeight)
+    contentStyle.maxHeight = placement.slot.maxHeight;
   if (placement.slot.maxHeight) contentStyle.overflow = "hidden";
 
   // Responsive breakpoint visibility classes
@@ -235,7 +245,10 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
       {/* Close button for closeable ads */}
       {placement.closeable && (
         <button
-          onClick={(e) => { e.stopPropagation(); handleClose(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClose();
+          }}
           className="absolute top-1 right-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
           aria-label="Close ad"
         >

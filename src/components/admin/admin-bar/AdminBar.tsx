@@ -9,6 +9,7 @@ import { ContextZone } from "./ContextZone";
 import { RightZone } from "./RightZone";
 import { useRouteIntelligence } from "./useRouteIntelligence";
 import { useEditorStatus } from "../EditorContext";
+import { ADMIN_BAR_HEIGHT_PX } from "./constants";
 import type { UserRole } from "@/features/auth/types";
 
 /* ── Role gate ── */
@@ -24,7 +25,7 @@ function hasAdminBarAccess(role: string | undefined): boolean {
 }
 
 /* ── Height constant ── */
-export const ADMIN_BAR_HEIGHT = 44; // px
+export { ADMIN_BAR_HEIGHT_PX as ADMIN_BAR_HEIGHT } from "./constants";
 
 /* ── Inner bar (needs AdminBarProvider context) ── */
 
@@ -45,7 +46,8 @@ function AdminBarInner() {
     return (
       <button
         onClick={exitPreview}
-        className="fixed bottom-4 right-4 z-[9999] flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-2xl ring-1 ring-white/10 transition-transform hover:scale-105"
+        className="fixed bottom-4 right-4 z-9999 flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-2xl ring-1 ring-white/10 transition-transform hover:scale-105"
+        aria-label="Exit preview mode"
       >
         <Eye className="h-4 w-4" />
         Exit Preview
@@ -57,9 +59,9 @@ function AdminBarInner() {
   return (
     <div
       id="admin-bar"
-      className="fixed inset-x-0 top-0 z-[9999] flex items-center px-3"
+      className="fixed inset-x-0 top-0 z-9999 flex items-center px-3"
       style={{
-        height: ADMIN_BAR_HEIGHT,
+        height: ADMIN_BAR_HEIGHT_PX,
         background: `linear-gradient(90deg, ${settings.adminBarBackgroundColor}, #13131f, ${settings.adminBarBackgroundColor})`,
         borderBottom: "1px solid rgba(255,255,255,0.07)",
       }}

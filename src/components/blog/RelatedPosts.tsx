@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/server/db/prisma";
 import { Calendar } from "lucide-react";
+import { PostImageFallback } from "@/components/blog/PostImageFallback";
 
 interface RelatedPostsProps {
   postId: string;
@@ -10,7 +11,12 @@ interface RelatedPostsProps {
   count?: number;
 }
 
-export async function RelatedPosts({ postId, tagIds, categoryIds = [], count = 3 }: RelatedPostsProps) {
+export async function RelatedPosts({
+  postId,
+  tagIds,
+  categoryIds = [],
+  count = 3,
+}: RelatedPostsProps) {
   if (tagIds.length === 0 && categoryIds.length === 0) return null;
 
   // Build OR conditions: match by tags or categories
@@ -40,6 +46,7 @@ export async function RelatedPosts({ postId, tagIds, categoryIds = [], count = 3
       publishedAt: true,
       readingTime: true,
       author: { select: { displayName: true, username: true } },
+      categories: { select: { id: true, name: true } },
     },
   });
 
@@ -47,7 +54,9 @@ export async function RelatedPosts({ postId, tagIds, categoryIds = [], count = 3
 
   return (
     <section className="mt-12 border-t border-gray-200 pt-8 dark:border-gray-700">
-      <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">Related Posts</h2>
+      <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
+        Related Posts
+      </h2>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {posts.map((post) => (
           <Link
@@ -66,11 +75,11 @@ export async function RelatedPosts({ postId, tagIds, categoryIds = [], count = 3
                 />
               </div>
             ) : (
-              <div className="flex aspect-video items-center justify-center bg-linear-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
-                <span className="text-2xl font-bold text-gray-300 dark:text-gray-500">
-                  {post.title.charAt(0)}
-                </span>
-              </div>
+              <PostImageFallback
+                title={post.title}
+                category={post.categories?.[0]?.name}
+                className="aspect-video"
+              />
             )}
             <div className="flex flex-1 flex-col p-4">
               <h3 className="line-clamp-2 text-sm font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">

@@ -22,46 +22,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "@/components/ui/Toast";
-
-/* ── Types ── */
-
-interface AdminBarSettings {
-  adminBarEnabled: boolean;
-  adminBarShowBreadcrumbs: boolean;
-  adminBarShowNewButton: boolean;
-  adminBarShowSeoScore: boolean;
-  adminBarShowStatusToggle: boolean;
-  adminBarShowWordCount: boolean;
-  adminBarShowLastSaved: boolean;
-  adminBarShowSaveButton: boolean;
-  adminBarShowPublishButton: boolean;
-  adminBarShowPreviewButton: boolean;
-  adminBarShowViewSiteButton: boolean;
-  adminBarShowSiteNameDropdown: boolean;
-  adminBarShowUserDropdown: boolean;
-  adminBarShowEnvBadge: boolean;
-  adminBarBackgroundColor: string;
-  adminBarAccentColor: string;
-}
-
-const DEFAULTS: AdminBarSettings = {
-  adminBarEnabled: true,
-  adminBarShowBreadcrumbs: true,
-  adminBarShowNewButton: true,
-  adminBarShowSeoScore: true,
-  adminBarShowStatusToggle: true,
-  adminBarShowWordCount: true,
-  adminBarShowLastSaved: true,
-  adminBarShowSaveButton: true,
-  adminBarShowPublishButton: true,
-  adminBarShowPreviewButton: true,
-  adminBarShowViewSiteButton: true,
-  adminBarShowSiteNameDropdown: true,
-  adminBarShowUserDropdown: true,
-  adminBarShowEnvBadge: true,
-  adminBarBackgroundColor: "#0d0d18",
-  adminBarAccentColor: "#6c63ff",
-};
+import {
+  DEFAULT_ADMIN_BAR_SETTINGS,
+  isValidCssColor,
+  type AdminBarSettings,
+} from "@/components/admin/admin-bar/constants";
 
 /* ── Toggle card component ── */
 
@@ -92,8 +57,12 @@ function ToggleItem({
     >
       <Icon className="h-5 w-5 shrink-0 text-gray-400 dark:text-gray-500" />
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium text-gray-900 dark:text-white">{label}</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">{description}</div>
+        <div className="text-sm font-medium text-gray-900 dark:text-white">
+          {label}
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          {description}
+        </div>
       </div>
       <input
         type="checkbox"
@@ -126,11 +95,16 @@ function ColorInput({
         className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent p-0"
       />
       <div>
-        <div className="text-sm font-medium text-gray-900 dark:text-white">{label}</div>
+        <div className="text-sm font-medium text-gray-900 dark:text-white">
+          {label}
+        </div>
         <input
           type="text"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (isValidCssColor(v) || v.startsWith("#")) onChange(v);
+          }}
           className="mt-0.5 w-24 rounded border border-gray-300 bg-white px-2 py-0.5 font-mono text-xs text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
           maxLength={20}
         />
@@ -196,7 +170,7 @@ function PreviewBar({ settings }: { settings: AdminBarSettings }) {
           </span>
         )}
         {settings.adminBarShowUserDropdown && (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-red-700 text-[10px] font-bold text-white">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-linear-to-br from-red-500 to-red-700 text-[10px] font-bold text-white">
             A
           </span>
         )}
@@ -208,14 +182,19 @@ function PreviewBar({ settings }: { settings: AdminBarSettings }) {
 /* ── Main page ── */
 
 export default function AdminBarSettingsPage() {
-  const [settings, setSettings] = useState<AdminBarSettings>(DEFAULTS);
+  const [settings, setSettings] = useState<AdminBarSettings>(
+    DEFAULT_ADMIN_BAR_SETTINGS,
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // Load current settings
   useEffect(() => {
     fetch("/api/settings/admin-bar")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((res) => {
         if (res.success && res.data) {
           setSettings((prev) => ({ ...prev, ...res.data }));
@@ -277,7 +256,8 @@ export default function AdminBarSettingsPage() {
               Admin Bar
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Configure the global admin bar visible to editors and administrators
+              Configure the global admin bar visible to editors and
+              administrators
             </p>
           </div>
         </div>
@@ -286,7 +266,11 @@ export default function AdminBarSettingsPage() {
           disabled={saving}
           className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
         >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
           Save Settings
         </button>
       </div>
@@ -317,7 +301,8 @@ export default function AdminBarSettingsPage() {
           Feature Visibility
         </h2>
         <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-          Toggle which features appear in the admin bar. Disabled features are hidden for all users.
+          Toggle which features appear in the admin bar. Disabled features are
+          hidden for all users.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -470,7 +455,11 @@ export default function AdminBarSettingsPage() {
           disabled={saving}
           className="flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
         >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
           Save Admin Bar Settings
         </button>
       </div>

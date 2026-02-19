@@ -76,6 +76,7 @@ export default async function TagDetailPage({ params, searchParams }: {
     include: {
       author: { select: { id: true, username: true, displayName: true } },
       tags: { select: { id: true, name: true, slug: true, color: true } },
+      categories: { select: { id: true, name: true, slug: true } },
     },
   }) as PostListItem[];
 
@@ -140,6 +141,7 @@ export default async function TagDetailPage({ params, searchParams }: {
               ) : (
                 <PostImageFallback
                   title={post.title}
+                  category={post.categories?.[0]?.name}
                   className="aspect-video rounded-t-xl"
                 />
               )}

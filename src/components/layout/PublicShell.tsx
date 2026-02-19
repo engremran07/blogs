@@ -116,7 +116,7 @@ export function PublicShell({
     : null;
 
   return (
-    <div className={`flex min-h-screen flex-col${hasAdminBar ? " pt-[44px]" : ""}`}>
+    <div className={`flex min-h-screen flex-col${hasAdminBar ? " pt-11" : ""}`}>
       {settings && <TopBar settings={settings} />}
       <Header
         siteName={siteName}

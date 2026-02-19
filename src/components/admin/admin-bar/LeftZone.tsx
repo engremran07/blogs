@@ -31,6 +31,7 @@ export function LeftZone({
         <Link
           href={route.backHref}
           className="flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-sm text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+          aria-label={`Back to ${route.backLabel}`}
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">{route.backLabel}</span>
@@ -62,7 +63,7 @@ export function LeftZone({
                   {crumb.label}
                 </Link>
               ) : (
-                <span className="max-w-[200px] truncate px-1 py-0.5 text-sm font-medium text-white">
+                <span className="max-w-50 truncate px-1 py-0.5 text-sm font-medium text-white">
                   {crumb.label}
                 </span>
               )}

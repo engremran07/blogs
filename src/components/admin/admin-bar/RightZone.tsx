@@ -1,14 +1,8 @@
 "use client";
 
+import { useCallback } from "react";
 import Link from "next/link";
-import {
-  Globe,
-  Monitor,
-  Save,
-  Rocket,
-  Eye,
-} from "lucide-react";
-import { clsx } from "clsx";
+import { Globe, Monitor, Save, Rocket, Eye } from "lucide-react";
 import { useAdminBar } from "./AdminBarProvider";
 import { NewDropdown } from "./NewDropdown";
 import { UserDropdown } from "./UserDropdown";
@@ -37,17 +31,25 @@ export function RightZone({
 }) {
   const { settings, enterPreview, closeDropdown } = useAdminBar();
 
-  // Save handler
-  function handleSave() {
-    editor?.handleSave?.();
-    toast("Changes saved!", "success");
-  }
+  // Save handler — awaits the save before toasting
+  const handleSave = useCallback(async () => {
+    try {
+      await editor?.handleSave?.();
+      toast("Changes saved!", "success");
+    } catch {
+      toast("Save failed", "error");
+    }
+  }, [editor]);
 
-  // Publish handler
-  function handlePublish() {
-    editor?.handleSave?.("PUBLISHED");
-    toast("Published successfully!", "success");
-  }
+  // Publish handler — awaits the save before toasting
+  const handlePublish = useCallback(async () => {
+    try {
+      await editor?.handleSave?.("PUBLISHED");
+      toast("Published successfully!", "success");
+    } catch {
+      toast("Publish failed", "error");
+    }
+  }, [editor]);
 
   const canPublish =
     settings.adminBarShowPublishButton &&
@@ -116,9 +118,7 @@ export function RightZone({
       {canPublish && (
         <button
           onClick={handlePublish}
-          className={clsx(
-            "flex items-center gap-1 rounded bg-green-600 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-green-500",
-          )}
+          className="flex items-center gap-1 rounded bg-green-600 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-green-500"
         >
           <Rocket className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Publish</span>

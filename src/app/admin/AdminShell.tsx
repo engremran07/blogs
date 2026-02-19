@@ -204,7 +204,7 @@ export default function AdminShell({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 pt-[44px] dark:bg-gray-900">
+    <div className="flex h-screen overflow-hidden bg-gray-50 pt-11 dark:bg-gray-900">
       {/* Mobile overlay */}
       {mobileOpen && (
         <div

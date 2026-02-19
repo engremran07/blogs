@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search as SearchIcon, Calendar, Eye, Clock, Loader2, X } from "lucide-react";
+import { PostImageFallback } from "@/components/blog/PostImageFallback";
 
 interface SearchResult {
   id: string;
@@ -17,6 +18,7 @@ interface SearchResult {
   viewCount: number;
   author: { username: string; displayName: string | null };
   tags: { name: string; slug: string }[];
+  categories?: { id: string; name: string }[];
 }
 
 export default function SearchContent() {
@@ -113,7 +115,7 @@ export default function SearchContent() {
               href={`/blog/${post.slug}`}
               className="group flex gap-5 rounded-xl border border-gray-200 bg-white p-5 transition-all hover:border-blue-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600"
             >
-              {post.featuredImage && (
+              {post.featuredImage ? (
                 <div className="hidden h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:block dark:bg-gray-700">
                   <Image
                     src={post.featuredImage}
@@ -122,6 +124,14 @@ export default function SearchContent() {
                     width={144}
                     height={96}
                     unoptimized
+                  />
+                </div>
+              ) : (
+                <div className="hidden sm:block">
+                  <PostImageFallback
+                    title={post.title}
+                    category={post.categories?.[0]?.name}
+                    className="h-24 w-36 shrink-0 rounded-lg"
                   />
                 </div>
               )}

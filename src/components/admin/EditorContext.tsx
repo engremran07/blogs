@@ -1,10 +1,11 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
+import type { DocumentStatus } from "./admin-bar/constants";
 
 export interface EditorStatus {
-  /** Current document status (DRAFT, PUBLISHED, SCHEDULED, ARCHIVED) */
-  status: string;
+  /** Current document status */
+  status: DocumentStatus | string;
   /** Whether unsaved changes exist */
   isDirty: boolean;
   /** Document slug (for building public URL) */
@@ -21,8 +22,8 @@ export interface EditorStatus {
   readingTime?: number;
   /** Timestamp of most recent save (ISO string or null if never saved) */
   lastSavedAt?: string | null;
-  /** Save handler — AdminBar can call this to trigger a save */
-  handleSave?: (newStatus?: string) => void;
+  /** Save handler — AdminBar can call this to trigger a save. Returns a promise so callers can await. */
+  handleSave?: (newStatus?: string) => void | Promise<void>;
 }
 
 const EditorStatusCtx = createContext<EditorStatus | null>(null);

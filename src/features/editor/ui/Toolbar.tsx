@@ -414,7 +414,10 @@ export function EditorToolbar({ editor, onImageUpload }: ToolbarProps) {
       <ToolbarDivider />
 
       {/* Color */}
-      <div className="relative" style={{ zIndex: showColorPicker ? 50 : "auto" }}>
+      <div
+        className="relative"
+        style={{ zIndex: showColorPicker ? 50 : "auto" }}
+      >
         <ToolbarButton
           onClick={() => setShowColorPicker(!showColorPicker)}
           title="Text Color"
@@ -424,14 +427,37 @@ export function EditorToolbar({ editor, onImageUpload }: ToolbarProps) {
         {showColorPicker && (
           <>
             {/* Backdrop to close on outside click */}
-            <div className="fixed inset-0 z-40" onClick={() => setShowColorPicker(false)} />
-            <div className="absolute left-0 top-full z-50 mt-1 w-[180px] rounded-lg border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-600 dark:bg-gray-800">
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowColorPicker(false)}
+            />
+            <div className="absolute left-0 top-full z-50 mt-1 w-45 rounded-lg border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-600 dark:bg-gray-800">
               <div className="grid grid-cols-6 gap-1">
                 {[
-                  "#000000", "#333333", "#666666", "#999999", "#cccccc", "#ffffff",
-                  "#e74c3c", "#e67e22", "#f1c40f", "#2ecc71", "#3498db", "#9b59b6",
-                  "#c0392b", "#d35400", "#f39c12", "#27ae60", "#2980b9", "#8e44ad",
-                  "#1a1a2e", "#16213e", "#0f3460", "#e94560", "#533483", "#2b2d42",
+                  "#000000",
+                  "#333333",
+                  "#666666",
+                  "#999999",
+                  "#cccccc",
+                  "#ffffff",
+                  "#e74c3c",
+                  "#e67e22",
+                  "#f1c40f",
+                  "#2ecc71",
+                  "#3498db",
+                  "#9b59b6",
+                  "#c0392b",
+                  "#d35400",
+                  "#f39c12",
+                  "#27ae60",
+                  "#2980b9",
+                  "#8e44ad",
+                  "#1a1a2e",
+                  "#16213e",
+                  "#0f3460",
+                  "#e94560",
+                  "#533483",
+                  "#2b2d42",
                 ].map((color) => (
                   <button
                     key={color}
@@ -484,7 +510,9 @@ export function EditorToolbar({ editor, onImageUpload }: ToolbarProps) {
 
       {/* Clear */}
       <ToolbarButton
-        onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
+        onClick={() =>
+          editor.chain().focus().clearNodes().unsetAllMarks().run()
+        }
         title="Clear Formatting"
       >
         <RemoveFormatting className={iconSize} />

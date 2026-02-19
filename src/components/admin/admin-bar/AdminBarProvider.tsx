@@ -5,49 +5,18 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
+import {
+  DEFAULT_ADMIN_BAR_SETTINGS,
+  DEFAULT_SITE_NAME,
+  type AdminBarSettings,
+} from "./constants";
 
-/* ── Admin Bar settings shape (matches Prisma SiteSettings fields) ── */
-
-export interface AdminBarSettings {
-  adminBarEnabled: boolean;
-  adminBarShowBreadcrumbs: boolean;
-  adminBarShowNewButton: boolean;
-  adminBarShowSeoScore: boolean;
-  adminBarShowStatusToggle: boolean;
-  adminBarShowWordCount: boolean;
-  adminBarShowLastSaved: boolean;
-  adminBarShowSaveButton: boolean;
-  adminBarShowPublishButton: boolean;
-  adminBarShowPreviewButton: boolean;
-  adminBarShowViewSiteButton: boolean;
-  adminBarShowSiteNameDropdown: boolean;
-  adminBarShowUserDropdown: boolean;
-  adminBarShowEnvBadge: boolean;
-  adminBarBackgroundColor: string;
-  adminBarAccentColor: string;
-}
-
-const DEFAULT_SETTINGS: AdminBarSettings = {
-  adminBarEnabled: true,
-  adminBarShowBreadcrumbs: true,
-  adminBarShowNewButton: true,
-  adminBarShowSeoScore: true,
-  adminBarShowStatusToggle: true,
-  adminBarShowWordCount: true,
-  adminBarShowLastSaved: true,
-  adminBarShowSaveButton: true,
-  adminBarShowPublishButton: true,
-  adminBarShowPreviewButton: true,
-  adminBarShowViewSiteButton: true,
-  adminBarShowSiteNameDropdown: true,
-  adminBarShowUserDropdown: true,
-  adminBarShowEnvBadge: true,
-  adminBarBackgroundColor: "#0d0d18",
-  adminBarAccentColor: "#6c63ff",
-};
+/* ── Re-export for external consumers ── */
+export type { AdminBarSettings };
 
 /* ── Context shape ── */
 
@@ -76,9 +45,9 @@ interface AdminBarContextValue {
 
 const AdminBarCtx = createContext<AdminBarContextValue | null>(null);
 
-/* ── Detect environment ── */
+/* ── Detect environment (pure — evaluated once at module level) ── */
 
-function detectEnv(): "LIVE" | "STAGING" | "DEV" {
+const ENV_LABEL: "LIVE" | "STAGING" | "DEV" = (() => {
   const env =
     process.env.NEXT_PUBLIC_VERCEL_ENV ??
     process.env.NEXT_PUBLIC_ENV ??
@@ -87,37 +56,47 @@ function detectEnv(): "LIVE" | "STAGING" | "DEV" {
   if (env === "production") return "LIVE";
   if (env === "preview" || env === "staging") return "STAGING";
   return "DEV";
-}
+})();
 
 /* ── Provider ── */
 
 export function AdminBarProvider({ children }: { children: ReactNode }) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
-  const [settings, setSettings] = useState<AdminBarSettings>(DEFAULT_SETTINGS);
-  const [siteName, setSiteName] = useState("MyBlog");
-
-  const envLabel = detectEnv();
+  const [settings, setSettings] = useState<AdminBarSettings>(
+    DEFAULT_ADMIN_BAR_SETTINGS,
+  );
+  const [siteName, setSiteName] = useState(DEFAULT_SITE_NAME);
 
   // Fetch admin bar + identity settings once
   useEffect(() => {
     fetch("/api/settings/admin-bar")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((res) => {
         if (res.success && res.data) {
           setSettings((prev) => ({ ...prev, ...res.data }));
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        /* Settings fetch failed — use defaults silently */
+      });
 
     fetch("/api/settings/public")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((res) => {
         if (res.success && res.data?.siteName) {
           setSiteName(res.data.siteName);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        /* Public settings fetch failed — use defaults silently */
+      });
   }, []);
 
   // Close dropdowns on outside click
@@ -133,6 +112,18 @@ export function AdminBarProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [activeDropdown]);
 
+  // Close dropdowns on Escape key
+  useEffect(() => {
+    if (!activeDropdown) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setActiveDropdown(null);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [activeDropdown]);
+
   const openDropdown = useCallback((id: string) => setActiveDropdown(id), []);
   const closeDropdown = useCallback(() => setActiveDropdown(null), []);
   const toggleDropdown = useCallback(
@@ -145,24 +136,33 @@ export function AdminBarProvider({ children }: { children: ReactNode }) {
   }, []);
   const exitPreview = useCallback(() => setPreviewMode(false), []);
 
-  return (
-    <AdminBarCtx.Provider
-      value={{
-        activeDropdown,
-        openDropdown,
-        closeDropdown,
-        toggleDropdown,
-        previewMode,
-        enterPreview,
-        exitPreview,
-        settings,
-        siteName,
-        envLabel,
-      }}
-    >
-      {children}
-    </AdminBarCtx.Provider>
+  const value = useMemo(
+    () => ({
+      activeDropdown,
+      openDropdown,
+      closeDropdown,
+      toggleDropdown,
+      previewMode,
+      enterPreview,
+      exitPreview,
+      settings,
+      siteName,
+      envLabel: ENV_LABEL,
+    }),
+    [
+      activeDropdown,
+      openDropdown,
+      closeDropdown,
+      toggleDropdown,
+      previewMode,
+      enterPreview,
+      exitPreview,
+      settings,
+      siteName,
+    ],
   );
+
+  return <AdminBarCtx.Provider value={value}>{children}</AdminBarCtx.Provider>;
 }
 
 export function useAdminBar(): AdminBarContextValue {
