@@ -45,3 +45,11 @@ yarn-error.log*
 
 # typescript build info
 *.tsbuildinfo
+
+# testing & load testing (local dev only)
+/tests/
+/k6/
+/coverage/
+jest.config.ts
+vitest.config.ts
+playwright.config.ts

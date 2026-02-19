@@ -51,7 +51,7 @@ A production-ready, feature-rich blog platform and content management system bui
 ## Features Overview
 
 | Category | Highlights |
-|---|---|
+| --- | --- |
 | **Content Management** | Posts, pages, categories, tags, series, revisions, guest posts, scheduled publishing, soft delete |
 | **Admin Dashboard** | 13-section admin panel with role-based access, module kill switches, responsive sidebar |
 | **Rich Text Editor** | Custom contentEditable WYSIWYG with 22 toggleable features, markdown shortcuts, drag-and-drop images, tables, code blocks, auto-save |
@@ -79,7 +79,7 @@ A production-ready, feature-rich blog platform and content management system bui
 ## Tech Stack
 
 | Layer | Technology |
-|---|---|
+| --- | --- |
 | **Framework** | [Next.js 16.1.6](https://nextjs.org/) — App Router, Turbopack, React Compiler, standalone output |
 | **Language** | [TypeScript 5](https://www.typescriptlang.org/) — strict mode |
 | **UI** | [React 19](https://react.dev/), [Tailwind CSS 4](https://tailwindcss.com/), [Headless UI](https://headlessui.com/), [Lucide Icons](https://lucide.dev/) |
@@ -95,7 +95,7 @@ A production-ready, feature-rich blog platform and content management system bui
 
 ### Key Dependencies
 
-```
+```text
 next 16.1.6          react 19.2.3         prisma 7.4.0
 next-auth 5-beta.30  @upstash/redis       @upstash/ratelimit
 zod 4.3              tailwindcss 4        sanitize-html 2.17
@@ -109,8 +109,9 @@ openai 6.21          pg 8.18              tsx 4.21
 
 ### High-Level Structure
 
-```
+```text
 MyBlog/
+├── .vscode/                # VS Code settings & recommended extensions
 ├── prisma/                 # Database schema, migrations, seed
 │   ├── schema.prisma       # 45 models, 12 enums (~1,430 lines)
 │   ├── seed.ts             # Demo data seeder
@@ -163,7 +164,7 @@ MyBlog/
 
 Every feature module follows a consistent structure:
 
-```
+```text
 features/<module>/
 ├── index.ts                # Public barrel exports (types + services + UI)
 ├── types.ts                # TypeScript types, interfaces, enums
@@ -194,10 +195,11 @@ This ensures single Prisma client, single Redis client, consistent event bus wir
 ### Prerequisites
 
 | Requirement | Version |
-|---|---|
+| --- | --- |
 | **Node.js** | 22+ (pinned in `.nvmrc`) |
 | **PostgreSQL** | 16+ |
 | **npm** | 10+ |
+| **VS Code** | Recommended — workspace settings and extension recommendations included |
 
 ### Quick Start
 
@@ -229,7 +231,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Default Seed Users
 
 | Role | Email | Password |
-|---|---|---|
+| --- | --- | --- |
 | Super Admin | `admin@myblog.com` | `Admin123!@#` |
 | Editor | `editor@myblog.com` | `Editor123!@#` |
 | Author | `author@myblog.com` | `Author123!@#` |
@@ -337,7 +339,7 @@ docker compose --profile full up
 ### Schema Overview (45 Models, 12 Enums)
 
 | Model Group | Models |
-|---|---|
+| --- | --- |
 | **Auth** | `User`, `UserSession`, `EmailVerificationToken`, `EmailChangeRequest` |
 | **Content** | `Post`, `Page`, `Category`, `Tag`, `Series`, `PostRevision`, `PostQuote` |
 | **Engagement** | `Comment`, `CommentVote`, `CommentSettings`, `LearningSignal` |
@@ -349,7 +351,7 @@ docker compose --profile full up
 | **System** | `CronLog`, `Menu`, `MenuItem` |
 
 | Enum | Values |
-|---|---|
+| --- | --- |
 | `UserRole` | SUBSCRIBER, CONTRIBUTOR, AUTHOR, EDITOR, ADMINISTRATOR, SUPER_ADMIN |
 | `PostStatus` | DRAFT, PUBLISHED, SCHEDULED, ARCHIVED |
 | `PageStatus` | DRAFT, PUBLISHED, SCHEDULED, ARCHIVED |
@@ -364,7 +366,7 @@ docker compose --profile full up
 ## Available Scripts
 
 | Command | Description |
-|---|---|
+| --- | --- |
 | `npm run dev` | Start dev server with Turbopack (hot reload) |
 | `npm run build` | Generate Prisma client + Next.js production build (standalone output) |
 | `npm start` | Start production server |
@@ -375,6 +377,14 @@ docker compose --profile full up
 | `npm run db:migrate` | Run Prisma migrations (dev) |
 | `npm run db:studio` | Open Prisma Studio GUI |
 | `npm run db:seed` | Seed database with demo data (`tsx prisma/seed.ts`) |
+| `npm test` | Run Vitest unit tests |
+| `npm run test:watch` | Run Vitest in watch mode |
+| `npm run test:coverage` | Run Vitest with V8 coverage |
+| `npm run test:server` | Run Jest server/API tests |
+| `npm run test:server:cov` | Run Jest with coverage |
+| `npm run e2e` | Run Playwright E2E tests |
+| `npm run e2e:ui` | Open Playwright UI mode |
+| `npm run e2e:headed` | Run E2E tests in headed browser |
 
 ---
 
@@ -391,7 +401,7 @@ The schema at `prisma/schema.prisma` defines the entire data model. Key groups:
 
 ### Admin Panel (13 Sections)
 
-```
+```text
 src/app/admin/
 ├── layout.tsx          # Server-side auth guard (redirects non-admin to /login)
 ├── AdminShell.tsx      # Client-side UI shell (sidebar, topbar, mobile menu)
@@ -413,7 +423,7 @@ src/app/admin/
 
 ### API Routes (67 Files)
 
-```
+```text
 src/app/api/
 ├── ads/                # 10 routes — providers, slots, placements, scan, settings, kill switch
 ├── og/                 # 1 route — dynamic OG image generation (Edge runtime, 1200×630)
@@ -450,7 +460,7 @@ The admin panel at `/admin` requires `ADMINISTRATOR`, `SUPER_ADMIN`, or `EDITOR`
 ### Content Management
 
 | Section | Features |
-|---|---|
+| --- | --- |
 | **Posts** | CRUD, search, status filter, pagination, bulk actions (publish/archive/delete), featured/pinned, guest posting, SEO fields, tag & category assignment |
 | **Pages** | CRUD, 7 templates (Default, Full Width, Sidebar Left/Right, Landing, Blank, Custom), 4 visibility modes, parent-child hierarchy, scheduling |
 | **Categories** | Hierarchical tree with drag-and-drop reordering, color pickers, icons, images, featured flag |
@@ -478,7 +488,7 @@ The admin panel at `/admin` requires `ADMINISTRATOR`, `SUPER_ADMIN`, or `EDITOR`
 ### Moderation & Users
 
 | Section | Features |
-|---|---|
+| --- | --- |
 | **Comments** | Tab-based queue (All/Pending/Approved/Spam/Rejected/Deleted/Flagged), approve/reject/spam actions, bulk operations, spam score display |
 | **Users** | 6 roles (Subscriber → Super Admin), full profile editing, social links, bulk role changes, post/comment counts |
 
@@ -497,7 +507,7 @@ The admin panel at `/admin` requires `ADMINISTRATOR`, `SUPER_ADMIN`, or `EDITOR`
 ### Configuration
 
 | Section | Features |
-|---|---|
+| --- | --- |
 | **Settings** | **10 tabs**, 110+ fields — General, Appearance, Content, Comments, Social, SEO, Email, Security, **Privacy**, Advanced |
 | **SEO** | Site-wide audit dashboard, per-content scoring, issue severity tracking, bulk fix page |
 | **Ads** | Provider/slot/placement management, 11 networks, global kill switch, compliance panel, **AdSettings panel** (25+ configurable fields: auto-placement, analytics, consent, refresh, lazy loading, viewability) |
@@ -512,7 +522,7 @@ The admin panel at `/admin` requires `ADMINISTRATOR`, `SUPER_ADMIN`, or `EDITOR`
 All public pages use **ISR (Incremental Static Regeneration)** for optimal performance and cost:
 
 | Page | Route | ISR | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Home** | `/` | 15 min | Hero section, featured post, latest posts grid, popular tags cloud |
 | **Blog** | `/blog` | 10 min | Configurable layout (grid/list), filters, pagination, sidebar |
 | **Post** | `/blog/[slug]` | 1 hr | Full article with TOC, social sharing, related posts, navigation, comments, JSON-LD, dynamic OG image fallback (`/api/og`). Up to 500 slugs pre-rendered at build via `generateStaticParams` |
@@ -528,7 +538,7 @@ All public pages use **ISR (Incremental Static Regeneration)** for optimal perfo
 ### Blog Components
 
 | Component | Description |
-|---|---|
+| --- | --- |
 | **Table of Contents** | Parses H1–H4, active heading tracking via IntersectionObserver, smooth scroll |
 | **Blog Sidebar** | Configurable widgets: search, recent posts, categories, tags, monthly archive |
 | **Social Share** | Facebook, Twitter, LinkedIn, WhatsApp, Email, Copy Link |
@@ -543,7 +553,7 @@ All public pages use **ISR (Incremental Static Regeneration)** for optimal perfo
 All API routes are under `/api/`. Admin endpoints require authentication and role-based authorization. All mutation routes are rate-limited (30 requests per 60 seconds per IP).
 
 | Endpoint | Methods | Auth | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `/api/auth/*` | POST | Public | NextAuth authentication, registration |
 | `/api/posts` | GET, POST | POST: Author+ | List/create posts |
 | `/api/posts/[id]` | GET, PATCH, DELETE | PATCH/DEL: Author+ | Get/update/soft-delete a post |
@@ -630,12 +640,12 @@ A custom-built contentEditable WYSIWYG editor with **22 admin-toggleable feature
 
 Multi-provider CAPTCHA with automatic fallback chain:
 
-```
+```text
 Turnstile → reCAPTCHA v3 → reCAPTCHA v2 → hCaptcha → In-house
 ```
 
 | Provider | Type | Dependency |
-|---|---|---|
+| --- | --- | --- |
 | **Cloudflare Turnstile** | Privacy-first, invisible | External |
 | **Google reCAPTCHA v3** | Score-based, invisible | External |
 | **Google reCAPTCHA v2** | Checkbox challenge | External |
@@ -755,7 +765,7 @@ Manage ads from **11 supported networks**:
 ### Specialized Ad Components (10+)
 
 | Component | Description |
-|---|---|
+| --- | --- |
 | **AdRenderer** | Core rendering engine — consent-gated, impression/click tracking, lazy loading, viewability detection |
 | **GlobalAdSlots** | Injects header, sidebar, footer, and sticky ad slots across all public pages |
 | **GlobalOverlayAds** | Renders interstitial, exit-intent, floating, and vignette overlay ads site-wide |
@@ -810,14 +820,14 @@ A fully-featured, GDPR-compliant cookie consent system that is admin-configurabl
 ### Two Modes
 
 | Mode | Behavior |
-|---|---|
+| --- | --- |
 | **Simple** (GDPR off) | Informational banner with a **"Got it!"** button. All scripts load immediately. |
 | **GDPR** (GDPR on) | Full consent management: **Accept All**, **Reject All**, **Manage Preferences**. Analytics and marketing scripts are blocked until the visitor explicitly opts in. |
 
 ### Cookie Categories (GDPR Mode)
 
 | Category | Description | Toggleable |
-|---|---|---|
+| --- | --- | --- |
 | **Essential** | Auth, CSRF, session — always on | No (locked) |
 | **Analytics** | GA4, site usage tracking | Yes |
 | **Marketing** | Ad scripts, pixel tracking | Yes |
@@ -835,7 +845,7 @@ A fully-featured, GDPR-compliant cookie consent system that is admin-configurabl
 ### Admin Settings (Privacy Tab)
 
 | Field | Description |
-|---|---|
+| --- | --- |
 | Enable Cookie Banner | Toggle the banner on/off |
 | Banner Message | Customizable consent text (max 2,000 chars) |
 | Privacy Policy URL | Link displayed in banner |
@@ -854,7 +864,7 @@ Google Analytics 4 is **consent-aware** and **admin-configurable** — no code c
 ### Behavior
 
 | Scenario | Result |
-|---|---|
+| --- | --- |
 | No GA ID configured | Nothing injected |
 | GDPR off | GA4 loads immediately after consent banner dismissed |
 | GDPR on, analytics not accepted | GA4 **blocked** until user opts in |
@@ -874,7 +884,7 @@ Google Analytics 4 is **consent-aware** and **admin-configurable** — no code c
 ### Settings (10 Tabs, 110+ Fields)
 
 | Tab | Key Settings |
-|---|---|
+| --- | --- |
 | **General** | Site name, tagline, description, URL, logo, favicon, language, timezone |
 | **Appearance** | Primary/secondary/accent colors, font family, heading font, dark mode toggle/default, custom CSS, top bar config |
 | **Content** | Posts per page, excerpt length, RSS, blog layout (grid/list/columns), sidebar widgets, related posts, social sharing, TOC, post navigation, show/hide toggles |
@@ -910,7 +920,7 @@ Google Analytics 4 is **consent-aware** and **admin-configurable** — no code c
 Visual menu builder for 3 slots:
 
 | Slot | Description |
-|---|---|
+| --- | --- |
 | **Header** | Main navigation menu |
 | **Footer** | Footer navigation links |
 | **Top Bar** | Top bar quick links |
@@ -939,7 +949,7 @@ Visual menu builder for 3 slots:
 **18 automated maintenance tasks**, triggered hourly via Vercel Cron or manual trigger:
 
 | Task | Description |
-|---|---|
+| --- | --- |
 | Publish scheduled posts | Publishes posts where `scheduledFor ≤ now` |
 | Publish scheduled pages | Same for pages |
 | Release stale post locks | Unlocks posts locked too long |
@@ -1000,7 +1010,7 @@ Visual menu builder for 3 slots:
 
 Applied to all routes via `next.config.ts`:
 
-```
+```text
 X-DNS-Prefetch-Control: on
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
 X-Frame-Options: SAMEORIGIN
@@ -1101,7 +1111,7 @@ docker compose --profile full up -d
 Multi-stage build on `node:22-alpine`:
 
 | Stage | Purpose |
-|---|---|
+| --- | --- |
 | **deps** | `npm ci` + `prisma generate` |
 | **builder** | `next build` → standalone output |
 | **runner** | Minimal production image, non-root user (`nextjs`), HEALTHCHECK |
@@ -1120,7 +1130,7 @@ The container automatically runs `prisma migrate deploy` before starting the ser
 #### Docker Compose Services
 
 | Service | Image | Port | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `postgres` | `postgres:16-alpine` | 5432 | Persistent volume, healthcheck |
 | `redis` | `redis:7-alpine` | 6379 | Persistent volume, healthcheck |
 | `app` | Built from Dockerfile | 3000 | Depends on postgres + redis (healthy), behind `full` profile |
@@ -1128,7 +1138,7 @@ The container automatically runs `prisma migrate deploy` before starting the ser
 ### Environment Requirements
 
 | Requirement | Vercel | Docker/VPS |
-|---|---|---|
+| --- | --- | --- |
 | Node.js | Managed | 22 (pinned in `.nvmrc`) |
 | PostgreSQL | External (Neon, Supabase) | Included in docker-compose |
 | Redis | External (Upstash) | Included in docker-compose |
@@ -1148,7 +1158,7 @@ Next.js is configured with `output: "standalone"` which produces a self-containe
 Reusable components in `src/components/ui/`:
 
 | Component | Description |
-|---|---|
+| --- | --- |
 | **Button** | Styled button with loading state, icon support, disabled styles |
 | **Card** | Container with header, title, padding sizes, hover effects |
 | **Badge** | 6 variants: default, success, warning, danger, info, outline |
@@ -1164,7 +1174,7 @@ Reusable components in `src/components/ui/`:
 ### Layout Components
 
 | Component | Description |
-|---|---|
+| --- | --- |
 | **PublicShell** | Public layout wrapper — fetches settings, renders TopBar + Header + Footer + CookieConsentBanner + AnalyticsScripts |
 | **AdminShell** | Admin layout — sidebar nav, topbar with breadcrumbs, mobile menu, profile dropdown |
 | **Header** | Responsive site header with navigation |
@@ -1180,14 +1190,19 @@ Reusable components in `src/components/ui/`:
 The following are **intentionally excluded** from version control (`.gitignore`):
 
 | Path | Reason |
-|---|---|
+| --- | --- |
 | `/.next/` | Build output — regenerated by `npm run build` |
 | `/node_modules/` | Dependencies — restored by `npm install` |
 | `/out/` | Static export output |
 | `.env*` | Environment secrets — use `.env.example` as template |
 | `*.tsbuildinfo` | TypeScript incremental build cache |
-| `next-env.d.ts` | Auto-generated by Next.js |
 | `.vercel/` | Vercel project config |
+| `/tests/` | Test suites (Vitest, Jest, Playwright E2E) — local dev only |
+| `/k6/` | k6 load testing scenarios — local dev only |
+| `/coverage/` | Test coverage reports |
+| `jest.config.ts` | Jest configuration |
+| `vitest.config.ts` | Vitest configuration |
+| `playwright.config.ts` | Playwright configuration |
 
 > **Note**: `.env.example` is committed as a documented template. All other env files are excluded.
 

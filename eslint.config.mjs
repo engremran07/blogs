@@ -14,6 +14,10 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // ESLint doesn't lint CSS — avoid "no matching configuration" warning
     "**/*.css",
+    // Test and load-testing directories
+    "tests/**",
+    "k6/**",
+    "coverage/**",
   ]),
   {
     rules: {
