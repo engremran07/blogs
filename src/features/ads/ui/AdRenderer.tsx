@@ -196,10 +196,15 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
   // ── Render content ─────────────────────────────────────────────────
   const html = placement.customHtml || placement.adCode || "";
 
-  const style: React.CSSProperties = {};
-  if (placement.slot.maxWidth) style.maxWidth = placement.slot.maxWidth;
-  if (placement.slot.maxHeight) style.maxHeight = placement.slot.maxHeight;
-  if (placement.slot.responsive) style.width = "100%";
+  const containerStyle: React.CSSProperties = {};
+  if (placement.slot.maxWidth) containerStyle.maxWidth = placement.slot.maxWidth;
+  if (placement.slot.responsive) containerStyle.width = "100%";
+
+  // Inner content gets the height constraint — the outer container stays
+  // overflow-visible so nothing is clipped at the edges.
+  const contentStyle: React.CSSProperties = {};
+  if (placement.slot.maxHeight) contentStyle.maxHeight = placement.slot.maxHeight;
+  if (placement.slot.maxHeight) contentStyle.overflow = "hidden";
 
   // Responsive breakpoint visibility classes
   const breakpoints = placement.visibleBreakpoints;
@@ -218,8 +223,8 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
     <div
       ref={containerRef}
       key={refreshKey}
-      className={`ad-container relative overflow-hidden ${breakpointClass} ${className}`}
-      style={style}
+      className={`ad-container relative ${breakpointClass} ${className}`}
+      style={containerStyle}
       onClick={handleClick}
       role="complementary"
       aria-label={`Advertisement — ${placement.slot.name}`}
@@ -238,19 +243,21 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
         </button>
       )}
 
-      {html ? (
-        <div dangerouslySetInnerHTML={{ __html: html }} />
-      ) : (
-        <div
-          className="flex items-center justify-center rounded-lg bg-gray-50 text-xs text-gray-400 dark:bg-gray-800/50 dark:text-gray-500"
-          style={{ height: placement.slot.maxHeight ? Math.min(placement.slot.maxHeight, 96) : 96 }}
-        >
-          Ad — {placement.slot.position}
-        </div>
-      )}
+      <div style={contentStyle}>
+        {html ? (
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        ) : (
+          <div
+            className="flex items-center justify-center rounded-lg bg-gray-50 text-xs text-gray-400 dark:bg-gray-800/50 dark:text-gray-500"
+            style={{ height: placement.slot.maxHeight ?? 90 }}
+          >
+            Ad — {placement.slot.position}
+          </div>
+        )}
+      </div>
 
-      {/* Sponsored label — absolutely positioned so it doesn't add height */}
-      <div className="absolute bottom-0.5 right-1.5">
+      {/* Sponsored label */}
+      <div className="mt-0.5 text-right">
         <span className="text-[10px] font-medium text-gray-400">Ad</span>
       </div>
     </div>
