@@ -241,13 +241,16 @@ export function AdRenderer({ placement, className = "", eager = false, requireCo
       {html ? (
         <div dangerouslySetInnerHTML={{ __html: html }} />
       ) : (
-        <div className="flex h-24 items-center justify-center rounded-lg bg-gray-50 text-xs text-gray-400 dark:bg-gray-800/50 dark:text-gray-500">
+        <div
+          className="flex items-center justify-center rounded-lg bg-gray-50 text-xs text-gray-400 dark:bg-gray-800/50 dark:text-gray-500"
+          style={{ height: placement.slot.maxHeight ? Math.min(placement.slot.maxHeight, 96) : 96 }}
+        >
           Ad — {placement.slot.position}
         </div>
       )}
 
-      {/* Sponsored label */}
-      <div className="mt-0.5 text-right">
+      {/* Sponsored label — absolutely positioned so it doesn't add height */}
+      <div className="absolute bottom-0.5 right-1.5">
         <span className="text-[10px] font-medium text-gray-400">Ad</span>
       </div>
     </div>

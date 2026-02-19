@@ -20,7 +20,9 @@ interface RawGlobalPlacement extends AdPlacementData {
 /** Typed ad-related Prisma tables not on the default client type */
 interface AdPrismaExt {
   adSettings: {
-    findFirst(args: Record<string, unknown>): Promise<{ requireConsent?: boolean } | null>;
+    findFirst(
+      args: Record<string, unknown>,
+    ): Promise<{ requireConsent?: boolean } | null>;
   };
   adPlacement: {
     findMany(args: Record<string, unknown>): Promise<RawGlobalPlacement[]>;
@@ -43,7 +45,9 @@ async function getAdConfig() {
     });
     if (!siteSettings?.adsEnabled) return null;
 
-    const adSettings = await (prisma as unknown as AdPrismaExt).adSettings.findFirst({
+    const adSettings = await (
+      prisma as unknown as AdPrismaExt
+    ).adSettings.findFirst({
       select: { requireConsent: true },
     });
     return { requireConsent: (adSettings?.requireConsent ?? false) as boolean };
@@ -55,10 +59,15 @@ async function getAdConfig() {
 /**
  * Fetch placements for a specific position.
  */
-async function fetchPositionPlacements(position: string, _pageType: string): Promise<AdPlacementData[]> {
+async function fetchPositionPlacements(
+  position: string,
+  _pageType: string,
+): Promise<AdPlacementData[]> {
   try {
     const now = new Date();
-    const placements = await (prisma as unknown as AdPrismaExt).adPlacement.findMany({
+    const placements = await (
+      prisma as unknown as AdPrismaExt
+    ).adPlacement.findMany({
       where: {
         isActive: true,
         provider: { isActive: true, killSwitch: false },
@@ -71,8 +80,12 @@ async function fetchPositionPlacements(position: string, _pageType: string): Pro
         },
         slot: {
           select: {
-            name: true, position: true, format: true,
-            maxWidth: true, maxHeight: true, responsive: true,
+            name: true,
+            position: true,
+            format: true,
+            maxWidth: true,
+            maxHeight: true,
+            responsive: true,
             pageTypes: true,
           },
         },
@@ -98,9 +111,15 @@ export async function HeaderAdBanner({ pageType = "global" }: SectionProps) {
   if (headerAds.length === 0) return null;
 
   return (
-    <div className="flex w-full items-center justify-center bg-gray-50 dark:bg-gray-900/50" data-ad-position="header">
+    <div
+      className="flex w-full items-center justify-center bg-gray-50 dark:bg-gray-900/50"
+      data-ad-position="header"
+    >
       <div className="w-full px-4">
-        <AdRenderer placement={headerAds[0]} requireConsent={config.requireConsent} />
+        <AdRenderer
+          placement={headerAds[0]}
+          requireConsent={config.requireConsent}
+        />
       </div>
     </div>
   );
@@ -116,9 +135,15 @@ export async function FooterAdBanner({ pageType = "global" }: SectionProps) {
   if (footerAds.length === 0) return null;
 
   return (
-    <div className="flex w-full items-center justify-center border-t border-gray-200 bg-gray-50 py-2 dark:border-gray-800 dark:bg-gray-900/50" data-ad-position="footer">
+    <div
+      className="flex w-full items-center justify-center border-t border-gray-200 bg-gray-50 py-2 dark:border-gray-800 dark:bg-gray-900/50"
+      data-ad-position="footer"
+    >
       <div className="w-full px-4">
-        <AdRenderer placement={footerAds[0]} requireConsent={config.requireConsent} />
+        <AdRenderer
+          placement={footerAds[0]}
+          requireConsent={config.requireConsent}
+        />
       </div>
     </div>
   );
@@ -130,14 +155,19 @@ export async function OverlayAdSlots({ pageType = "global" }: SectionProps) {
   const config = await getAdConfig();
   if (!config) return null;
 
-  const [stickyBottomAds, interstitialAds, exitIntentAds, floatingAds] = await Promise.all([
-    fetchPositionPlacements("STICKY_BOTTOM", pageType),
-    fetchPositionPlacements("INTERSTITIAL", pageType),
-    fetchPositionPlacements("EXIT_INTENT", pageType),
-    fetchPositionPlacements("FLOATING", pageType),
-  ]);
+  const [stickyBottomAds, interstitialAds, exitIntentAds, floatingAds] =
+    await Promise.all([
+      fetchPositionPlacements("STICKY_BOTTOM", pageType),
+      fetchPositionPlacements("INTERSTITIAL", pageType),
+      fetchPositionPlacements("EXIT_INTENT", pageType),
+      fetchPositionPlacements("FLOATING", pageType),
+    ]);
 
-  const hasAny = stickyBottomAds.length || interstitialAds.length || exitIntentAds.length || floatingAds.length;
+  const hasAny =
+    stickyBottomAds.length ||
+    interstitialAds.length ||
+    exitIntentAds.length ||
+    floatingAds.length;
   if (!hasAny) return null;
 
   return (
