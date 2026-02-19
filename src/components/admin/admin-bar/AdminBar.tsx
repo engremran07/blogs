@@ -55,32 +55,26 @@ function AdminBarInner() {
   }
 
   return (
-    <>
-      {/* Spacer — pushes page content below the fixed bar */}
-      <div style={{ height: ADMIN_BAR_HEIGHT }} aria-hidden />
+    <div
+      id="admin-bar"
+      className="fixed inset-x-0 top-0 z-[9999] flex items-center px-3"
+      style={{
+        height: ADMIN_BAR_HEIGHT,
+        background: `linear-gradient(90deg, ${settings.adminBarBackgroundColor}, #13131f, ${settings.adminBarBackgroundColor})`,
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+      }}
+      role="navigation"
+      aria-label="Admin bar"
+    >
+      {/* Left zone */}
+      <LeftZone route={route} pathname={pathname} />
 
-      {/* Fixed bar */}
-      <div
-        id="admin-bar"
-        className="fixed inset-x-0 top-0 z-[9999] flex items-center px-3"
-        style={{
-          height: ADMIN_BAR_HEIGHT,
-          background: `linear-gradient(90deg, ${settings.adminBarBackgroundColor}, #13131f, ${settings.adminBarBackgroundColor})`,
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
-        }}
-        role="navigation"
-        aria-label="Admin bar"
-      >
-        {/* Left zone */}
-        <LeftZone route={route} pathname={pathname} />
+      {/* Context zone (middle) */}
+      <ContextZone route={route} editor={editor} />
 
-        {/* Context zone (middle) */}
-        <ContextZone route={route} editor={editor} />
-
-        {/* Right zone */}
-        <RightZone route={route} editor={editor} session={session} />
-      </div>
-    </>
+      {/* Right zone */}
+      <RightZone route={route} editor={editor} session={session} />
+    </div>
   );
 }
 
