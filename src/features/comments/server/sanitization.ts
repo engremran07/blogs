@@ -1,7 +1,13 @@
 // comments/sanitization.ts
-// XSS prevention utilities — depends on sanitize-html
+// Comment sanitization — HTML via sanitize-html library, rest delegates to shared.
 
 import sanitizeHtml from 'sanitize-html';
+import {
+  sanitizeText as _sanitizeText,
+  sanitizeEmail as _sanitizeEmail,
+  sanitizeUrl as _sanitizeUrl,
+  sanitizeSlug as _sanitizeSlug,
+} from '@/shared/sanitize.util';
 
 export class Sanitize {
   /**
@@ -24,7 +30,6 @@ export class Sanitize {
       allowProtocolRelative: false,
       transformTags: {
         a: (tagName: string, attribs: Record<string, string>) => {
-          // Force all links to open safely
           return {
             tagName,
             attribs: {
@@ -39,39 +44,18 @@ export class Sanitize {
   }
 
   static text(text: string): string {
-    if (!text) return '';
-    let s = text.replace(/<[^>]*>/g, '');
-    s = this.decodeEntities(s);
-    return s.trim().replace(/\s+/g, ' ');
+    return _sanitizeText(text);
   }
 
   static email(email: string): string | null {
-    if (!email) return null;
-    const s = email.toLowerCase().trim();
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) ? s : null;
+    return _sanitizeEmail(email);
   }
 
   static url(url: string): string | null {
-    if (!url) return null;
-    const s = url.trim();
-    if (!/^https?:\/\//i.test(s)) return null;
-    if (/^(javascript|data):/i.test(s)) return null;
-    try { new URL(s); return s; } catch { return null; }
+    return _sanitizeUrl(url, false);
   }
 
   static slug(slug: string): string {
-    if (!slug) return '';
-    return slug.toLowerCase().trim()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
-      .substring(0, 200);
-  }
-
-  private static decodeEntities(text: string): string {
-    const map: Record<string, string> = {
-      '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&nbsp;': ' ',
-    };
-    return text.replace(/&(?:amp|lt|gt|quot|#39|nbsp);/g, (m) => map[m] || m);
+    return _sanitizeSlug(slug, 200);
   }
 }

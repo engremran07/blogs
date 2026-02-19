@@ -112,10 +112,12 @@ export {
   ALL_CAPABILITIES,
   ROLE_CAPABILITIES,
   ADMIN_ROLES,
+  MODERATOR_ROLES,
   hasCapability,
   getUserCapabilities,
   outranks,
   isAdminRole,
+  isModeratorRole,
   getLoginRedirectPath,
 } from './server/capabilities';
 export type { Capability } from './server/capabilities';

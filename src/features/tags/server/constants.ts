@@ -53,4 +53,4 @@ export const STOP_WORDS = new Set([
   'why', 'any', 'also', 'only', 'own', 'same', 'up', 'down',
 ]);
 
-export const MODERATOR_ROLES = ['ADMINISTRATOR', 'SUPER_ADMIN', 'EDITOR'] as const;
+export { MODERATOR_ROLES } from '@/features/auth/server/capabilities';

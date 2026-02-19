@@ -70,6 +70,6 @@ export const SIGNAL = {
   COMMENT_REPLIED: 'COMMENT_REPLIED',
 } as const;
 
-export const MODERATOR_ROLES = ['ADMINISTRATOR', 'SUPER_ADMIN', 'EDITOR'] as const;
+export { MODERATOR_ROLES } from '@/features/auth/server/capabilities';
 
 export const MAX_BULK_IDS = 100;

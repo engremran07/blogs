@@ -47,7 +47,8 @@ export function extractHeadings(
   html: string,
 ): { level: number; text: string }[] {
   const headings: { level: number; text: string }[] = [];
-  const regex = /<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi;
+  // Robust regex: handles unclosed tags and mixed-case
+  const regex = /<h([1-6])(?:\s[^>]*)?>((?:(?!<\/h\1>)[\s\S])*?)(?:<\/h\1>|$)/gi;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(html)) !== null) {
     headings.push({

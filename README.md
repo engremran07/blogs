@@ -652,7 +652,7 @@ Turnstile → reCAPTCHA v3 → reCAPTCHA v2 → hCaptcha → In-house
 | **hCaptcha** | Privacy-focused | External |
 | **In-house** | Custom challenge | Zero external dependency |
 
-### Features
+### CAPTCHA Features
 
 - **Automatic fallback chain** — if a provider fails to load, the next one activates
 - **Admin-configurable** fallback order override
@@ -794,7 +794,7 @@ Distribute content across **12 platforms**:
 
 > Twitter · Facebook · LinkedIn · Telegram · WhatsApp · Pinterest · Reddit · Instagram · TikTok · Medium · YouTube · Custom
 
-### Features
+### Distribution Features
 
 - Channel management with credentials and platform-specific rules
 - Auto-publish on post publication
@@ -832,7 +832,7 @@ A fully-featured, GDPR-compliant cookie consent system that is admin-configurabl
 | **Analytics** | GA4, site usage tracking | Yes |
 | **Marketing** | Ad scripts, pixel tracking | Yes |
 
-### Features
+### Consent Features
 
 - **Versioned consent** — bump `CONSENT_VERSION` to re-prompt after policy changes
 - **Privacy Policy & Terms links** — configurable URLs displayed in the banner
@@ -925,7 +925,7 @@ Visual menu builder for 3 slots:
 | **Footer** | Footer navigation links |
 | **Top Bar** | Top bar quick links |
 
-### Features
+### Menu Features
 
 - Add/edit/delete menu items with label, URL, target, visibility
 - Nested items with parent-child relationships
@@ -969,7 +969,7 @@ Visual menu builder for 3 slots:
 | Cleanup expired sessions | Removes expired auth sessions/tokens |
 | Cleanup old cron logs | Prunes old execution history |
 
-### Configuration
+### Cron Configuration
 
 ```json
 // vercel.json
@@ -1091,6 +1091,7 @@ vercel deploy --prod
 ```
 
 The project includes `vercel.json` with:
+
 - Hourly cron job at `/api/cron`
 - Extended function timeouts (60s for cron, 30s for upload)
 
@@ -1233,7 +1234,9 @@ This is a private project. All rights reserved.
 
 ---
 
+<!-- markdownlint-disable MD033 -->
 <p align="center">
   Built with Next.js 16 · React 19 · Prisma 7 · PostgreSQL 16 · Tailwind CSS 4<br/>
   <strong>277 source files · 67 API routes · 45 models · 12 feature modules</strong>
 </p>
+<!-- markdownlint-enable MD033 -->

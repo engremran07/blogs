@@ -6,10 +6,9 @@ import { DEFAULT_USER_CONFIG } from "@/features/auth/server/constants";
 import { createLogger } from "@/server/observability/logger";
 import { z } from "zod";
 import { USER_ROLES } from "@/features/auth/types";
+import { ADMIN_ROLES } from "@/features/auth/server/capabilities";
 
 const logger = createLogger("api/users");
-
-const ADMIN_ROLES = ["ADMINISTRATOR", "SUPER_ADMIN"];
 
 // ─── Validation schemas ─────────────────────────────────────────────────────
 const listUsersSchema = z.object({
@@ -83,7 +82,7 @@ export async function GET(req: NextRequest) {
       // Non-admin users can only fetch their own profile
       const callerRole = (session.user as { role?: string })?.role;
       const callerId = (session.user as { id?: string })?.id;
-      if (!ADMIN_ROLES.includes(callerRole || "") && id !== callerId) {
+      if (!(ADMIN_ROLES as readonly string[]).includes(callerRole || "") && id !== callerId) {
         return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
       }
 
@@ -102,7 +101,7 @@ export async function GET(req: NextRequest) {
 
     // ── List users (admin-only, server-side pagination) ─────────────────
     const callerRole = (session.user as { role?: string })?.role;
-    if (!ADMIN_ROLES.includes(callerRole || "")) {
+    if (!(ADMIN_ROLES as readonly string[]).includes(callerRole || "")) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

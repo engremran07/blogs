@@ -22,6 +22,7 @@ import { clsx } from "clsx";
 import { useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
 import { Avatar } from "@/components/ui/Card";
+import { isModeratorRole } from "@/features/auth/server/capabilities";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -52,9 +53,7 @@ export function Header({
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(subscribeNoop, getTrue, getFalse);
 
-  const isAdmin = session?.user?.role === "ADMINISTRATOR" ||
-    session?.user?.role === "SUPER_ADMIN" ||
-    session?.user?.role === "EDITOR";
+  const isAdmin = isModeratorRole(session?.user?.role);
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur-lg dark:border-gray-800 dark:bg-gray-950/80">

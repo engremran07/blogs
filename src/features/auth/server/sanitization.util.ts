@@ -1,85 +1,34 @@
 /**
  * ============================================================================
  * MODULE:   features/auth/sanitization.util.ts
- * PURPOSE:  Self-contained input sanitization for the Users module.
- *           No external dependencies (sanitize-html removed).
- *           BUG FIX: Removed 'data' from allowedSchemes (XSS vector).
+ * PURPOSE:  Auth module sanitization — delegates to shared/sanitize.util.ts.
+ *           Maintains backward-compatible public API.
  * ============================================================================
  */
 
-/**
- * Strip all HTML tags from a string, decode entities, and collapse whitespace.
- */
+import {
+  sanitizeText as _sanitizeText,
+  sanitizeEmail as _sanitizeEmail,
+  sanitizeUrl as _sanitizeUrl,
+  sanitizeSlug as _sanitizeSlug,
+} from '@/shared/sanitize.util';
+
+/** Strip HTML (including script/style content), decode entities, collapse whitespace. */
 export function sanitizeText(text: string): string {
-  if (!text) return '';
-  let sanitized = text.replace(/<[^>]*>/g, '');
-  sanitized = decodeHTMLEntities(sanitized);
-  sanitized = sanitized.trim().replace(/\s+/g, ' ');
-  return sanitized;
+  return _sanitizeText(text);
 }
 
-/**
- * Validate and normalise an email address.
- * Returns lowercase trimmed email or null if invalid.
- */
+/** Validate and normalise an email address. Returns lowercase or null. */
 export function sanitizeEmail(email: string): string | null {
-  if (!email) return null;
-  const sanitized = email.toLowerCase().trim();
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(sanitized) ? sanitized : null;
+  return _sanitizeEmail(email);
 }
 
-/**
- * Validate a URL — only http/https schemes are allowed.
- * `data:` and `javascript:` are explicitly blocked.
- */
+/** Validate a URL — only http/https schemes allowed. No relative URLs. */
 export function sanitizeURL(url: string): string | null {
-  if (!url) return null;
-  const sanitized = url.trim();
-
-  // Block dangerous schemes
-  if (/^(javascript|data|vbscript):/i.test(sanitized)) return null;
-
-  // Only allow http(s)
-  if (!/^https?:\/\//i.test(sanitized)) return null;
-
-  try {
-    new URL(sanitized);
-    return sanitized;
-  } catch {
-    return null;
-  }
+  return _sanitizeUrl(url, false);
 }
 
-/**
- * Convert a string to a URL-safe slug.
- * Strips non-alphanumeric characters, collapses dashes, and limits length.
- */
+/** Convert a string to a URL-safe slug. */
 export function sanitizeSlug(slug: string): string {
-  if (!slug) return '';
-  return slug
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .substring(0, 200);
-}
-
-// ─── Internal Helpers ───────────────────────────────────────────────────────
-
-const HTML_ENTITIES: Record<string, string> = {
-  '&amp;': '&',
-  '&lt;': '<',
-  '&gt;': '>',
-  '&quot;': '"',
-  '&#39;': "'",
-  '&nbsp;': ' ',
-};
-
-function decodeHTMLEntities(text: string): string {
-  return text.replace(
-    /&(?:amp|lt|gt|quot|#39|nbsp);/g,
-    (match) => HTML_ENTITIES[match] || match,
-  );
+  return _sanitizeSlug(slug, 200);
 }

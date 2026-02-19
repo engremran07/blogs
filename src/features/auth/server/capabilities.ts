@@ -166,12 +166,23 @@ export function outranks(roleA: UserRole, roleB: UserRole): boolean {
 /** Roles that grant access to the admin panel. */
 export const ADMIN_ROLES: readonly UserRole[] = ['ADMINISTRATOR', 'SUPER_ADMIN'] as const;
 
+/** Roles that can moderate content (comments, tags, posts). */
+export const MODERATOR_ROLES: readonly UserRole[] = ['EDITOR', 'ADMINISTRATOR', 'SUPER_ADMIN'] as const;
+
 /**
  * Check whether a role is an admin-level role (ADMINISTRATOR or SUPER_ADMIN).
- * Useful for deciding UI layout, redirect path, or navbar variant.
  */
 export function isAdminRole(role: UserRole): boolean {
   return (ADMIN_ROLES as readonly string[]).includes(role);
+}
+
+/**
+ * Check whether a role has moderator-level access (EDITOR, ADMINISTRATOR, SUPER_ADMIN).
+ * Use this for admin-panel visibility, comment moderation, tag management, etc.
+ */
+export function isModeratorRole(role: string | undefined | null): boolean {
+  if (!role) return false;
+  return (MODERATOR_ROLES as readonly string[]).includes(role);
 }
 
 /**

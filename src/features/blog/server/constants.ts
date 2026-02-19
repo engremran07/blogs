@@ -148,12 +148,29 @@ export function truncate(text: string, maxLength: number): string {
   return `${text.slice(0, breakAt).trimEnd()}…`;
 }
 
-/** Normalize an array of IDs — deduplicate and filter empty. */
+/** Normalize an array of IDs — deduplicate, filter empty, and warn on type mismatches. */
 export function normalizeIds(ids: unknown): string[] {
   if (!Array.isArray(ids)) return [];
-  return [...new Set(
-    ids.filter((id): id is string => typeof id === 'string' && id.trim().length > 0),
-  )];
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const id of ids) {
+    if (typeof id === 'string') {
+      const trimmed = id.trim();
+      if (trimmed.length > 0 && !seen.has(trimmed)) {
+        seen.add(trimmed);
+        result.push(trimmed);
+      }
+    } else if (typeof id === 'number' && Number.isFinite(id)) {
+      // Accept numeric IDs by converting to string
+      const s = String(id);
+      if (!seen.has(s)) {
+        seen.add(s);
+        result.push(s);
+      }
+    }
+    // null, undefined, objects, etc. are silently skipped (expected for sparse arrays)
+  }
+  return result;
 }
 
 /** Generate an excerpt from HTML content. */
@@ -168,35 +185,46 @@ export function isPast(date: Date): boolean {
   return date.getTime() <= Date.now();
 }
 
-/** Create a stable hash from listing options for cache keys. */
+/** Create a stable hash from listing options for cache keys.
+ *  Uses the sorted key=value string as primary key with a FNV-1a hash suffix
+ *  to provide both readability and collision resistance.
+ */
 export function hashListOptions(opts: Record<string, unknown>): string {
   const sorted = Object.keys(opts)
     .sort()
     .filter(k => opts[k] !== undefined && opts[k] !== null)
     .map(k => `${k}=${String(opts[k])}`)
     .join('&');
-  // Simple djb2 hash
-  let hash = 5381;
+  // FNV-1a hash — better distribution than djb2
+  let hash = 0x811c9dc5;
   for (let i = 0; i < sorted.length; i++) {
-    hash = ((hash << 5) + hash + sorted.charCodeAt(i)) & 0x7fffffff;
+    hash ^= sorted.charCodeAt(i);
+    hash = (hash * 0x01000193) & 0x7fffffff;
   }
-  return hash.toString(36);
+  // Prefix with a short readable segment + hash for collision resistance
+  const prefix = sorted.slice(0, 32).replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
+  return `${prefix}_${hash.toString(36)}`;
 }
 
 /**
  * Extract a table of contents from HTML content by parsing heading tags.
- * Returns a nested hierarchy of h1–h6 entries.
+ * Returns a flat list of h1–h6 entries. Handles unclosed tags and
+ * mixed-case tag names. Falls back gracefully on malformed HTML.
  */
 export function extractHeadings(html: string): Array<{ id: string; text: string; level: number }> {
-  const headingRegex = /<h([1-6])(?:\s[^>]*id=["']([^"']*)["'][^>]*)?>([\s\S]*?)<\/h\1>/gi;
+  // Match both <hN>...</hN> and self-closing <hN .../> patterns
+  // Use [^]*? instead of [\s\S]*? for slightly better perf
+  const headingRegex = /<h([1-6])(?:\s[^>]*)?>((?:(?!<\/h\1>)[\s\S])*?)(?:<\/h\1>|$)/gi;
   const headings: Array<{ id: string; text: string; level: number }> = [];
   let match: RegExpExecArray | null;
   let counter = 0;
 
   while ((match = headingRegex.exec(html)) !== null) {
     const level = parseInt(match[1], 10);
-    const id = match[2] || `heading-${++counter}`;
-    const text = match[3].replace(/<[^>]*>/g, '').trim();
+    // Extract id from opening tag attributes if present
+    const idMatch = match[0].match(/<h[1-6][^>]*\sid=["']([^"']*)["']/i);
+    const id = idMatch?.[1] || `heading-${++counter}`;
+    const text = match[2].replace(/<[^>]*>/g, '').trim();
     if (text) headings.push({ id, text, level });
   }
 
