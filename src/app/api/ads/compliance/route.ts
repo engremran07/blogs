@@ -6,14 +6,12 @@
  * POST — Run scan (alias for GET, kept for backward compat)
  */
 import { NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { adsService } from "@/server/wiring";
 
 async function runComplianceScan() {
-  const session = await auth();
-  if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-    return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-  }
+  const { errorResponse } = await requireAuth({ level: 'admin' });
+  if (errorResponse) return errorResponse;
 
   const result = await adsService.scanCompliance();
   return NextResponse.json({ success: true, data: result });

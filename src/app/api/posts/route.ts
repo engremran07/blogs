@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { prisma } from "@/server/db/prisma";
 import { createLogger } from "@/server/observability/logger";
 import { sanitizeContent, sanitizeText } from "@/features/blog/server/sanitization.util";
@@ -119,19 +120,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-    }
-    const role = session.user.role;
-    if (!["AUTHOR", "EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
-    }
+    const { userId, errorResponse } = await requireAuth({ level: 'author' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
 
     // Inject authenticated user as author before validation
-    body.authorId = session.user.id;
+    body.authorId = userId;
 
     // Validate with Zod schema
     const parsed = CreatePostSchema.safeParse(body);

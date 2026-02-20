@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
-import { auth } from "@/server/auth";
-import { hashPassword, validatePasswordStrength } from "@/features/auth/server/password.util";
+import { requireAuth } from "@/server/api-auth";
+import {
+  hashPassword,
+  validatePasswordStrength,
+} from "@/features/auth/server/password.util";
 import { DEFAULT_USER_CONFIG } from "@/features/auth/server/constants";
 import { createLogger } from "@/server/observability/logger";
 import { z } from "zod";
 import { USER_ROLES } from "@/features/auth/types";
-import { ADMIN_ROLES } from "@/features/auth/server/capabilities";
+import {
+  ADMIN_ROLES,
+  ALL_CAPABILITIES,
+} from "@/features/auth/server/capabilities";
 
 const logger = createLogger("api/users");
 
@@ -16,7 +22,9 @@ const listUsersSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().optional(),
   role: z.enum(USER_ROLES).optional(),
-  sortBy: z.enum(["createdAt", "username", "email", "role"]).default("createdAt"),
+  sortBy: z
+    .enum(["createdAt", "username", "email", "role"])
+    .default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 
@@ -39,6 +47,12 @@ const updateUserSchema = z.object({
   instagram: z.string().max(255).nullable().optional(),
   linkedin: z.string().max(255).nullable().optional(),
   github: z.string().max(255).nullable().optional(),
+  youtube: z.string().max(255).nullable().optional(),
+  tiktok: z.string().max(255).nullable().optional(),
+  telegram: z.string().max(255).nullable().optional(),
+  pinterest: z.string().max(255).nullable().optional(),
+  snapchat: z.string().max(255).nullable().optional(),
+  customCapabilities: z.array(z.string()).optional(),
 });
 
 // ─── Safe-field select clause (never leak password/tokens) ──────────────────
@@ -60,7 +74,13 @@ const SAFE_SELECT = {
   instagram: true,
   linkedin: true,
   github: true,
+  youtube: true,
+  tiktok: true,
+  telegram: true,
+  pinterest: true,
+  snapchat: true,
   role: true,
+  customCapabilities: true,
   isEmailVerified: true,
   createdAt: true,
   _count: { select: { posts: true, comments: true } },
@@ -68,10 +88,8 @@ const SAFE_SELECT = {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
+    const { userId, userRole, errorResponse } = await requireAuth();
+    if (errorResponse) return errorResponse;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -80,10 +98,14 @@ export async function GET(req: NextRequest) {
     // (the admin layout uses this for the profile dropdown)
     if (id) {
       // Non-admin users can only fetch their own profile
-      const callerRole = (session.user as { role?: string })?.role;
-      const callerId = (session.user as { id?: string })?.id;
-      if (!(ADMIN_ROLES as readonly string[]).includes(callerRole || "") && id !== callerId) {
-        return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      if (
+        !(ADMIN_ROLES as readonly string[]).includes(userRole) &&
+        id !== userId
+      ) {
+        return NextResponse.json(
+          { success: false, error: "Forbidden" },
+          { status: 403 },
+        );
       }
 
       const user = await prisma.user.findUnique({
@@ -93,16 +115,18 @@ export async function GET(req: NextRequest) {
       if (!user) {
         return NextResponse.json(
           { success: false, error: "User not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
       return NextResponse.json({ success: true, data: user });
     }
 
     // ── List users (admin-only, server-side pagination) ─────────────────
-    const callerRole = (session.user as { role?: string })?.role;
-    if (!(ADMIN_ROLES as readonly string[]).includes(callerRole || "")) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    if (!(ADMIN_ROLES as readonly string[]).includes(userRole)) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
     }
 
     const params = listUsersSchema.safeParse({
@@ -116,12 +140,23 @@ export async function GET(req: NextRequest) {
 
     if (!params.success) {
       return NextResponse.json(
-        { success: false, error: "Invalid query parameters", details: params.error.flatten() },
-        { status: 400 }
+        {
+          success: false,
+          error: "Invalid query parameters",
+          details: params.error.flatten(),
+        },
+        { status: 400 },
       );
     }
 
-    const { page, limit, search, role: roleFilter, sortBy, sortOrder } = params.data;
+    const {
+      page,
+      limit,
+      search,
+      role: roleFilter,
+      sortBy,
+      sortOrder,
+    } = params.data;
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -162,43 +197,61 @@ export async function GET(req: NextRequest) {
     logger.error("[api/users] GET error:", { error });
     return NextResponse.json(
       { success: false, error: "Failed to fetch users" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || !ADMIN_ROLES.includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { userId, userRole, errorResponse } = await requireAuth({
+      level: "admin",
+    });
+    if (errorResponse) return errorResponse;
 
     // ── Validate input with Zod ──────────────────────────────────────────
     const body = await req.json();
     const validation = updateUserSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: "Validation failed", details: validation.error.flatten() },
-        { status: 400 }
+        {
+          success: false,
+          error: "Validation failed",
+          details: validation.error.flatten(),
+        },
+        { status: 400 },
       );
     }
 
-    const { id, password, role, username, email, ...fields } = validation.data;
-    const callerRole = session.user.role;
-    const callerId = (session.user as { id?: string })?.id;
+    const {
+      id,
+      password,
+      role,
+      username,
+      email,
+      customCapabilities,
+      ...fields
+    } = validation.data;
+    const callerRole = userRole;
+    const callerId = userId;
 
     // ── Role hierarchy protection ───────────────────────────────────────
-    const target = await prisma.user.findUnique({ where: { id }, select: { role: true, username: true, email: true } });
+    const target = await prisma.user.findUnique({
+      where: { id },
+      select: { role: true, username: true, email: true },
+    });
     if (!target) {
-      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 },
+      );
     }
 
     // Non-SUPER_ADMIN cannot modify SUPER_ADMIN users
     if (target.role === "SUPER_ADMIN" && callerRole !== "SUPER_ADMIN") {
       return NextResponse.json(
         { success: false, error: "Cannot modify a Super Admin user" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -216,7 +269,13 @@ export async function PATCH(req: NextRequest) {
     if (fields.instagram !== undefined) data.instagram = fields.instagram;
     if (fields.linkedin !== undefined) data.linkedin = fields.linkedin;
     if (fields.github !== undefined) data.github = fields.github;
-    if (fields.isEmailVerified !== undefined) data.isEmailVerified = fields.isEmailVerified;
+    if (fields.youtube !== undefined) data.youtube = fields.youtube;
+    if (fields.tiktok !== undefined) data.tiktok = fields.tiktok;
+    if (fields.telegram !== undefined) data.telegram = fields.telegram;
+    if (fields.pinterest !== undefined) data.pinterest = fields.pinterest;
+    if (fields.snapchat !== undefined) data.snapchat = fields.snapchat;
+    if (fields.isEmailVerified !== undefined)
+      data.isEmailVerified = fields.isEmailVerified;
 
     // ── Username uniqueness check ───────────────────────────────────────
     if (username !== undefined && username !== target.username) {
@@ -224,7 +283,7 @@ export async function PATCH(req: NextRequest) {
       if (existing && existing.id !== id) {
         return NextResponse.json(
           { success: false, error: "Username already taken" },
-          { status: 409 }
+          { status: 409 },
         );
       }
       data.username = username;
@@ -236,7 +295,7 @@ export async function PATCH(req: NextRequest) {
       if (existing && existing.id !== id) {
         return NextResponse.json(
           { success: false, error: "Email already in use" },
-          { status: 409 }
+          { status: 409 },
         );
       }
       data.email = email;
@@ -247,18 +306,69 @@ export async function PATCH(req: NextRequest) {
       // Only SUPER_ADMIN can assign SUPER_ADMIN role
       if (role === "SUPER_ADMIN" && callerRole !== "SUPER_ADMIN") {
         return NextResponse.json(
-          { success: false, error: "Only Super Admins can assign Super Admin role" },
-          { status: 403 }
+          {
+            success: false,
+            error: "Only Super Admins can assign Super Admin role",
+          },
+          { status: 403 },
         );
       }
       // Prevent changing your own role
       if (id === callerId) {
         return NextResponse.json(
           { success: false, error: "Cannot change your own role" },
-          { status: 403 }
+          { status: 403 },
         );
       }
       data.role = role;
+    }
+
+    // ── Custom capabilities (admin-assigned extra permissions) ───────────
+    if (customCapabilities !== undefined) {
+      // Only SUPER_ADMIN and ADMINISTRATOR can assign custom capabilities
+      if (callerRole !== "SUPER_ADMIN" && callerRole !== "ADMINISTRATOR") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Only admins can assign custom capabilities",
+          },
+          { status: 403 },
+        );
+      }
+      // Validate that all capabilities are known
+      const validCaps = ALL_CAPABILITIES as readonly string[];
+      const invalid = customCapabilities.filter((c) => !validCaps.includes(c));
+      if (invalid.length > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Unknown capabilities: ${invalid.join(", ")}`,
+          },
+          { status: 400 },
+        );
+      }
+      // Cannot assign admin capabilities unless caller is SUPER_ADMIN
+      const adminOnlyCaps = [
+        "manage_users",
+        "create_users",
+        "edit_users",
+        "delete_users",
+        "manage_settings",
+        "install_plugins",
+      ];
+      const hasAdminCaps = customCapabilities.some((c) =>
+        adminOnlyCaps.includes(c),
+      );
+      if (hasAdminCaps && callerRole !== "SUPER_ADMIN") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Only Super Admins can assign admin-level capabilities",
+          },
+          { status: 403 },
+        );
+      }
+      data.customCapabilities = customCapabilities;
     }
 
     // ── Hash password if provided — validate strength first ─────────────
@@ -279,45 +389,60 @@ export async function PATCH(req: NextRequest) {
     if ((error as { name?: string })?.name === "ValidationError") {
       return NextResponse.json(
         { success: false, error: (error as Error).message },
-        { status: 400 }
+        { status: 400 },
       );
     }
     logger.error("[api/users] PATCH error:", { error });
     return NextResponse.json(
       { success: false, error: "Failed to update user" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || !ADMIN_ROLES.includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { userId, userRole, errorResponse } = await requireAuth({
+      level: "admin",
+    });
+    if (errorResponse) return errorResponse;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) {
-      return NextResponse.json({ success: false, error: "User ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "User ID is required" },
+        { status: 400 },
+      );
     }
 
-    const callerId = (session.user as { id?: string })?.id;
+    const callerId = userId;
     if (id === callerId) {
-      return NextResponse.json({ success: false, error: "Cannot delete your own account from admin" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Cannot delete your own account from admin" },
+        { status: 403 },
+      );
     }
 
-    const target = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+    const target = await prisma.user.findUnique({
+      where: { id },
+      select: { role: true },
+    });
     if (!target) {
-      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 },
+      );
     }
 
     if (target.role === "SUPER_ADMIN") {
-      if (session.user.role !== "SUPER_ADMIN") {
+      if (userRole !== "SUPER_ADMIN") {
         return NextResponse.json(
-          { success: false, error: "Only Super Admins can delete Super Admin users" },
-          { status: 403 }
+          {
+            success: false,
+            error: "Only Super Admins can delete Super Admin users",
+          },
+          { status: 403 },
         );
       }
 
@@ -334,7 +459,7 @@ export async function DELETE(req: NextRequest) {
       if (txResult.blocked) {
         return NextResponse.json(
           { success: false, error: "Cannot delete the last Super Admin" },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
@@ -347,7 +472,7 @@ export async function DELETE(req: NextRequest) {
     logger.error("[api/users] DELETE error:", { error });
     return NextResponse.json(
       { success: false, error: "Failed to delete user" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

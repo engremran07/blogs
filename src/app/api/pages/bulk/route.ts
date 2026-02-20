@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { pageService } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
 import {
@@ -18,14 +18,8 @@ const logger = createLogger("api/pages/bulk");
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-    }
-    const role = session.user.role;
-    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
-    }
+    const { userRole, errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const { action, ...rest } = body;
@@ -47,7 +41,7 @@ export async function POST(req: NextRequest) {
           );
         }
         // SEC-009: Only ADMINISTRATOR/SUPER_ADMIN can permanently delete
-        if (parsed.data.permanent && !["ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
+        if (parsed.data.permanent && !["ADMINISTRATOR", "SUPER_ADMIN"].includes(userRole)) {
           return NextResponse.json(
             { success: false, error: "Only administrators can permanently delete pages" },
             { status: 403 },

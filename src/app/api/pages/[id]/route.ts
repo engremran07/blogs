@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { pageService, prisma } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
 import { UpdatePageSchema } from "@/features/pages/server/schemas";
@@ -61,14 +62,8 @@ export async function PATCH(
 ) {
   try {
     const { id: identifier } = await params;
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-    }
-    const role = session.user.role;
-    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
 
@@ -146,14 +141,8 @@ export async function DELETE(
 ) {
   try {
     const { id: identifier } = await params;
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-    }
-    const role = session.user.role;
-    if (!["ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     // Resolve identifier (slug or cuid) to the actual page
     const existing = await resolvePageByIdentifier(identifier);

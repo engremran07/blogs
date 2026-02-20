@@ -7,6 +7,7 @@ import type {
   TagsConfig,
   TagData,
   TagWithRelations,
+  TagFollowWithTag,
   TagSummary,
   TagAnalytics,
   DuplicateCandidate,
@@ -17,9 +18,9 @@ import type {
   UpdateTagInput,
   QueryTagsInput,
   TagFollowData,
-} from '../types';
-import { TagSortField } from '../types';
-import { DEFAULT_CONFIG } from './constants';
+} from "../types";
+import { TagSortField } from "../types";
+import { DEFAULT_CONFIG } from "./constants";
 
 /** Recursive tree node for getNestedTree */
 interface TagTreeNode {
@@ -52,15 +53,32 @@ export class TagService {
   async getPublicTags(): Promise<TagData[]> {
     const tags = await this.prisma.tag.findMany({
       select: {
-        id: true, name: true, slug: true, description: true,
-        color: true, icon: true, metaTitle: true, metaDescription: true, ogImage: true,
-        parentId: true, path: true, label: true, level: true,
-        usageCount: true, featured: true, trending: true,
-        locked: true, protected: true,
-        synonyms: true, synonymHits: true, linkedTagIds: true,
-        mergeCount: true, createdAt: true, updatedAt: true,
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        color: true,
+        icon: true,
+        metaTitle: true,
+        metaDescription: true,
+        ogImage: true,
+        parentId: true,
+        path: true,
+        label: true,
+        level: true,
+        usageCount: true,
+        featured: true,
+        trending: true,
+        locked: true,
+        protected: true,
+        synonyms: true,
+        synonymHits: true,
+        linkedTagIds: true,
+        mergeCount: true,
+        createdAt: true,
+        updatedAt: true,
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
     return tags as TagData[];
   }
@@ -69,14 +87,16 @@ export class TagService {
   async getTrendingTags(): Promise<TagData[]> {
     const tags = await this.prisma.tag.findMany({
       where: { trending: true },
-      orderBy: { usageCount: 'desc' },
+      orderBy: { usageCount: "desc" },
       take: this.cfg.trendingLimit,
     });
     return tags as TagData[];
   }
 
   /** Admin: paginated, filtered, sorted tag list */
-  async findAll(query: QueryTagsInput): Promise<PaginatedResult<TagWithRelations>> {
+  async findAll(
+    query: QueryTagsInput,
+  ): Promise<PaginatedResult<TagWithRelations>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
@@ -88,15 +108,15 @@ export class TagService {
     if (query.hideEmpty) where.usageCount = { gt: 0 };
     if (query.search) {
       where.OR = [
-        { name: { contains: query.search, mode: 'insensitive' } },
-        { slug: { contains: query.search, mode: 'insensitive' } },
-        { description: { contains: query.search, mode: 'insensitive' } },
+        { name: { contains: query.search, mode: "insensitive" } },
+        { slug: { contains: query.search, mode: "insensitive" } },
+        { description: { contains: query.search, mode: "insensitive" } },
         { synonyms: { has: query.search.toLowerCase() } },
       ];
     }
 
     const sortField = query.sortBy ?? TagSortField.NAME;
-    const sortOrder = query.sortOrder ?? 'asc';
+    const sortOrder = query.sortOrder ?? "asc";
     const orderBy = { [sortField]: sortOrder };
 
     const [data, total] = await Promise.all([
@@ -159,19 +179,20 @@ export class TagService {
     const slug = this.slugify(input.slug || name);
 
     // Case-insensitive duplicate check by slug or name
-    const caseMode = this.cfg.caseSensitive ? 'default' : 'insensitive';
+    const caseMode = this.cfg.caseSensitive ? "default" : "insensitive";
     const existing = await this.prisma.tag.findFirst({
       where: {
-        OR: [
-          { slug },
-          { name: { equals: name, mode: caseMode } },
-        ],
+        OR: [{ slug }, { name: { equals: name, mode: caseMode } }],
       },
     });
-    if (existing) throw new Error('Tag with the same name or slug already exists');
+    if (existing)
+      throw new Error("Tag with the same name or slug already exists");
 
     // Compute tree path + level if hierarchy enabled
-    const { path, label, level } = await this.computeTreeFields(name, input.parentId ?? null);
+    const { path, label, level } = await this.computeTreeFields(
+      name,
+      input.parentId ?? null,
+    );
 
     const tag = await this.prisma.tag.create({
       data: {
@@ -182,7 +203,9 @@ export class TagService {
         icon: input.icon ?? null,
         featured: input.featured ?? false,
         protected: input.protected ?? false,
-        synonyms: (input.synonyms || []).map((s) => s.trim().toLowerCase()).filter(Boolean),
+        synonyms: (input.synonyms || [])
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean),
         linkedTagIds: [...new Set((input.linkedTagIds || []).filter(Boolean))],
         locked: input.locked ?? false,
         metaTitle: input.metaTitle ?? null,
@@ -191,7 +214,9 @@ export class TagService {
         path,
         label,
         level,
-        parent: input.parentId ? { connect: { id: input.parentId } } : undefined,
+        parent: input.parentId
+          ? { connect: { id: input.parentId } }
+          : undefined,
       },
       include: {
         parent: true,
@@ -205,17 +230,21 @@ export class TagService {
 
   async update(id: string, input: UpdateTagInput): Promise<TagWithRelations> {
     const existing = await this.prisma.tag.findUnique({ where: { id } });
-    if (!existing) throw new Error('Tag not found');
-    if (existing.locked && !input.forceUnlock) throw new Error('Tag is locked and cannot be modified');
+    if (!existing) throw new Error("Tag not found");
+    if (existing.locked && !input.forceUnlock)
+      throw new Error("Tag is locked and cannot be modified");
 
     const data: Record<string, unknown> = {};
 
-    let nameVal = typeof input.name === 'string' ? input.name.trim() : undefined;
+    let nameVal =
+      typeof input.name === "string" ? input.name.trim() : undefined;
     if (nameVal && this.cfg.forceLowercase) nameVal = nameVal.toLowerCase();
     if (nameVal) data.name = nameVal;
 
     if (Array.isArray(input.synonyms)) {
-      data.synonyms = input.synonyms.map((s) => s.trim().toLowerCase()).filter(Boolean);
+      data.synonyms = input.synonyms
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
     }
     if (Array.isArray(input.linkedTagIds)) {
       data.linkedTagIds = [...new Set(input.linkedTagIds.filter(Boolean))];
@@ -223,21 +252,26 @@ export class TagService {
     if (input.description !== undefined) data.description = input.description;
     if (input.color !== undefined) data.color = input.color;
     if (input.icon !== undefined) data.icon = input.icon;
-    if (typeof input.featured === 'boolean') data.featured = input.featured;
-    if (typeof input.locked === 'boolean') data.locked = input.locked;
-    if (typeof input.protected === 'boolean') data.protected = input.protected;
+    if (typeof input.featured === "boolean") data.featured = input.featured;
+    if (typeof input.locked === "boolean") data.locked = input.locked;
+    if (typeof input.protected === "boolean") data.protected = input.protected;
     if (input.metaTitle !== undefined) data.metaTitle = input.metaTitle;
-    if (input.metaDescription !== undefined) data.metaDescription = input.metaDescription;
+    if (input.metaDescription !== undefined)
+      data.metaDescription = input.metaDescription;
     if (input.ogImage !== undefined) data.ogImage = input.ogImage;
 
-    const slugVal = input.slug || nameVal ? this.slugify(input.slug || nameVal || '') : undefined;
+    const slugVal =
+      input.slug || nameVal
+        ? this.slugify(input.slug || nameVal || "")
+        : undefined;
     if (slugVal) data.slug = slugVal;
 
     // Hierarchy: prevent self-parenting & cycles
     if (input.parentId !== undefined) {
-      if (input.parentId === id) throw new Error('A tag cannot be its own parent');
-      if (input.parentId && await this.wouldCycle(id, input.parentId)) {
-        throw new Error('Tag hierarchy cycle detected');
+      if (input.parentId === id)
+        throw new Error("A tag cannot be its own parent");
+      if (input.parentId && (await this.wouldCycle(id, input.parentId))) {
+        throw new Error("Tag hierarchy cycle detected");
       }
       data.parent = input.parentId
         ? { connect: { id: input.parentId } }
@@ -247,7 +281,8 @@ export class TagService {
     // Recompute tree path if name or parent changed
     if (nameVal || input.parentId !== undefined) {
       const finalName = nameVal || existing.name;
-      const finalParentId = input.parentId !== undefined ? input.parentId : existing.parentId;
+      const finalParentId =
+        input.parentId !== undefined ? input.parentId : existing.parentId;
       const tree = await this.computeTreeFields(finalName, finalParentId);
       data.path = tree.path;
       data.label = tree.label;
@@ -256,14 +291,17 @@ export class TagService {
 
     // Duplicate guard on name/slug change
     if (slugVal || nameVal) {
-      const caseMode = this.cfg.caseSensitive ? 'default' : 'insensitive';
+      const caseMode = this.cfg.caseSensitive ? "default" : "insensitive";
       const orConds: Record<string, unknown>[] = [];
       if (slugVal) orConds.push({ slug: slugVal });
       if (nameVal) orConds.push({ name: { equals: nameVal, mode: caseMode } });
       const dup = await this.prisma.tag.findFirst({
         where: { id: { not: id }, OR: orConds },
       });
-      if (dup) throw new Error('Another tag with the same name or slug already exists');
+      if (dup)
+        throw new Error(
+          "Another tag with the same name or slug already exists",
+        );
     }
 
     const tag = await this.prisma.tag.update({
@@ -281,10 +319,10 @@ export class TagService {
 
   async delete(id: string): Promise<void> {
     const existing = await this.prisma.tag.findUnique({ where: { id } });
-    if (!existing) throw new Error('Tag not found');
-    if (existing.locked) throw new Error('Tag is locked and cannot be deleted');
+    if (!existing) throw new Error("Tag not found");
+    if (existing.locked) throw new Error("Tag is locked and cannot be deleted");
     if (existing.protected && !this.cfg.protectAll) {
-      throw new Error('Tag is protected and cannot be deleted');
+      throw new Error("Tag is protected and cannot be deleted");
     }
 
     // Atomic: disconnect posts, remove followers, delete tag
@@ -302,21 +340,26 @@ export class TagService {
   // MERGING
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async mergeTags(sourceIds: string[], targetId: string): Promise<TagWithRelations> {
-    const sourceTags = await this.prisma.tag.findMany({
+  async mergeTags(
+    sourceIds: string[],
+    targetId: string,
+  ): Promise<TagWithRelations> {
+    const sourceTags = (await this.prisma.tag.findMany({
       where: { id: { in: sourceIds } },
       include: { posts: true },
-    });
-    const target = await this.prisma.tag.findUnique({
+    })) as TagWithRelations[];
+    const target = (await this.prisma.tag.findUnique({
       where: { id: targetId },
       include: { posts: true },
-    });
-    if (!target) throw new Error('Target tag not found');
+    })) as TagWithRelations | null;
+    if (!target) throw new Error("Target tag not found");
 
     // Collect all unique post IDs
     const allPostIds = new Set<string>();
-    sourceTags.forEach((t) => t.posts.forEach((p: { id: string }) => allPostIds.add(p.id)));
-    target.posts.forEach((p: { id: string }) => allPostIds.add(p.id));
+    sourceTags.forEach((t) =>
+      (t.posts ?? []).forEach((p: { id: string }) => allPostIds.add(p.id)),
+    );
+    (target.posts ?? []).forEach((p: { id: string }) => allPostIds.add(p.id));
 
     // Merge synonyms
     const mergedSynonyms = new Set<string>(target.synonyms);
@@ -361,12 +404,17 @@ export class TagService {
   // BULK OPERATIONS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async bulkSetParent(tagIds: string[], parentId: string | null): Promise<{ updated: number }> {
-    const tags = await this.prisma.tag.findMany({ where: { id: { in: tagIds } } });
+  async bulkSetParent(
+    tagIds: string[],
+    parentId: string | null,
+  ): Promise<{ updated: number }> {
+    const tags = await this.prisma.tag.findMany({
+      where: { id: { in: tagIds } },
+    });
     const allowed: string[] = [];
     for (const tag of tags) {
       if (tag.locked || tag.id === parentId) continue;
-      if (parentId && await this.wouldCycle(tag.id, parentId)) continue;
+      if (parentId && (await this.wouldCycle(tag.id, parentId))) continue;
       allowed.push(tag.id);
     }
     if (allowed.length === 0) return { updated: 0 };
@@ -381,7 +429,9 @@ export class TagService {
     tagIds: string[],
     data: { color?: string; icon?: string; featured?: boolean },
   ): Promise<{ updated: number }> {
-    const tags = await this.prisma.tag.findMany({ where: { id: { in: tagIds } } });
+    const tags = await this.prisma.tag.findMany({
+      where: { id: { in: tagIds } },
+    });
     const allowed = tags.filter((t) => !t.locked).map((t) => t.id);
     if (allowed.length === 0) return { updated: 0 };
     const result = await this.prisma.tag.updateMany({
@@ -391,7 +441,10 @@ export class TagService {
     return { updated: result.count };
   }
 
-  async bulkLock(tagIds: string[], locked: boolean): Promise<{ updated: number }> {
+  async bulkLock(
+    tagIds: string[],
+    locked: boolean,
+  ): Promise<{ updated: number }> {
     const result = await this.prisma.tag.updateMany({
       where: { id: { in: tagIds } },
       data: { locked },
@@ -404,7 +457,9 @@ export class TagService {
     if (tagIds.length > this.cfg.maxBulkIds) {
       throw new Error(`Maximum ${this.cfg.maxBulkIds} tags per bulk operation`);
     }
-    const tags = await this.prisma.tag.findMany({ where: { id: { in: tagIds } } });
+    const tags = await this.prisma.tag.findMany({
+      where: { id: { in: tagIds } },
+    });
     const allowed = tags
       .filter((t) => !t.locked && !t.protected)
       .map((t) => t.id);
@@ -442,31 +497,44 @@ export class TagService {
   // FOLLOWING (DEV.to-inspired)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async followTag(tagId: string, userId: string, weight = 1): Promise<TagFollowData> {
-    if (!this.cfg.enableFollowing) throw new Error('Tag following is disabled');
+  async followTag(
+    tagId: string,
+    userId: string,
+    weight = 1,
+  ): Promise<TagFollowData> {
+    if (!this.cfg.enableFollowing) throw new Error("Tag following is disabled");
     const existing = await this.prisma.tagFollow.findUnique({
       where: { tagId_userId: { tagId, userId } },
     });
-    if (existing) throw new Error('Already following this tag');
-    return await this.prisma.tagFollow.create({
+    if (existing) throw new Error("Already following this tag");
+    return (await this.prisma.tagFollow.create({
       data: { tagId, userId, weight },
-    }) as TagFollowData;
+    })) as TagFollowData;
   }
 
   async unfollowTag(tagId: string, userId: string): Promise<void> {
-    if (!this.cfg.enableFollowing) throw new Error('Tag following is disabled');
-    await this.prisma.tagFollow.delete({
-      where: { tagId_userId: { tagId, userId } },
-    }).catch(() => { throw new Error('Not following this tag'); });
+    if (!this.cfg.enableFollowing) throw new Error("Tag following is disabled");
+    await this.prisma.tagFollow
+      .delete({
+        where: { tagId_userId: { tagId, userId } },
+      })
+      .catch(() => {
+        throw new Error("Not following this tag");
+      });
   }
 
-  async getFollowedTags(userId: string): Promise<Array<TagData & { weight: number }>> {
-    const follows = await this.prisma.tagFollow.findMany({
+  async getFollowedTags(
+    userId: string,
+  ): Promise<Array<TagData & { weight: number }>> {
+    const follows = (await this.prisma.tagFollow.findMany({
       where: { userId },
       include: { tag: true },
-      orderBy: { weight: 'desc' },
-    });
-    return follows.map((f: { tag: TagData; weight: number }) => ({ ...f.tag, weight: f.weight }));
+      orderBy: { weight: "desc" },
+    })) as TagFollowWithTag[];
+    return follows.map((f: TagFollowWithTag) => ({
+      ...f.tag,
+      weight: f.weight,
+    }));
   }
 
   async isFollowing(tagId: string, userId: string): Promise<boolean> {
@@ -485,16 +553,16 @@ export class TagService {
     cutoff.setDate(cutoff.getDate() - this.cfg.trendingWindowDays);
 
     // Count tag usage in recently-published posts
-    const recentPosts = await this.prisma.post.findMany({
+    const recentPosts = (await this.prisma.post.findMany({
       where: {
-        status: 'PUBLISHED',
+        status: "PUBLISHED",
         publishedAt: { gte: cutoff },
       },
       include: { tags: { select: { id: true } } },
-    });
+    })) as Array<Record<string, unknown> & { tags: { id: string }[] }>;
 
     const tagUsage: Record<string, number> = {};
-    recentPosts.forEach((post: { tags: { id: string }[] }) => {
+    recentPosts.forEach((post) => {
       post.tags.forEach((tag: { id: string }) => {
         tagUsage[tag.id] = (tagUsage[tag.id] || 0) + 1;
       });
@@ -522,39 +590,59 @@ export class TagService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async getAnalytics(): Promise<TagAnalytics> {
-    const [totalTags, tags, topTags, recentlyCreated, unusedTags] = await Promise.all([
-      this.prisma.tag.count(),
-      this.prisma.tag.findMany({
-        select: {
-          id: true, name: true, usageCount: true, trending: true, featured: true,
-          parentId: true, synonyms: true, synonymHits: true, linkedTagIds: true,
-          createdAt: true, locked: true, mergeCount: true,
-          parent: { select: { name: true } },
-          _count: { select: { posts: true, children: true } },
-        },
-      }),
-      this.prisma.tag.findMany({
-        orderBy: { usageCount: 'desc' },
-        take: 20,
-        select: { id: true, name: true, slug: true, usageCount: true },
-      }),
-      this.prisma.tag.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-        select: { id: true, name: true, createdAt: true },
-      }),
-      this.prisma.tag.findMany({
-        where: { usageCount: 0 },
-        orderBy: { createdAt: 'asc' },
-        take: 20,
-        select: { id: true, name: true, createdAt: true },
-      }),
-    ]);
+    const [totalTags, tags, topTags, recentlyCreated, unusedTags] =
+      await Promise.all([
+        this.prisma.tag.count(),
+        this.prisma.tag.findMany({
+          select: {
+            id: true,
+            name: true,
+            usageCount: true,
+            trending: true,
+            featured: true,
+            parentId: true,
+            synonyms: true,
+            synonymHits: true,
+            linkedTagIds: true,
+            createdAt: true,
+            locked: true,
+            mergeCount: true,
+            parent: { select: { name: true } },
+            _count: { select: { posts: true, children: true } },
+          },
+        }) as unknown as Promise<
+          Array<
+            TagData & {
+              parent: { name: string } | null;
+              _count: { posts: number; children: number };
+            }
+          >
+        >,
+        this.prisma.tag.findMany({
+          orderBy: { usageCount: "desc" },
+          take: 20,
+          select: { id: true, name: true, slug: true, usageCount: true },
+        }),
+        this.prisma.tag.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          select: { id: true, name: true, createdAt: true },
+        }),
+        this.prisma.tag.findMany({
+          where: { usageCount: 0 },
+          orderBy: { createdAt: "asc" },
+          take: 20,
+          select: { id: true, name: true, createdAt: true },
+        }),
+      ]);
 
-    const orphanedTags = tags.filter((t) => t._count.posts === 0 && t._count.children === 0).length;
-    const avgUsageCount = tags.length > 0
-      ? tags.reduce((sum: number, t) => sum + t.usageCount, 0) / tags.length
-      : 0;
+    const orphanedTags = tags.filter(
+      (t) => t._count.posts === 0 && t._count.children === 0,
+    ).length;
+    const avgUsageCount =
+      tags.length > 0
+        ? tags.reduce((sum: number, t) => sum + t.usageCount, 0) / tags.length
+        : 0;
 
     // Tags grouped by parent
     const parentMap = new Map<string | null, number>();
@@ -567,7 +655,10 @@ export class TagService {
       .sort((a, b) => b.count - a.count);
 
     // Synonym utilization
-    const totalSynonyms = tags.reduce((s: number, t) => s + t.synonyms.length, 0);
+    const totalSynonyms = tags.reduce(
+      (s: number, t) => s + t.synonyms.length,
+      0,
+    );
     const totalHits = tags.reduce((s: number, t) => s + t.synonymHits, 0);
 
     // Duplicate candidates (quick check)
@@ -580,28 +671,38 @@ export class TagService {
 
     if (orphanedTags > totalTags * 0.3) {
       healthScore -= 15;
-      recommendations.push(`${orphanedTags} orphaned tags (${Math.round(orphanedTags / totalTags * 100)}%) — consider cleanup`);
+      recommendations.push(
+        `${orphanedTags} orphaned tags (${Math.round((orphanedTags / totalTags) * 100)}%) — consider cleanup`,
+      );
     }
     if (duplicateCandidates > 5) {
       healthScore -= 10;
-      recommendations.push(`${duplicateCandidates} potential duplicate pairs — merge them`);
+      recommendations.push(
+        `${duplicateCandidates} potential duplicate pairs — merge them`,
+      );
     }
     const unparented = tags.filter((t) => !t.parentId).length;
     if (unparented > 20) {
       healthScore -= 10;
-      recommendations.push(`${unparented} root-level tags — organize into hierarchy`);
+      recommendations.push(
+        `${unparented} root-level tags — organize into hierarchy`,
+      );
     }
     const noSynonyms = tags.filter((t) => t.synonyms.length === 0).length;
     if (noSynonyms > totalTags * 0.5) {
       healthScore -= 5;
-      recommendations.push(`${noSynonyms} tags lack synonyms — add for better auto-tag matching`);
+      recommendations.push(
+        `${noSynonyms} tags lack synonyms — add for better auto-tag matching`,
+      );
     }
     if (avgUsageCount < 2) {
       healthScore -= 10;
-      recommendations.push('Low average usage — run batch auto-tag to improve coverage');
+      recommendations.push(
+        "Low average usage — run batch auto-tag to improve coverage",
+      );
     }
     if (recommendations.length === 0) {
-      recommendations.push('Tag taxonomy is healthy! All metrics look good.');
+      recommendations.push("Tag taxonomy is healthy! All metrics look good.");
     }
 
     return {
@@ -616,7 +717,8 @@ export class TagService {
       synonymUtilization: {
         totalSynonyms,
         totalHits,
-        avgHitsPerTag: totalTags > 0 ? Math.round(totalHits / totalTags * 10) / 10 : 0,
+        avgHitsPerTag:
+          totalTags > 0 ? Math.round((totalHits / totalTags) * 10) / 10 : 0,
       },
       healthScore: Math.max(0, healthScore),
       recommendations,
@@ -638,7 +740,11 @@ export class TagService {
       for (let j = i + 1; j < tags.length; j++) {
         const score = this.similarity(tags[i].name, tags[j].name);
         if (score >= cutoff) {
-          duplicates.push({ a: tags[i], b: tags[j], score: Number(score.toFixed(2)) });
+          duplicates.push({
+            a: tags[i],
+            b: tags[j],
+            score: Number(score.toFixed(2)),
+          });
         }
       }
     }
@@ -706,7 +812,9 @@ export class TagService {
     const result: DuplicateGroup[] = [];
     for (const [root, members] of groups) {
       if (members.length < 2) continue;
-      members.sort((a, b) => b.usageCount - a.usageCount || a.name.localeCompare(b.name));
+      members.sort(
+        (a, b) => b.usageCount - a.usageCount || a.name.localeCompare(b.name),
+      );
       const [survivor, ...dupes] = members;
       result.push({
         survivor,
@@ -749,28 +857,28 @@ export class TagService {
       };
     }
 
-    const merges: BulkMergeResult['merges'] = [];
+    const merges: BulkMergeResult["merges"] = [];
 
     for (const group of groups) {
       const sourceIds = group.duplicates.map((d) => d.id);
       const targetId = group.survivor.id;
 
       // Fetch full data with posts
-      const sourceTags = await this.prisma.tag.findMany({
+      const sourceTags = (await this.prisma.tag.findMany({
         where: { id: { in: sourceIds } },
         include: { posts: true },
-      });
-      const target = await this.prisma.tag.findUnique({
+      })) as TagWithRelations[];
+      const target = (await this.prisma.tag.findUnique({
         where: { id: targetId },
         include: { posts: true },
-      });
+      })) as TagWithRelations | null;
       if (!target) continue;
 
       // Union all post IDs
       const allPostIds = new Set<string>();
-      target.posts.forEach((p: { id: string }) => allPostIds.add(p.id));
+      (target.posts ?? []).forEach((p: { id: string }) => allPostIds.add(p.id));
       sourceTags.forEach((t) =>
-        t.posts.forEach((p: { id: string }) => allPostIds.add(p.id)),
+        (t.posts ?? []).forEach((p: { id: string }) => allPostIds.add(p.id)),
       );
 
       // Merge synonyms — source names become synonyms of the survivor
@@ -847,10 +955,13 @@ export class TagService {
       where.createdAt = { lt: cutoff };
     }
 
-    const orphans = await this.prisma.tag.findMany({
+    const orphans = (await this.prisma.tag.findMany({
       where,
       select: { id: true, _count: { select: { posts: true, children: true } } },
-    });
+    })) as unknown as Array<{
+      id: string;
+      _count: { posts: number; children: number };
+    }>;
 
     let deleted = 0;
     let skipped = 0;
@@ -872,13 +983,13 @@ export class TagService {
 
   slugify(text: string): string {
     return text
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
       .substring(0, this.cfg.maxSlugLength);
   }
 
@@ -904,7 +1015,10 @@ export class TagService {
     const sep = this.cfg.treeSeparator;
 
     // Parse name for tree segments if it contains the separator
-    const segments = name.split(sep).map((s) => s.trim()).filter(Boolean);
+    const segments = name
+      .split(sep)
+      .map((s) => s.trim())
+      .filter(Boolean);
     const label = segments[segments.length - 1] || name;
 
     if (!parentId) {
@@ -928,7 +1042,7 @@ export class TagService {
     }
 
     return {
-      path: pathParts.join('/'),
+      path: pathParts.join("/"),
       label,
       level: level + 1 - 1, // +1 for self, -1 because loop already counts parent chain
     };
@@ -943,7 +1057,7 @@ export class TagService {
 
     const allTags = await this.prisma.tag.findMany({
       select: { id: true, name: true, slug: true, parentId: true },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
 
     // Build lookup
@@ -975,7 +1089,9 @@ export class TagService {
     });
 
     while (current?.parentId) {
-      const parent = await this.prisma.tag.findUnique({ where: { id: current.parentId } });
+      const parent = await this.prisma.tag.findUnique({
+        where: { id: current.parentId },
+      });
       if (!parent) break;
       ancestors.unshift(parent as TagData);
       current = parent;
@@ -1015,7 +1131,7 @@ export class TagService {
 
     return this.prisma.tag.findMany({
       where: { parentId: tag.parentId, id: { not: tagId } },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   }
 
@@ -1025,7 +1141,7 @@ export class TagService {
   async getNestedTree(parentId: string | null = null): Promise<TagTreeNode[]> {
     const tags = await this.prisma.tag.findMany({
       where: { parentId },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
 
     const tree: TagTreeNode[] = [];
@@ -1039,13 +1155,16 @@ export class TagService {
   /**
    * Enforce maxTagsPerPost — validates tag count before assignment.
    */
-  async validateTagCount(postId: string, additionalTagIds: string[]): Promise<void> {
+  async validateTagCount(
+    postId: string,
+    additionalTagIds: string[],
+  ): Promise<void> {
     if (this.cfg.maxTagsPerPost <= 0) return; // unlimited
 
-    const post = await this.prisma.post.findUnique({
+    const post = (await this.prisma.post.findUnique({
       where: { id: postId },
       select: { _count: { select: { tags: true } } },
-    });
+    })) as { _count: { tags: number } } | null;
     const current = post?._count?.tags ?? 0;
     const total = current + additionalTagIds.length;
 
@@ -1086,9 +1205,10 @@ export class TagService {
     for (let j = 0; j <= a.length; j++) m[0][j] = j;
     for (let i = 1; i <= b.length; i++) {
       for (let j = 1; j <= a.length; j++) {
-        m[i][j] = b[i - 1] === a[j - 1]
-          ? m[i - 1][j - 1]
-          : Math.min(m[i - 1][j - 1] + 1, m[i][j - 1] + 1, m[i - 1][j] + 1);
+        m[i][j] =
+          b[i - 1] === a[j - 1]
+            ? m[i - 1][j - 1]
+            : Math.min(m[i - 1][j - 1] + 1, m[i][j - 1] + 1, m[i - 1][j] + 1);
       }
     }
     return m[b.length][a.length];

@@ -15,14 +15,14 @@ import type {
   FontEntry,
   ThemePrismaClient,
   ColorMode,
-} from '../types';
-import type { ApiResponse } from '../types';
+} from "../types";
+import type { ApiResponse } from "../types";
 import {
   DEFAULT_THEME_CONFIG,
   generateShades,
   getThemePresetById,
   THEME_PRESETS,
-} from './constants';
+} from "./constants";
 
 // ─── Service ────────────────────────────────────────────────────────────────
 
@@ -88,12 +88,12 @@ export class ThemeService {
 
   /** Update semantic colours for a specific mode. */
   async updateSemanticColors(
-    mode: 'light' | 'dark',
+    mode: "light" | "dark",
     updates: Partial<SemanticColors>,
   ): Promise<ApiResponse<ThemeConfig>> {
     try {
       const theme = await this.getTheme();
-      if (mode === 'light') {
+      if (mode === "light") {
         theme.semanticLight = { ...theme.semanticLight, ...updates };
       } else {
         theme.semanticDark = { ...theme.semanticDark, ...updates };
@@ -121,11 +121,13 @@ export class ThemeService {
   // ─── Gradient Operations ──────────────────────────────────────────────
 
   /** Add a gradient to the theme. */
-  async addGradient(gradient: GradientDefinition): Promise<ApiResponse<ThemeConfig>> {
+  async addGradient(
+    gradient: GradientDefinition,
+  ): Promise<ApiResponse<ThemeConfig>> {
     try {
       const theme = await this.getTheme();
       if (theme.gradients.length >= 20) {
-        return this.error('MAX_GRADIENTS', 'Maximum 20 gradients allowed', 400);
+        return this.error("MAX_GRADIENTS", "Maximum 20 gradients allowed", 400);
       }
       theme.gradients.push(gradient);
       await this.save(theme);
@@ -148,7 +150,9 @@ export class ThemeService {
   }
 
   /** Replace all gradients. */
-  async setGradients(gradients: GradientDefinition[]): Promise<ApiResponse<ThemeConfig>> {
+  async setGradients(
+    gradients: GradientDefinition[],
+  ): Promise<ApiResponse<ThemeConfig>> {
     try {
       const theme = await this.getTheme();
       theme.gradients = gradients.slice(0, 20);
@@ -162,9 +166,11 @@ export class ThemeService {
   // ─── Font Operations ──────────────────────────────────────────────────
 
   /** Update fonts (body, heading, mono). */
-  async updateFonts(
-    updates: { bodyFont?: FontEntry; headingFont?: FontEntry; monoFont?: FontEntry },
-  ): Promise<ApiResponse<ThemeConfig>> {
+  async updateFonts(updates: {
+    bodyFont?: FontEntry;
+    headingFont?: FontEntry;
+    monoFont?: FontEntry;
+  }): Promise<ApiResponse<ThemeConfig>> {
     try {
       const theme = await this.getTheme();
       if (updates.bodyFont) theme.bodyFont = updates.bodyFont;
@@ -186,7 +192,10 @@ export class ThemeService {
   ): Promise<ApiResponse<ThemeConfig>> {
     try {
       const theme = await this.getTheme();
-      theme.borderRadius = { ...theme.borderRadius, ...updates } as typeof theme.borderRadius;
+      theme.borderRadius = {
+        ...theme.borderRadius,
+        ...updates,
+      } as typeof theme.borderRadius;
       await this.save(theme);
       return this.ok(theme);
     } catch (e) {
@@ -228,7 +237,12 @@ export class ThemeService {
   async loadPreset(presetId: string): Promise<ApiResponse<ThemeConfig>> {
     try {
       const preset = getThemePresetById(presetId);
-      if (!preset) return this.error('PRESET_NOT_FOUND', `Theme preset "${presetId}" not found`, 404);
+      if (!preset)
+        return this.error(
+          "PRESET_NOT_FOUND",
+          `Theme preset "${presetId}" not found`,
+          404,
+        );
 
       const theme: ThemeConfig = {
         ...preset.config,
@@ -273,7 +287,7 @@ export class ThemeService {
   async generateCssVariables(): Promise<ApiResponse<string>> {
     try {
       const theme = await this.getTheme();
-      const prefix = theme.cssVariablePrefix || '--site';
+      const prefix = theme.cssVariablePrefix || "--site";
       const lines: string[] = [];
 
       // Palette
@@ -323,9 +337,18 @@ export class ThemeService {
 
       // Gradients
       for (const grad of theme.gradients) {
-        const stops = grad.stops.map((s) => `${s.color} ${s.position}`).join(', ');
-        const fn = grad.type === 'linear' ? 'linear-gradient' : grad.type === 'radial' ? 'radial-gradient' : 'conic-gradient';
-        lines.push(`  ${prefix}-gradient-${grad.id}: ${fn}(${grad.direction}, ${stops});`);
+        const stops = grad.stops
+          .map((s) => `${s.color} ${s.position}`)
+          .join(", ");
+        const fn =
+          grad.type === "linear"
+            ? "linear-gradient"
+            : grad.type === "radial"
+              ? "radial-gradient"
+              : "conic-gradient";
+        lines.push(
+          `  ${prefix}-gradient-${grad.id}: ${fn}(${grad.direction}, ${stops});`,
+        );
       }
 
       // Z-Index
@@ -333,7 +356,7 @@ export class ThemeService {
         lines.push(`  ${prefix}-z-${key}: ${value};`);
       }
 
-      const lightCss = `:root {\n${lines.join('\n')}\n}`;
+      const lightCss = `:root {\n${lines.join("\n")}\n}`;
 
       // Dark mode overrides
       const darkLines: string[] = [];
@@ -341,28 +364,30 @@ export class ThemeService {
         darkLines.push(`  ${prefix}-${camelToKebab(key)}: ${value};`);
       }
       const darkCss = theme.autoColorScheme
-        ? `@media (prefers-color-scheme: dark) {\n  :root {\n  ${darkLines.join('\n  ')}\n  }\n}`
-        : `[data-theme="dark"] {\n${darkLines.join('\n')}\n}`;
+        ? `@media (prefers-color-scheme: dark) {\n  :root {\n  ${darkLines.join("\n  ")}\n  }\n}`
+        : `[data-theme="dark"] {\n${darkLines.join("\n")}\n}`;
 
       // Font imports
       const imports: string[] = [];
-      if (theme.bodyFont.importUrl) imports.push(`@import url('${theme.bodyFont.importUrl}');`);
-      if (theme.headingFont.importUrl && theme.headingFont.importUrl !== theme.bodyFont.importUrl) {
+      if (theme.bodyFont.importUrl)
+        imports.push(`@import url('${theme.bodyFont.importUrl}');`);
+      if (
+        theme.headingFont.importUrl &&
+        theme.headingFont.importUrl !== theme.bodyFont.importUrl
+      ) {
         imports.push(`@import url('${theme.headingFont.importUrl}');`);
       }
-      if (theme.monoFont.importUrl) imports.push(`@import url('${theme.monoFont.importUrl}');`);
+      if (theme.monoFont.importUrl)
+        imports.push(`@import url('${theme.monoFont.importUrl}');`);
 
       // Reduced motion
       const motionCss = theme.motion.respectReducedMotion
         ? `@media (prefers-reduced-motion: reduce) {\n  *, *::before, *::after {\n    animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n    scroll-behavior: auto !important;\n  }\n}`
-        : '';
+        : "";
 
-      const fullCss = [
-        imports.join('\n'),
-        lightCss,
-        darkCss,
-        motionCss,
-      ].filter(Boolean).join('\n\n');
+      const fullCss = [imports.join("\n"), lightCss, darkCss, motionCss]
+        .filter(Boolean)
+        .join("\n\n");
 
       return this.ok(fullCss);
     } catch (e) {
@@ -380,10 +405,10 @@ export class ThemeService {
 
   private async save(theme: ThemeConfig): Promise<void> {
     const row = await this.prisma.siteSettings.findFirst();
-    if (!row) throw new Error('SiteSettings row not found — run seed first');
+    if (!row) throw new Error("SiteSettings row not found — run seed first");
     await this.prisma.siteSettings.update({
       where: { id: row.id },
-      data: { themeConfig: JSON.parse(JSON.stringify(theme)) },
+      data: { themeConfig: structuredClone(theme) },
     });
     this.cached = theme;
   }
@@ -392,7 +417,11 @@ export class ThemeService {
     return { success: true, data, timestamp: new Date().toISOString() };
   }
 
-  private error<T>(code: string, message: string, statusCode: number): ApiResponse<T> {
+  private error<T>(
+    code: string,
+    message: string,
+    statusCode: number,
+  ): ApiResponse<T> {
     return {
       success: false,
       error: { code, message, statusCode },
@@ -402,8 +431,8 @@ export class ThemeService {
 
   private err<T>(e: unknown): ApiResponse<T> {
     return this.error(
-      'THEME_SERVICE_ERROR',
-      e instanceof Error ? e.message : 'Unknown error in theme service',
+      "THEME_SERVICE_ERROR",
+      e instanceof Error ? e.message : "Unknown error in theme service",
       500,
     );
   }

@@ -18,7 +18,7 @@
  * to strip the key from every ad slot automatically.
  */
 import { NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { prisma } from "@/server/wiring";
 import {
   discoverPageTypes,
@@ -31,10 +31,8 @@ import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const [pageTypes, healthReport] = await Promise.all([
       discoverPageTypes(prisma as unknown as ScanPrisma),
@@ -61,10 +59,8 @@ export async function GET() {
 
 export async function POST() {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const result = await syncAdSlotPageTypes(prisma as unknown as ScanPrisma);
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { mediaService } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
 import { UpdateMediaSchema } from "@/features/media/server/schemas";
@@ -13,21 +13,8 @@ type RouteContext = { params: Promise<{ id: string }> };
  */
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-    // SEC-005: Require content role
-    const role = (session.user as { role?: string })?.role;
-    if (!["AUTHOR", "EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role || "")) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
+    const { errorResponse } = await requireAuth({ level: 'author' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await context.params;
     const result = await mediaService.getById(id);
@@ -51,21 +38,8 @@ export async function GET(req: NextRequest, context: RouteContext) {
  */
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-    // SEC-005: Require content role
-    const role = (session.user as { role?: string })?.role;
-    if (!["AUTHOR", "EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role || "")) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
+    const { userId, errorResponse } = await requireAuth({ level: 'author' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await context.params;
     const body = await req.json();
@@ -85,7 +59,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const result = await mediaService.update(
       id,
       validation.data,
-      (session.user as { id?: string })?.id
+      userId
     );
 
     if (!result.success) {
@@ -113,31 +87,14 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
  */
 export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const role = (session.user as { role?: string })?.role;
-    if (
-      !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR", "AUTHOR"].includes(
-        role || ""
-      )
-    ) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
+    const { userId, errorResponse } = await requireAuth({ level: 'author' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await context.params;
 
     const result = await mediaService.delete(
       id,
-      (session.user as { id?: string })?.id
+      userId
     );
 
     if (!result.success) {

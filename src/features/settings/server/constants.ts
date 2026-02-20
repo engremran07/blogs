@@ -10,27 +10,27 @@
  * ============================================================================
  */
 
-import type { SiteConfig } from '../types';
+import type { SiteConfig } from "../types";
 
 // ─── Default Full Config ────────────────────────────────────────────────────
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
   // Identity
-  siteName: 'My Website',
+  siteName: "My Website",
   siteTagline: null,
   siteDescription: null,
   siteUrl: null,
   logoUrl: null,
   logoDarkUrl: null,
-  faviconUrl: '/favicon.ico',
-  language: 'en',
-  timezone: 'UTC',
+  faviconUrl: "/favicon.ico",
+  language: "en",
+  timezone: "UTC",
 
   // Appearance / Theme
-  primaryColor: '#3b82f6',
-  secondaryColor: '#64748b',
-  accentColor: '#f59e0b',
-  fontFamily: 'system-ui, sans-serif',
+  primaryColor: "#3b82f6",
+  secondaryColor: "#64748b",
+  accentColor: "#f59e0b",
+  fontFamily: "system-ui, sans-serif",
   headingFontFamily: null,
   darkModeEnabled: true,
   darkModeDefault: false,
@@ -38,10 +38,10 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   themeColor: null,
 
   // Date & Locale
-  dateFormat: 'YYYY-MM-DD',
-  timeFormat: 'HH:mm',
-  currencyCode: 'USD',
-  currencySymbol: '$',
+  dateFormat: "YYYY-MM-DD",
+  timeFormat: "HH:mm",
+  currencyCode: "USD",
+  currencySymbol: "$",
 
   // Top Bar
   topBarEnabled: false,
@@ -51,8 +51,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   topBarText: null,
   topBarShowSocialLinks: false,
   topBarBusinessHours: null,
-  topBarBackgroundColor: '#1a1a2e',
-  topBarTextColor: '#ffffff',
+  topBarBackgroundColor: "#1a1a2e",
+  topBarTextColor: "#ffffff",
   topBarCtaText: null,
   topBarCtaUrl: null,
   topBarDismissible: false,
@@ -60,13 +60,13 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   // Announcement Banner
   announcementEnabled: false,
   announcementText: null,
-  announcementType: 'info',
+  announcementType: "info",
   announcementUrl: null,
   announcementDismissible: true,
   announcementBackgroundColor: null,
 
   // Navigation / Header
-  headerStyle: 'sticky',
+  headerStyle: "sticky",
   navShowSearch: true,
   navShowLanguageSwitcher: false,
   navShowDarkModeToggle: true,
@@ -103,8 +103,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
 
   // CAPTCHA
   captchaEnabled: false,
-  captchaType: 'turnstile',
-  captchaProvider: 'none',
+  captchaType: "turnstile",
+  captchaProvider: "none",
   captchaSiteKey: null,
   captchaSecretKey: null,
   captchaThreshold: 0.5,
@@ -137,7 +137,8 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
 
   // Privacy & Legal
   cookieConsentEnabled: false,
-  cookieConsentMessage: 'This website uses cookies to ensure you get the best experience. By continuing to browse, you agree to our use of cookies.',
+  cookieConsentMessage:
+    "This website uses cookies to ensure you get the best experience. By continuing to browse, you agree to our use of cookies.",
   privacyPolicyUrl: null,
   termsOfServiceUrl: null,
   gdprEnabled: false,
@@ -160,7 +161,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   emailNotifyOnContact: true,
   emailWelcomeEnabled: true,
   emailDigestEnabled: false,
-  emailDigestFrequency: 'weekly',
+  emailDigestFrequency: "weekly",
 
   // Third-Party Integrations
   googleTagManagerId: null,
@@ -170,7 +171,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
 
   // Media
   maxUploadSizeMb: 10,
-  allowedFileTypes: 'jpg,jpeg,png,gif,webp,svg,pdf,doc,docx',
+  allowedFileTypes: "jpg,jpeg,png,gif,webp,svg,pdf,doc,docx",
   imageOptimizationEnabled: true,
 
   // PWA
@@ -178,16 +179,17 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   pwaName: null,
   pwaShortName: null,
   pwaThemeColor: null,
-  pwaBackgroundColor: '#ffffff',
+  pwaBackgroundColor: "#ffffff",
 
   // Robots / Crawling
   robotsTxtCustom: null,
   sitemapEnabled: true,
-  sitemapChangeFreq: 'weekly',
+  sitemapChangeFreq: "weekly",
 
   // Maintenance Mode
   maintenanceMode: false,
-  maintenanceMessage: 'We are currently performing maintenance. Please check back soon.',
+  maintenanceMessage:
+    "We are currently performing maintenance. Please check back soon.",
   maintenanceAllowedIps: null,
 
   // Custom Code Injection
@@ -197,6 +199,58 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   // Module Kill Switches
   adsEnabled: false,
   distributionEnabled: false,
+
+  // Blog Layout
+  blogLayout: "grid",
+  blogColumns: 2,
+  showAuthor: true,
+  showDate: true,
+  showUpdatedDate: true,
+  showReadTime: true,
+  showTags: true,
+  showFeaturedImage: true,
+  showExcerpt: true,
+  showViewCount: false,
+
+  // Sidebar
+  sidebarEnabled: true,
+  sidebarPosition: "right",
+  sidebarShowSearch: true,
+  sidebarShowRecentPosts: true,
+  sidebarShowCategories: true,
+  sidebarShowTags: true,
+  sidebarShowArchive: false,
+  sidebarRecentPostsCount: 5,
+
+  // Single Post
+  relatedPostsEnabled: true,
+  relatedPostsCount: 3,
+  socialSharingEnabled: true,
+  tableOfContentsEnabled: false,
+  showPostNavigation: true,
+
+  // Comment Settings
+  enableCommentModeration: true,
+  autoApproveComments: false,
+  enableCommentVoting: false,
+  enableCommentThreading: true,
+  allowGuestComments: true,
+  maxReplyDepth: 5,
+  closeCommentsAfterDays: 0,
+  editWindowMinutes: 30,
+
+  // Defaults
+  defaultPostStatus: "DRAFT",
+
+  // Additional SEO Verifications
+  seoYandexVerification: null,
+  seoPinterestVerification: null,
+  seoBaiduVerification: null,
+
+  // Menu / JSON Blobs
+  menuStructure: null,
+  themeConfig: null,
+  distributionConfig: null,
 
   // Admin Bar
   adminBarEnabled: true,
@@ -213,6 +267,6 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   adminBarShowSiteNameDropdown: true,
   adminBarShowUserDropdown: true,
   adminBarShowEnvBadge: true,
-  adminBarBackgroundColor: '#0d0d18',
-  adminBarAccentColor: '#6c63ff',
+  adminBarBackgroundColor: "#0d0d18",
+  adminBarAccentColor: "#6c63ff",
 };

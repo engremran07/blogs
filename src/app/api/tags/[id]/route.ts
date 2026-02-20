@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { prisma } from "@/server/db/prisma";
 import { TagService } from "@/features/tags/server/tag.service";
 import { updateTagSchema } from "@/features/tags/server/schemas";
@@ -37,14 +37,8 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-    }
-    const role = session.user.role;
-    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
 
@@ -83,14 +77,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-    }
-    const role = session.user.role;
-    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     // Fetch the tag slug before deleting so we can auto-exclude
     const tag = await prisma.tag.findUnique({ where: { id }, select: { slug: true } });

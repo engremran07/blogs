@@ -9,13 +9,13 @@
  * ============================================================================
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 import {
   ANNOUNCEMENT_TYPES,
   HEADER_STYLES,
   SITEMAP_CHANGE_FREQS,
   CAPTCHA_PROVIDERS,
-} from '../types';
+} from "../types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -201,7 +201,7 @@ export const updateSiteSettingsSchema = z.object({
   emailNotifyOnContact: optBool,
   emailWelcomeEnabled: optBool,
   emailDigestEnabled: optBool,
-  emailDigestFrequency: z.string().max(20).optional(),
+  emailDigestFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
 
   // SEO Verification (additional)
   seoYandexVerification: nullableStr(100),
@@ -255,6 +255,27 @@ export const updateSiteSettingsSchema = z.object({
   // Module Kill Switches
   adsEnabled: optBool,
   distributionEnabled: optBool,
+
+  // Menu Structure (JSON — managed by Menu Builder)
+  menuStructure: z.any().optional(),
+
+  // Admin Bar
+  adminBarEnabled: optBool,
+  adminBarShowBreadcrumbs: optBool,
+  adminBarShowNewButton: optBool,
+  adminBarShowSeoScore: optBool,
+  adminBarShowStatusToggle: optBool,
+  adminBarShowWordCount: optBool,
+  adminBarShowLastSaved: optBool,
+  adminBarShowSaveButton: optBool,
+  adminBarShowPublishButton: optBool,
+  adminBarShowPreviewButton: optBool,
+  adminBarShowViewSiteButton: optBool,
+  adminBarShowSiteNameDropdown: optBool,
+  adminBarShowUserDropdown: optBool,
+  adminBarShowEnvBadge: optBool,
+  adminBarBackgroundColor: z.string().max(20).optional(),
+  adminBarAccentColor: z.string().max(20).optional(),
 });
 
 export type UpdateSiteSettingsInput = z.infer<typeof updateSiteSettingsSchema>;
@@ -411,7 +432,7 @@ export const updateEmailSenderSchema = z.object({
   emailNotifyOnContact: optBool,
   emailWelcomeEnabled: optBool,
   emailDigestEnabled: optBool,
-  emailDigestFrequency: z.enum(['daily', 'weekly', 'monthly']).optional(),
+  emailDigestFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
 });
 export type UpdateEmailSenderInput = z.infer<typeof updateEmailSenderSchema>;
 
@@ -478,7 +499,9 @@ export const updateModuleKillSwitchSchema = z.object({
   adsEnabled: optBool,
   distributionEnabled: optBool,
 });
-export type UpdateModuleKillSwitchInput = z.infer<typeof updateModuleKillSwitchSchema>;
+export type UpdateModuleKillSwitchInput = z.infer<
+  typeof updateModuleKillSwitchSchema
+>;
 
 export const updateAdminBarSchema = z.object({
   adminBarEnabled: optBool,

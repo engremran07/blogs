@@ -4,51 +4,51 @@
 // ─── Enums ──────────────────────────────────────────────────────────────────
 
 export enum SocialPlatform {
-  TWITTER = 'twitter',
-  FACEBOOK = 'facebook',
-  LINKEDIN = 'linkedin',
-  TELEGRAM = 'telegram',
-  WHATSAPP = 'whatsapp',
-  PINTEREST = 'pinterest',
-  REDDIT = 'reddit',
-  INSTAGRAM = 'instagram',
-  TIKTOK = 'tiktok',
-  MEDIUM = 'medium',
-  YOUTUBE = 'youtube',
-  CUSTOM = 'custom',
+  TWITTER = "twitter",
+  FACEBOOK = "facebook",
+  LINKEDIN = "linkedin",
+  TELEGRAM = "telegram",
+  WHATSAPP = "whatsapp",
+  PINTEREST = "pinterest",
+  REDDIT = "reddit",
+  INSTAGRAM = "instagram",
+  TIKTOK = "tiktok",
+  MEDIUM = "medium",
+  YOUTUBE = "youtube",
+  CUSTOM = "custom",
 }
 
 export enum DistributionStatus {
-  PENDING = 'PENDING',
-  SCHEDULED = 'SCHEDULED',
-  PUBLISHING = 'PUBLISHING',
-  PUBLISHED = 'PUBLISHED',
-  FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED',
-  RATE_LIMITED = 'RATE_LIMITED',
+  PENDING = "PENDING",
+  SCHEDULED = "SCHEDULED",
+  PUBLISHING = "PUBLISHING",
+  PUBLISHED = "PUBLISHED",
+  FAILED = "FAILED",
+  CANCELLED = "CANCELLED",
+  RATE_LIMITED = "RATE_LIMITED",
 }
 
 export enum MessageStyle {
-  CONCISE = 'concise',
-  PROFESSIONAL = 'professional',
-  CASUAL = 'casual',
-  THREAD = 'thread',
-  PROMOTIONAL = 'promotional',
+  CONCISE = "concise",
+  PROFESSIONAL = "professional",
+  CASUAL = "casual",
+  THREAD = "thread",
+  PROMOTIONAL = "promotional",
 }
 
 export enum DistributionEvent {
-  DISTRIBUTED = 'distribution.distributed',
-  SCHEDULED = 'distribution.scheduled',
-  PUBLISHED = 'distribution.published',
-  FAILED = 'distribution.failed',
-  RETRIED = 'distribution.retried',
-  CANCELLED = 'distribution.cancelled',
-  RATE_LIMITED = 'distribution.rate_limited',
-  CHANNEL_CREATED = 'distribution.channel_created',
-  CHANNEL_UPDATED = 'distribution.channel_updated',
-  CHANNEL_DELETED = 'distribution.channel_deleted',
-  BULK_DISTRIBUTED = 'distribution.bulk_distributed',
-  SETTINGS_UPDATED = 'distribution.settings_updated',
+  DISTRIBUTED = "distribution.distributed",
+  SCHEDULED = "distribution.scheduled",
+  PUBLISHED = "distribution.published",
+  FAILED = "distribution.failed",
+  RETRIED = "distribution.retried",
+  CANCELLED = "distribution.cancelled",
+  RATE_LIMITED = "distribution.rate_limited",
+  CHANNEL_CREATED = "distribution.channel_created",
+  CHANNEL_UPDATED = "distribution.channel_updated",
+  CHANNEL_DELETED = "distribution.channel_deleted",
+  BULK_DISTRIBUTED = "distribution.bulk_distributed",
+  SETTINGS_UPDATED = "distribution.settings_updated",
 }
 
 // ─── Platform Credentials ───────────────────────────────────────────────────
@@ -138,7 +138,10 @@ export interface SocialPostResult {
 
 export interface SocialConnector {
   readonly platform: SocialPlatform;
-  post(payload: SocialPostPayload, credentials: PlatformCredentials): Promise<SocialPostResult>;
+  post(
+    payload: SocialPostPayload,
+    credentials: PlatformCredentials,
+  ): Promise<SocialPostResult>;
   validateCredentials(credentials: PlatformCredentials): Promise<boolean>;
 }
 
@@ -246,7 +249,7 @@ export interface QueryDistributionsInput {
   platform?: SocialPlatform;
   status?: DistributionStatus;
   channelId?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 // ─── Post Data ──────────────────────────────────────────────────────────────
@@ -277,8 +280,8 @@ export interface DistributionArtifact {
 
 // ─── Campaign Analytics Types ───────────────────────────────────────────────
 
-export type CampaignGoalStatus = 'on_track' | 'at_risk' | 'off_track';
-export type CampaignGoalTrend = 'up' | 'down' | 'flat';
+export type CampaignGoalStatus = "on_track" | "at_risk" | "off_track";
+export type CampaignGoalTrend = "up" | "down" | "flat";
 
 export interface CampaignBreakdownItem {
   source?: string;
@@ -311,7 +314,7 @@ export interface CampaignRoiTrendPoint {
 export interface CampaignConversionGoal {
   key: string;
   label: string;
-  unit: 'percent' | 'score' | 'index';
+  unit: "percent" | "score" | "index";
   current: number;
   target: number;
   progress: number;
@@ -399,24 +402,15 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 
 // ─── Minimal Prisma Interface (DI boundary) ─────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export interface PrismaDelegate {
-  findUnique(args: any): Promise<any>;
-  findFirst(args?: any): Promise<any>;
-  findMany(args?: any): Promise<any[]>;
-  create(args: any): Promise<any>;
-  update(args: any): Promise<any>;
-  updateMany(args: any): Promise<any>;
-  delete(args: any): Promise<any>;
-  deleteMany(args: any): Promise<any>;
-  count(args?: any): Promise<number>;
-  aggregate(args: any): Promise<any>;
-}
+import type {
+  PrismaDelegate,
+  PrismaDelegateWithAggregate,
+} from "@/shared/prisma-delegate.types";
+export type { PrismaDelegate };
 
 export interface DistributionPrismaClient {
-  distributionRecord: PrismaDelegate;
-  distributionChannel: PrismaDelegate;
+  distributionRecord: PrismaDelegateWithAggregate<DistributionRecordData>;
+  distributionChannel: PrismaDelegate<DistributionChannelData>;
   post: PrismaDelegate;
   siteSettings: PrismaDelegate;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { pageService, prisma } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
 import { CreatePageSchema, PageListSchema } from "@/features/pages/server/schemas";
@@ -52,14 +53,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-    }
-    const role = session.user.role;
-    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
-    }
+    const { userId, errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
 
@@ -67,7 +62,7 @@ export async function POST(req: NextRequest) {
       body.slug = body.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     }
 
-    const authorId = session.user.id || body.authorId;
+    const authorId = userId || body.authorId;
     body.authorId = authorId;
 
     const parsed = CreatePageSchema.safeParse(body);

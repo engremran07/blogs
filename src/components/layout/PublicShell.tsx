@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Header } from "./Header";
@@ -48,6 +47,16 @@ interface PublicSettings extends TopBarSettings {
   socialInstagram: string | null;
   socialLinkedin: string | null;
   socialYoutube: string | null;
+  menuStructure: MenuData[] | null;
+}
+
+/** Shape of a menu entry saved by the Menu Builder admin page. */
+interface MenuData {
+  id: string;
+  name: string;
+  slot: string;
+  enabled: boolean;
+  items: { id: string; label: string; url: string; target: string; visible: boolean }[];
 }
 
 export function PublicShell({
@@ -61,8 +70,6 @@ export function PublicShell({
   footerAdSlot?: React.ReactNode;
   overlayAdSlot?: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const isAdmin = pathname.startsWith("/admin");
   const { data: session, status: sessionStatus } = useSession();
   const [settings, setSettings] = useState<PublicSettings | null>(null);
 
@@ -73,21 +80,15 @@ export function PublicShell({
     ADMIN_BAR_ROLES.has(session?.user?.role as string);
 
   useEffect(() => {
-    if (!isAdmin) {
-      fetch("/api/settings/public")
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.success && data.data) {
-            setSettings(data.data);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [isAdmin]);
-
-  if (isAdmin) {
-    return <>{children}</>;
-  }
+    fetch("/api/settings/public")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          setSettings(data.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const consentSettings: CookieConsentSettings | null = settings
     ? {
@@ -115,13 +116,25 @@ export function PublicShell({
       }
     : null;
 
+  // Extract header nav items from the menu builder (slot = "header", enabled + visible items)
+  const headerMenuItems = (() => {
+    const menus = settings?.menuStructure;
+    if (!Array.isArray(menus)) return undefined;
+    const headerMenu = menus.find((m) => m.slot === "header" && m.enabled);
+    if (!headerMenu) return undefined;
+    return headerMenu.items
+      .filter((item) => item.visible)
+      .map((item) => ({ href: item.url, label: item.label, target: item.target }));
+  })();
+
   return (
     <div className={`flex min-h-screen flex-col${hasAdminBar ? " pt-11" : ""}`}>
-      {settings && <TopBar settings={settings} />}
+      {settings && <TopBar settings={settings} socialLinks={socialLinks} />}
       <Header
         siteName={siteName}
         logoUrl={logoUrl}
         showDarkModeToggle={showDarkModeToggle}
+        menuItems={headerMenuItems}
       />
       {headerAdSlot}
       <main className="flex-1">{children}</main>

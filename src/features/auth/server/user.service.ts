@@ -13,7 +13,7 @@
  * ============================================================================
  */
 
-import * as crypto from 'crypto';
+import * as crypto from "crypto";
 import type {
   UserConfig,
   UserConfigConsumer,
@@ -23,12 +23,17 @@ import type {
   PaginationParams,
   PaginatedResult,
   UserRole,
-} from '../types';
-import { ValidationError, NotFoundError } from '../types';
-import { USER_ROLES } from '../types';
-import { DEFAULT_USER_CONFIG } from './constants';
-import { hashPassword, comparePassword, validatePasswordStrength } from './password.util';
-import { sanitizeSlug, sanitizeEmail } from './sanitization.util';
+  UserRecord,
+} from "../types";
+import { ValidationError, NotFoundError } from "../types";
+import { USER_ROLES } from "../types";
+import { DEFAULT_USER_CONFIG } from "./constants";
+import {
+  hashPassword,
+  comparePassword,
+  validatePasswordStrength,
+} from "./password.util";
+import { sanitizeSlug, sanitizeEmail } from "./sanitization.util";
 
 // ─── Service ────────────────────────────────────────────────────────────────
 
@@ -103,15 +108,15 @@ export class UserService implements UserConfigConsumer {
   // ─── Read Operations ──────────────────────────────────────────────────
 
   async getUserById(id: string): Promise<SafeUser & { postsCount: number }> {
-    const user = await this.prisma.user.findUnique({
+    const user = (await this.prisma.user.findUnique({
       where: { id },
       select: {
         ...UserService.SAFE_SELECT,
         _count: { select: { posts: true } },
       },
-    });
+    })) as (UserRecord & { _count?: { posts: number } }) | null;
 
-    if (!user) throw new NotFoundError('User not found');
+    if (!user) throw new NotFoundError("User not found");
 
     return {
       ...user,
@@ -122,10 +127,16 @@ export class UserService implements UserConfigConsumer {
   /**
    * List users with pagination, filtering, and search.
    */
-  async getAllUsers(params: PaginationParams & {
-    search?: string;
-    role?: UserRole;
-  }): Promise<PaginatedResult<SafeUser & { postsCount: number; displayNameFormatted: string }>> {
+  async getAllUsers(
+    params: PaginationParams & {
+      search?: string;
+      role?: UserRole;
+    },
+  ): Promise<
+    PaginatedResult<
+      SafeUser & { postsCount: number; displayNameFormatted: string }
+    >
+  > {
     const { page, limit, sortBy, sortOrder, search, role } = params;
     const skip = (page - 1) * limit;
 
@@ -134,10 +145,10 @@ export class UserService implements UserConfigConsumer {
     if (role) where.role = role;
     if (search) {
       where.OR = [
-        { username: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
+        { username: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { firstName: { contains: search, mode: "insensitive" } },
+        { lastName: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -223,7 +234,8 @@ export class UserService implements UserConfigConsumer {
     };
 
     if (this.config.enableNickname) updateData.nickname = data.nickname;
-    if (this.config.enableDisplayNameChoice) updateData.displayName = data.displayName;
+    if (this.config.enableDisplayNameChoice)
+      updateData.displayName = data.displayName;
     if (this.config.enableSocialLinks) {
       updateData.facebook = data.facebook;
       updateData.twitter = data.twitter;
@@ -338,9 +350,12 @@ export class UserService implements UserConfigConsumer {
       country: data.country,
     };
 
-    if (typeof data.password === 'string' && data.password.trim().length > 0) {
+    if (typeof data.password === "string" && data.password.trim().length > 0) {
       validatePasswordStrength(data.password, this.config);
-      updateData.password = await hashPassword(data.password, this.config.bcryptRounds);
+      updateData.password = await hashPassword(
+        data.password,
+        this.config.bcryptRounds,
+      );
     }
 
     return this.prisma.user.update({
@@ -368,11 +383,12 @@ export class UserService implements UserConfigConsumer {
     role: UserRole,
   ): Promise<{ updated: number; role: UserRole; ids: string[] }> {
     const ids = this.normalizeIds(userIds);
-    if (ids.length === 0) throw new ValidationError('No user IDs provided');
-    if (!USER_ROLES.includes(role)) throw new ValidationError(`Invalid role: ${role}`);
+    if (ids.length === 0) throw new ValidationError("No user IDs provided");
+    if (!USER_ROLES.includes(role))
+      throw new ValidationError(`Invalid role: ${role}`);
 
-    if (role !== 'SUPER_ADMIN') {
-      await this.ensureSuperAdminSafety(ids, 'update');
+    if (role !== "SUPER_ADMIN") {
+      await this.ensureSuperAdminSafety(ids, "update");
     }
 
     const result = await this.prisma.user.updateMany({
@@ -387,9 +403,9 @@ export class UserService implements UserConfigConsumer {
     userIds: string[],
   ): Promise<{ deleted: number; ids: string[] }> {
     const ids = this.normalizeIds(userIds);
-    if (ids.length === 0) throw new ValidationError('No user IDs provided');
+    if (ids.length === 0) throw new ValidationError("No user IDs provided");
 
-    await this.ensureSuperAdminSafety(ids, 'delete');
+    await this.ensureSuperAdminSafety(ids, "delete");
 
     const result = await this.prisma.user.deleteMany({
       where: { id: { in: ids } },
@@ -403,7 +419,7 @@ export class UserService implements UserConfigConsumer {
     verified: boolean,
   ): Promise<{ updated: number; verified: boolean; ids: string[] }> {
     const ids = this.normalizeIds(userIds);
-    if (ids.length === 0) throw new ValidationError('No user IDs provided');
+    if (ids.length === 0) throw new ValidationError("No user IDs provided");
 
     const result = await this.prisma.user.updateMany({
       where: { id: { in: ids } },
@@ -422,15 +438,15 @@ export class UserService implements UserConfigConsumer {
       select: { role: true, username: true },
     });
 
-    if (!user) throw new NotFoundError('User not found');
+    if (!user) throw new NotFoundError("User not found");
 
-    if (user.role === 'SUPER_ADMIN') {
+    if (user.role === "SUPER_ADMIN") {
       const count = await this.prisma.user.count({
-        where: { role: 'SUPER_ADMIN' },
+        where: { role: "SUPER_ADMIN" },
       });
       if (count <= 1) {
         throw new ValidationError(
-          'Cannot delete the last Super Admin account. Please create another Super Admin before deleting this account.',
+          "Cannot delete the last Super Admin account. Please create another Super Admin before deleting this account.",
         );
       }
     }
@@ -446,14 +462,14 @@ export class UserService implements UserConfigConsumer {
     newPassword: string,
   ): Promise<{ message: string }> {
     if (!this.config.allowPasswordChange) {
-      throw new ValidationError('Password changes are currently disabled');
+      throw new ValidationError("Password changes are currently disabled");
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundError('User not found');
+    if (!user) throw new NotFoundError("User not found");
 
     const valid = await comparePassword(currentPassword, user.password);
-    if (!valid) throw new ValidationError('Current password is incorrect');
+    if (!valid) throw new ValidationError("Current password is incorrect");
 
     validatePasswordStrength(newPassword, this.config);
     const hashed = await hashPassword(newPassword, this.config.bcryptRounds);
@@ -463,7 +479,7 @@ export class UserService implements UserConfigConsumer {
       data: { password: hashed },
     });
 
-    return { message: 'Password changed successfully' };
+    return { message: "Password changed successfully" };
   }
 
   // ─── My Profile (end-user self-service) ───────────────────────────────
@@ -472,7 +488,9 @@ export class UserService implements UserConfigConsumer {
    * Get the currently authenticated user's own profile.
    * Same data shape as getUserById — convenience alias for "me" endpoints.
    */
-  async getMyProfile(userId: string): Promise<SafeUser & { postsCount: number }> {
+  async getMyProfile(
+    userId: string,
+  ): Promise<SafeUser & { postsCount: number }> {
     return this.getUserById(userId);
   }
 
@@ -486,28 +504,30 @@ export class UserService implements UserConfigConsumer {
     password: string,
   ): Promise<{ message: string }> {
     if (!this.config.allowSelfDeletion) {
-      throw new ValidationError('Account self-deletion is currently disabled');
+      throw new ValidationError("Account self-deletion is currently disabled");
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundError('User not found');
+    if (!user) throw new NotFoundError("User not found");
 
     // Prevent deleting the last Super Admin
-    if (user.role === 'SUPER_ADMIN') {
-      const count = await this.prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
+    if (user.role === "SUPER_ADMIN") {
+      const count = await this.prisma.user.count({
+        where: { role: "SUPER_ADMIN" },
+      });
       if (count <= 1) {
         throw new ValidationError(
-          'Cannot delete the last Super Admin account. Please create another Super Admin first.',
+          "Cannot delete the last Super Admin account. Please create another Super Admin first.",
         );
       }
     }
 
     const valid = await comparePassword(password, user.password);
-    if (!valid) throw new ValidationError('Password is incorrect');
+    if (!valid) throw new ValidationError("Password is incorrect");
 
     await this.prisma.user.delete({ where: { id: userId } });
 
-    return { message: 'Account deleted successfully' };
+    return { message: "Account deleted successfully" };
   }
 
   /**
@@ -516,17 +536,19 @@ export class UserService implements UserConfigConsumer {
    */
   async changeUsername(userId: string, newUsername: string): Promise<SafeUser> {
     if (!this.config.allowUsernameChange) {
-      throw new ValidationError('Username changes are currently disabled');
+      throw new ValidationError("Username changes are currently disabled");
     }
 
     const sanitized = sanitizeSlug(newUsername);
     if (!sanitized || sanitized.length < 3) {
-      throw new ValidationError('Username must be at least 3 characters');
+      throw new ValidationError("Username must be at least 3 characters");
     }
 
-    const existing = await this.prisma.user.findUnique({ where: { username: sanitized } });
+    const existing = await this.prisma.user.findUnique({
+      where: { username: sanitized },
+    });
     if (existing && existing.id !== userId) {
-      throw new ValidationError('Username already taken');
+      throw new ValidationError("Username already taken");
     }
 
     return this.prisma.user.update({
@@ -551,7 +573,7 @@ export class UserService implements UserConfigConsumer {
     newPassword: string,
   ): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundError('User not found');
+    if (!user) throw new NotFoundError("User not found");
 
     validatePasswordStrength(newPassword, this.config);
     const hashed = await hashPassword(newPassword, this.config.bcryptRounds);
@@ -567,7 +589,10 @@ export class UserService implements UserConfigConsumer {
       data: { revokedAt: new Date() },
     });
 
-    return { message: 'Password reset successfully. All user sessions have been revoked.' };
+    return {
+      message:
+        "Password reset successfully. All user sessions have been revoked.",
+    };
   }
 
   // ─── Admin: Create User Directly ──────────────────────────────────────
@@ -587,29 +612,39 @@ export class UserService implements UserConfigConsumer {
     isEmailVerified?: boolean;
   }): Promise<SafeUser> {
     const normalEmail = sanitizeEmail(data.email);
-    if (!normalEmail) throw new ValidationError('Invalid email format');
+    if (!normalEmail) throw new ValidationError("Invalid email format");
 
-    const existing = await this.prisma.user.findUnique({ where: { email: normalEmail } });
-    if (existing) throw new ValidationError('Email already registered');
+    const existing = await this.prisma.user.findUnique({
+      where: { email: normalEmail },
+    });
+    if (existing) throw new ValidationError("Email already registered");
 
     validatePasswordStrength(data.password, this.config);
-    const hashedPw = await hashPassword(data.password, this.config.bcryptRounds);
+    const hashedPw = await hashPassword(
+      data.password,
+      this.config.bcryptRounds,
+    );
 
     // Generate unique username
-    const baseUsername = sanitizeSlug(data.username || normalEmail.split('@')[0]);
+    const baseUsername = sanitizeSlug(
+      data.username || normalEmail.split("@")[0],
+    );
     let username = baseUsername;
     let counter = 1;
     while (await this.prisma.user.findUnique({ where: { username } })) {
       username = `${baseUsername}${counter}`;
       counter++;
       if (counter > 100) {
-        throw new Error("Unable to generate a unique username after 100 attempts");
+        throw new Error(
+          "Unable to generate a unique username after 100 attempts",
+        );
       }
     }
 
-    const role: UserRole = data.role && USER_ROLES.includes(data.role)
-      ? data.role
-      : this.config.defaultRole;
+    const role: UserRole =
+      data.role && USER_ROLES.includes(data.role)
+        ? data.role
+        : this.config.defaultRole;
 
     const user = await this.prisma.user.create({
       data: {
@@ -624,7 +659,9 @@ export class UserService implements UserConfigConsumer {
       },
     });
 
-    return this.stripSensitiveFields(user);
+    return this.stripSensitiveFields(
+      user as unknown as Record<string, unknown>,
+    );
   }
 
   // ─── Admin: User Detail View ──────────────────────────────────────────
@@ -670,7 +707,7 @@ export class UserService implements UserConfigConsumer {
    */
   async adminRevokeAllSessions(userId: string): Promise<{ revoked: number }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundError('User not found');
+    if (!user) throw new NotFoundError("User not found");
 
     const result = await this.prisma.userSession.updateMany({
       where: { userId, revokedAt: null },
@@ -692,19 +729,25 @@ export class UserService implements UserConfigConsumer {
     newEmailCode?: string;
   }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundError('User not found');
+    if (!user) throw new NotFoundError("User not found");
 
     const existing = await this.prisma.user.findUnique({
       where: { email: newEmail },
     });
-    if (existing) throw new ValidationError('Email already in use');
+    if (existing) throw new ValidationError("Email already in use");
 
-    const oldEmailCode = crypto.randomBytes(4).toString('hex').toUpperCase();
-    const newEmailCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const oldEmailCode = crypto.randomBytes(4).toString("hex").toUpperCase();
+    const newEmailCode = crypto.randomBytes(4).toString("hex").toUpperCase();
 
     // Hash codes before storing — consistent with how all other tokens are stored
-    const oldEmailCodeHash = crypto.createHash('sha256').update(oldEmailCode).digest('hex');
-    const newEmailCodeHash = crypto.createHash('sha256').update(newEmailCode).digest('hex');
+    const oldEmailCodeHash = crypto
+      .createHash("sha256")
+      .update(oldEmailCode)
+      .digest("hex");
+    const newEmailCodeHash = crypto
+      .createHash("sha256")
+      .update(newEmailCode)
+      .digest("hex");
 
     const request = await this.prisma.emailChangeRequest.create({
       data: {
@@ -717,14 +760,20 @@ export class UserService implements UserConfigConsumer {
       },
     });
 
-    await this.mail.sendEmailChangeVerification(user.email, oldEmailCode, 'OLD');
-    await this.mail.sendEmailChangeVerification(newEmail, newEmailCode, 'NEW');
+    await this.mail.sendEmailChangeVerification(
+      user.email,
+      oldEmailCode,
+      "OLD",
+    );
+    await this.mail.sendEmailChangeVerification(newEmail, newEmailCode, "NEW");
 
     return {
       requestId: request.id,
-      message: 'Verification codes sent to both email addresses',
-      oldEmailCode: process.env.NODE_ENV === 'development' ? oldEmailCode : undefined,
-      newEmailCode: process.env.NODE_ENV === 'development' ? newEmailCode : undefined,
+      message: "Verification codes sent to both email addresses",
+      oldEmailCode:
+        process.env.NODE_ENV === "development" ? oldEmailCode : undefined,
+      newEmailCode:
+        process.env.NODE_ENV === "development" ? newEmailCode : undefined,
     };
   }
 
@@ -737,19 +786,25 @@ export class UserService implements UserConfigConsumer {
       where: { id: data.requestId },
     });
 
-    if (!request) throw new NotFoundError('Email change request not found');
+    if (!request) throw new NotFoundError("Email change request not found");
     if (new Date() > request.expiresAt) {
-      throw new ValidationError('Verification codes have expired');
+      throw new ValidationError("Verification codes have expired");
     }
 
-    const oldCodeHash = crypto.createHash('sha256').update(data.oldEmailCode.toUpperCase()).digest('hex');
-    const newCodeHash = crypto.createHash('sha256').update(data.newEmailCode.toUpperCase()).digest('hex');
+    const oldCodeHash = crypto
+      .createHash("sha256")
+      .update(data.oldEmailCode.toUpperCase())
+      .digest("hex");
+    const newCodeHash = crypto
+      .createHash("sha256")
+      .update(data.newEmailCode.toUpperCase())
+      .digest("hex");
 
     const oldValid = request.oldEmailCode === oldCodeHash;
     const newValid = request.newEmailCode === newCodeHash;
 
     if (!oldValid || !newValid) {
-      throw new ValidationError('Invalid verification codes');
+      throw new ValidationError("Invalid verification codes");
     }
 
     await this.prisma.emailChangeRequest.update({
@@ -758,8 +813,8 @@ export class UserService implements UserConfigConsumer {
     });
 
     const msg = this.config.emailChangeRequiresAdminApproval
-      ? 'Email addresses verified. Waiting for admin approval.'
-      : 'Email change completed successfully.';
+      ? "Email addresses verified. Waiting for admin approval."
+      : "Email change completed successfully.";
 
     // Auto-approve if admin approval is not required
     if (!this.config.emailChangeRequiresAdminApproval) {
@@ -769,19 +824,17 @@ export class UserService implements UserConfigConsumer {
     return { message: msg, requestId: request.id };
   }
 
-  async approveEmailChange(
-    requestId: string,
-  ): Promise<{ message: string }> {
+  async approveEmailChange(requestId: string): Promise<{ message: string }> {
     const request = await this.prisma.emailChangeRequest.findUnique({
       where: { id: requestId },
     });
 
-    if (!request) throw new NotFoundError('Email change request not found');
+    if (!request) throw new NotFoundError("Email change request not found");
     if (!request.oldEmailVerified || !request.newEmailVerified) {
-      throw new ValidationError('Email addresses not verified yet');
+      throw new ValidationError("Email addresses not verified yet");
     }
     if (request.adminApproved) {
-      throw new ValidationError('Request already approved');
+      throw new ValidationError("Request already approved");
     }
 
     await this.prisma.$transaction([
@@ -795,7 +848,7 @@ export class UserService implements UserConfigConsumer {
       }),
     ]);
 
-    return { message: 'Email change approved and completed' };
+    return { message: "Email change approved and completed" };
   }
 
   async getPendingEmailChangeRequests() {
@@ -818,16 +871,26 @@ export class UserService implements UserConfigConsumer {
     return safe as unknown as SafeUser;
   }
 
-  private getFormattedDisplayName(user: Pick<SafeUser, 'displayName' | 'firstName' | 'lastName' | 'nickname' | 'email' | 'username'>): string {
-    const displayType = user.displayName || 'username';
+  private getFormattedDisplayName(
+    user: Pick<
+      SafeUser,
+      | "displayName"
+      | "firstName"
+      | "lastName"
+      | "nickname"
+      | "email"
+      | "username"
+    >,
+  ): string {
+    const displayType = user.displayName || "username";
     switch (displayType) {
-      case 'firstName':
+      case "firstName":
         return user.firstName || user.username;
-      case 'lastName':
+      case "lastName":
         return user.lastName || user.username;
-      case 'nickname':
+      case "nickname":
         return user.nickname || user.username;
-      case 'email':
+      case "email":
         return user.email;
       default:
         return user.username;
@@ -842,15 +905,15 @@ export class UserService implements UserConfigConsumer {
 
   private async ensureSuperAdminSafety(
     userIds: string[],
-    action: 'delete' | 'update',
+    action: "delete" | "update",
   ): Promise<void> {
     const selectedCount = await this.prisma.user.count({
-      where: { id: { in: userIds }, role: 'SUPER_ADMIN' },
+      where: { id: { in: userIds }, role: "SUPER_ADMIN" },
     });
     if (selectedCount === 0) return;
 
     const totalCount = await this.prisma.user.count({
-      where: { role: 'SUPER_ADMIN' },
+      where: { role: "SUPER_ADMIN" },
     });
 
     if (totalCount - selectedCount < 1) {

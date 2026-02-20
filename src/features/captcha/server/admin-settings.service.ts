@@ -10,29 +10,29 @@ import type {
   CaptchaStats,
   CaptchaProviderType,
   CaptchaMode,
-} from '../types';
-import { DEFAULT_CAPTCHA_CONFIG } from '../utils/constants';
-import { createLogger } from '@/server/observability/logger';
+} from "../types";
+import { DEFAULT_CAPTCHA_CONFIG } from "../utils/constants";
+import { createLogger } from "@/server/observability/logger";
 
-const logger = createLogger('captcha/admin-settings');
+const logger = createLogger("captcha/admin-settings");
 
 // ─── Service map for per-service requirements ───────────────────────────────
 
 type ServiceName =
-  | 'login'
-  | 'registration'
-  | 'comments'
-  | 'contact'
-  | 'passwordReset'
-  | 'newsletter';
+  | "login"
+  | "registration"
+  | "comments"
+  | "contact"
+  | "passwordReset"
+  | "newsletter";
 
 const SERVICE_FIELD_MAP: Record<ServiceName, keyof CaptchaSystemSettings> = {
-  login: 'requireCaptchaForLogin',
-  registration: 'requireCaptchaForRegistration',
-  comments: 'requireCaptchaForComments',
-  contact: 'requireCaptchaForContact',
-  passwordReset: 'requireCaptchaForPasswordReset',
-  newsletter: 'requireCaptchaForNewsletter',
+  login: "requireCaptchaForLogin",
+  registration: "requireCaptchaForRegistration",
+  comments: "requireCaptchaForComments",
+  contact: "requireCaptchaForContact",
+  passwordReset: "requireCaptchaForPasswordReset",
+  newsletter: "requireCaptchaForNewsletter",
 };
 
 // ─── Admin Settings Service ─────────────────────────────────────────────────
@@ -76,7 +76,7 @@ export class CaptchaAdminSettingsService {
    * Automatically propagates to all registered services.
    */
   async updateSettings(
-    changes: Partial<Omit<CaptchaSystemSettings, 'id' | 'updatedAt'>>,
+    changes: Partial<Omit<CaptchaSystemSettings, "id" | "updatedAt">>,
     updatedBy: string,
   ): Promise<CaptchaSystemSettings> {
     const current = await this.getSettings();
@@ -119,14 +119,17 @@ export class CaptchaAdminSettingsService {
     updatedBy: string,
   ): Promise<CaptchaSystemSettings> {
     const fieldMap: Record<CaptchaProviderType, keyof CaptchaSystemSettings> = {
-      turnstile: 'enableTurnstile',
-      'recaptcha-v3': 'enableRecaptchaV3',
-      'recaptcha-v2': 'enableRecaptchaV2',
-      hcaptcha: 'enableHcaptcha',
-      custom: 'enableInhouse',
+      turnstile: "enableTurnstile",
+      "recaptcha-v3": "enableRecaptchaV3",
+      "recaptcha-v2": "enableRecaptchaV2",
+      hcaptcha: "enableHcaptcha",
+      custom: "enableInhouse",
     };
     const field = fieldMap[provider];
-    return this.updateSettings({ [field]: enabled } as Partial<CaptchaSystemSettings>, updatedBy);
+    return this.updateSettings(
+      { [field]: enabled } as Partial<CaptchaSystemSettings>,
+      updatedBy,
+    );
   }
 
   // ─── Per-Service Toggle ─────────────────────────────────────────────────
@@ -138,7 +141,10 @@ export class CaptchaAdminSettingsService {
     updatedBy: string,
   ): Promise<CaptchaSystemSettings> {
     const field = SERVICE_FIELD_MAP[service];
-    return this.updateSettings({ [field]: required } as Partial<CaptchaSystemSettings>, updatedBy);
+    return this.updateSettings(
+      { [field]: required } as Partial<CaptchaSystemSettings>,
+      updatedBy,
+    );
   }
 
   // ─── Captcha Requirement Check ──────────────────────────────────────────
@@ -165,34 +171,40 @@ export class CaptchaAdminSettingsService {
 
     // Global kill switch
     if (!settings.captchaEnabled) {
-      return { required: false, reason: 'Captcha is globally disabled' };
+      return { required: false, reason: "Captcha is globally disabled" };
     }
 
     // Mode check
-    if ((settings.captchaMode as CaptchaMode) === 'disabled') {
-      return { required: false, reason: 'Captcha mode is set to disabled' };
+    if ((settings.captchaMode as CaptchaMode) === "disabled") {
+      return { required: false, reason: "Captcha mode is set to disabled" };
     }
 
     // Per-service check
     const serviceField = SERVICE_FIELD_MAP[opts.service];
     if (serviceField && !settings[serviceField]) {
-      return { required: false, reason: `Captcha not required for ${opts.service}` };
+      return {
+        required: false,
+        reason: `Captcha not required for ${opts.service}`,
+      };
     }
 
     // Admin exemption
     if (opts.isAdmin && settings.exemptAdmins) {
-      return { required: false, reason: 'Admin users are exempt from captcha' };
+      return { required: false, reason: "Admin users are exempt from captcha" };
     }
 
     // Authenticated user exemption
     if (opts.isAuthenticated && settings.exemptAuthenticatedUsers) {
-      return { required: false, reason: 'Authenticated users are exempt from captcha' };
+      return {
+        required: false,
+        reason: "Authenticated users are exempt from captcha",
+      };
     }
 
     // IP exemption
     if (opts.clientIp && settings.exemptedIps.length > 0) {
       if (settings.exemptedIps.includes(opts.clientIp)) {
-        return { required: false, reason: 'Client IP is in exempted list' };
+        return { required: false, reason: "Client IP is in exempted list" };
       }
     }
 
@@ -236,12 +248,14 @@ export class CaptchaAdminSettingsService {
           success: false,
           createdAt: { gte: windowStart },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: "asc" },
         select: { createdAt: true },
       });
 
       const retryAfterMs = oldest
-        ? oldest.createdAt.getTime() + settings.lockoutDurationMinutes * 60 * 1000 - Date.now()
+        ? (oldest.createdAt as Date).getTime() +
+          settings.lockoutDurationMinutes * 60 * 1000 -
+          Date.now()
         : settings.lockoutDurationMinutes * 60 * 1000;
 
       return {
@@ -279,7 +293,10 @@ export class CaptchaAdminSettingsService {
   // ─── Exempted IPs Management ────────────────────────────────────────────
 
   /** Add IPs to exempted list */
-  async addExemptedIps(ips: string[], updatedBy: string): Promise<CaptchaSystemSettings> {
+  async addExemptedIps(
+    ips: string[],
+    updatedBy: string,
+  ): Promise<CaptchaSystemSettings> {
     const current = await this.getSettings();
     const existing = new Set(current.exemptedIps);
     for (const ip of ips) existing.add(ip.trim());
@@ -287,7 +304,10 @@ export class CaptchaAdminSettingsService {
   }
 
   /** Remove IPs from exempted list */
-  async removeExemptedIps(ips: string[], updatedBy: string): Promise<CaptchaSystemSettings> {
+  async removeExemptedIps(
+    ips: string[],
+    updatedBy: string,
+  ): Promise<CaptchaSystemSettings> {
     const current = await this.getSettings();
     const toRemove = new Set(ips.map((ip) => ip.trim()));
     const filtered = current.exemptedIps.filter((ip) => !toRemove.has(ip));
@@ -331,11 +351,11 @@ export class CaptchaAdminSettingsService {
 
     // Enabled providers
     const enabledProviders: CaptchaProviderType[] = [];
-    if (settings.enableTurnstile) enabledProviders.push('turnstile');
-    if (settings.enableRecaptchaV3) enabledProviders.push('recaptcha-v3');
-    if (settings.enableRecaptchaV2) enabledProviders.push('recaptcha-v2');
-    if (settings.enableHcaptcha) enabledProviders.push('hcaptcha');
-    if (settings.enableInhouse) enabledProviders.push('custom');
+    if (settings.enableTurnstile) enabledProviders.push("turnstile");
+    if (settings.enableRecaptchaV3) enabledProviders.push("recaptcha-v3");
+    if (settings.enableRecaptchaV2) enabledProviders.push("recaptcha-v2");
+    if (settings.enableHcaptcha) enabledProviders.push("hcaptcha");
+    if (settings.enableInhouse) enabledProviders.push("custom");
 
     // Enabled services
     const enabledServices: ServiceName[] = [];
@@ -349,9 +369,10 @@ export class CaptchaAdminSettingsService {
         totalAttempts24h: totalAttempts,
         successfulVerifications24h: successfulAttempts,
         failedVerifications24h: failedAttempts,
-        successRate: totalAttempts > 0
-          ? Math.round((successfulAttempts / totalAttempts) * 100)
-          : 100,
+        successRate:
+          totalAttempts > 0
+            ? Math.round((successfulAttempts / totalAttempts) * 100)
+            : 100,
         lockedOutCount: lockedOut,
         providerBreakdown,
       },
@@ -372,7 +393,10 @@ export class CaptchaAdminSettingsService {
   async getFrontendSettings(): Promise<Record<string, unknown>> {
     const settings = await this.getSettings();
 
-    if (!settings.captchaEnabled || (settings.captchaMode as CaptchaMode) === 'disabled') {
+    if (
+      !settings.captchaEnabled ||
+      (settings.captchaMode as CaptchaMode) === "disabled"
+    ) {
       return { captchaEnabled: false };
     }
 
@@ -382,16 +406,24 @@ export class CaptchaAdminSettingsService {
 
       // Site keys: DB value overrides env var
       turnstileSiteKey: settings.enableTurnstile
-        ? (settings.turnstileSiteKey || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || undefined)
+        ? settings.turnstileSiteKey ||
+          process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
+          undefined
         : undefined,
       recaptchaV3SiteKey: settings.enableRecaptchaV3
-        ? (settings.recaptchaV3SiteKey || process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY || undefined)
+        ? settings.recaptchaV3SiteKey ||
+          process.env.NEXT_PUBLIC_RECAPTCHA_V3_SITE_KEY ||
+          undefined
         : undefined,
       recaptchaV2SiteKey: settings.enableRecaptchaV2
-        ? (settings.recaptchaV2SiteKey || process.env.NEXT_PUBLIC_RECAPTCHA_V2_SITE_KEY || undefined)
+        ? settings.recaptchaV2SiteKey ||
+          process.env.NEXT_PUBLIC_RECAPTCHA_V2_SITE_KEY ||
+          undefined
         : undefined,
       hcaptchaSiteKey: settings.enableHcaptcha
-        ? (settings.hcaptchaSiteKey || process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || undefined)
+        ? settings.hcaptchaSiteKey ||
+          process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ||
+          undefined
         : undefined,
 
       // Per-provider toggles (orchestrator uses these to skip disabled providers)
@@ -402,7 +434,9 @@ export class CaptchaAdminSettingsService {
       enableInhouse: settings.enableInhouse,
 
       // Fallback
-      fallbackOrder: settings.enableFallbackChain ? settings.fallbackOrder : undefined,
+      fallbackOrder: settings.enableFallbackChain
+        ? settings.fallbackOrder
+        : undefined,
 
       // In-house config
       inhouseCodeLength: settings.inhouseCodeLength,
@@ -465,26 +499,34 @@ export class CaptchaAdminSettingsService {
           inhouseCodeLength: DEFAULT_CAPTCHA_CONFIG.inhouseCodeLength,
           inhouseChallengeTtlMs: DEFAULT_CAPTCHA_CONFIG.inhouseChallengeTtlMs,
           inhouseMaxRetries: DEFAULT_CAPTCHA_CONFIG.inhouseMaxRetries,
-          inhouseChallengeEndpoint: DEFAULT_CAPTCHA_CONFIG.inhouseChallengeEndpoint,
+          inhouseChallengeEndpoint:
+            DEFAULT_CAPTCHA_CONFIG.inhouseChallengeEndpoint,
 
           // Script loading
           scriptLoadTimeoutMs: DEFAULT_CAPTCHA_CONFIG.scriptLoadTimeoutMs,
 
           // Per-service requirements
           requireCaptchaForLogin: DEFAULT_CAPTCHA_CONFIG.requireCaptchaForLogin,
-          requireCaptchaForRegistration: DEFAULT_CAPTCHA_CONFIG.requireCaptchaForRegistration,
-          requireCaptchaForComments: DEFAULT_CAPTCHA_CONFIG.requireCaptchaForComments,
-          requireCaptchaForContact: DEFAULT_CAPTCHA_CONFIG.requireCaptchaForContact,
-          requireCaptchaForPasswordReset: DEFAULT_CAPTCHA_CONFIG.requireCaptchaForPasswordReset,
-          requireCaptchaForNewsletter: DEFAULT_CAPTCHA_CONFIG.requireCaptchaForNewsletter,
+          requireCaptchaForRegistration:
+            DEFAULT_CAPTCHA_CONFIG.requireCaptchaForRegistration,
+          requireCaptchaForComments:
+            DEFAULT_CAPTCHA_CONFIG.requireCaptchaForComments,
+          requireCaptchaForContact:
+            DEFAULT_CAPTCHA_CONFIG.requireCaptchaForContact,
+          requireCaptchaForPasswordReset:
+            DEFAULT_CAPTCHA_CONFIG.requireCaptchaForPasswordReset,
+          requireCaptchaForNewsletter:
+            DEFAULT_CAPTCHA_CONFIG.requireCaptchaForNewsletter,
 
           // Difficulty
-          recaptchaV3ScoreThreshold: DEFAULT_CAPTCHA_CONFIG.recaptchaV3ScoreThreshold,
+          recaptchaV3ScoreThreshold:
+            DEFAULT_CAPTCHA_CONFIG.recaptchaV3ScoreThreshold,
           maxFailedAttempts: DEFAULT_CAPTCHA_CONFIG.maxFailedAttempts,
           lockoutDurationMinutes: DEFAULT_CAPTCHA_CONFIG.lockoutDurationMinutes,
 
           // Exemptions
-          exemptAuthenticatedUsers: DEFAULT_CAPTCHA_CONFIG.exemptAuthenticatedUsers,
+          exemptAuthenticatedUsers:
+            DEFAULT_CAPTCHA_CONFIG.exemptAuthenticatedUsers,
           exemptAdmins: DEFAULT_CAPTCHA_CONFIG.exemptAdmins,
           exemptedIps: DEFAULT_CAPTCHA_CONFIG.exemptedIps,
 
@@ -499,7 +541,9 @@ export class CaptchaAdminSettingsService {
     return this.cached;
   }
 
-  private async propagateConfig(settings: CaptchaSystemSettings): Promise<void> {
+  private async propagateConfig(
+    settings: CaptchaSystemSettings,
+  ): Promise<void> {
     const cfg: Required<CaptchaConfig> = {
       captchaEnabled: settings.captchaEnabled,
       captchaMode: settings.captchaMode as CaptchaMode,
@@ -540,15 +584,17 @@ export class CaptchaAdminSettingsService {
       exemptAdmins: settings.exemptAdmins,
       exemptedIps: settings.exemptedIps,
 
-      theme: settings.theme as 'light' | 'dark' | 'auto',
-      size: settings.size as 'normal' | 'compact',
+      theme: settings.theme as "light" | "dark" | "auto",
+      size: settings.size as "normal" | "compact",
     };
 
     for (const consumer of this.consumers) {
       try {
         consumer.updateConfig(cfg);
       } catch (err) {
-        logger.error('Config propagation error', { error: err instanceof Error ? err.message : String(err) });
+        logger.error("Config propagation error", {
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
   }
@@ -562,7 +608,7 @@ export class CaptchaAdminSettingsService {
     try {
       // Group failed attempts by IP and count those exceeding threshold
       const groups = await this.prisma.captchaAttempt.groupBy({
-        by: ['clientIp'],
+        by: ["clientIp"],
         where: {
           success: false,
           createdAt: { gte: since },
@@ -570,8 +616,8 @@ export class CaptchaAdminSettingsService {
         _count: true,
       });
 
-      return groups.filter(
-        (g: { _count: number }) => g._count >= settings.maxFailedAttempts,
+      return (groups as { _count: number; clientIp: string }[]).filter(
+        (g) => g._count >= settings.maxFailedAttempts,
       ).length;
     } catch {
       return 0;
@@ -580,17 +626,26 @@ export class CaptchaAdminSettingsService {
 
   private async getProviderBreakdown(
     since: Date,
-  ): Promise<Record<string, { attempts: number; successes: number; failures: number }>> {
-    const breakdown: Record<string, { attempts: number; successes: number; failures: number }> = {};
+  ): Promise<
+    Record<string, { attempts: number; successes: number; failures: number }>
+  > {
+    const breakdown: Record<
+      string,
+      { attempts: number; successes: number; failures: number }
+    > = {};
 
     try {
       const groups = await this.prisma.captchaAttempt.groupBy({
-        by: ['provider', 'success'],
+        by: ["provider", "success"],
         where: { createdAt: { gte: since } },
         _count: true,
       });
 
-      for (const g of groups) {
+      for (const g of groups as {
+        provider: string;
+        success: boolean;
+        _count: number;
+      }[]) {
         if (!breakdown[g.provider]) {
           breakdown[g.provider] = { attempts: 0, successes: 0, failures: 0 };
         }

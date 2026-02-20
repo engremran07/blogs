@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { createLogger } from "@/server/observability/logger";
 import { commentService } from "@/server/wiring";
 import { voteSchema } from "@/features/comments/server/schemas";
@@ -12,13 +12,8 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required to vote" },
-        { status: 401 },
-      );
-    }
+    const { userId, errorResponse } = await requireAuth();
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const parsed = voteSchema.safeParse(body);
@@ -31,7 +26,7 @@ export async function POST(
 
     const comment = await commentService.vote(id, {
       type: parsed.data.type,
-      userId: session.user.id,
+      userId,
     });
 
     return NextResponse.json({ success: true, data: comment });

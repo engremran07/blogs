@@ -14,7 +14,7 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=()",
   },
-  // CSP is set dynamically by middleware (src/proxy.ts) with per-request nonce.
+  // CSP is set dynamically by proxy (src/proxy.ts) with per-request nonce.
 ];
 
 const nextConfig: NextConfig = {
@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
     // Load redirects from the database at build time.
     // For dynamic redirects at runtime, use the /api/seo/redirects endpoint.
     try {
-      const { PrismaClient } = require("@prisma/client");
+      const { PrismaClient } = await import("@prisma/client");
       const prisma = new PrismaClient();
       const rows = await prisma.seoRedirect.findMany({
         where: { isActive: true },

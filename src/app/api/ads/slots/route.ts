@@ -3,7 +3,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { adsService } from "@/server/wiring";
 import {
   createSlotSchema,
@@ -12,10 +12,8 @@ import {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const params = Object.fromEntries(req.nextUrl.searchParams);
     const { activeOnly } = listQuerySchema.parse(params);
@@ -31,10 +29,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const input = createSlotSchema.parse(body);

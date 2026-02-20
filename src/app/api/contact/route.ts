@@ -104,12 +104,16 @@ export async function POST(req: NextRequest) {
     `;
 
     if (recipientEmail) {
-      try {
-        const smtpConfig = () => siteSettingsService.getSmtpConfig();
-        await sendTransactionalEmail(smtpConfig, recipientEmail, safeSubject, html);
-      } catch (err) {
-        console.error("[Contact] Failed to send email:", (err as Error).message);
-        // Still return success — message was received
+      // Only send if emailNotifyOnContact is enabled (defaults to true when not set)
+      const notifyOnContact = (raw.emailNotifyOnContact as boolean | undefined) ?? true;
+      if (notifyOnContact) {
+        try {
+          const smtpConfig = () => siteSettingsService.getSmtpConfig();
+          await sendTransactionalEmail(smtpConfig, recipientEmail, safeSubject, html);
+        } catch (err) {
+          console.error("[Contact] Failed to send email:", (err as Error).message);
+          // Still return success — message was received
+        }
       }
     }
 

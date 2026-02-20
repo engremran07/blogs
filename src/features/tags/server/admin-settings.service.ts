@@ -4,13 +4,9 @@
 // at runtime through this service. Changes persist in PostgreSQL via TagSettings model.
 // Pure TS + Prisma — zero framework dependency
 
-import type {
-  TagsPrismaClient,
-  TagSystemSettings,
-  TagsConfig,
-} from '../types';
-import { AutocompleteMode } from '../types';
-import { DEFAULT_CONFIG } from './constants';
+import type { TagsPrismaClient, TagSystemSettings, TagsConfig } from "../types";
+import { AutocompleteMode } from "../types";
+import { DEFAULT_CONFIG } from "./constants";
 
 // Services to propagate config updates to
 interface ConfigConsumer {
@@ -24,9 +20,7 @@ export class AdminSettingsService {
   /** Registered services that need config propagation */
   private consumers: ConfigConsumer[] = [];
 
-  constructor(
-    private readonly prisma: TagsPrismaClient,
-  ) {}
+  constructor(private readonly prisma: TagsPrismaClient) {}
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SERVICE REGISTRATION — services register to receive config updates
@@ -78,7 +72,7 @@ export class AdminSettingsService {
    * Automatically propagates to all registered services.
    */
   async updateSettings(
-    changes: Partial<Omit<TagSystemSettings, 'id' | 'updatedAt'>>,
+    changes: Partial<Omit<TagSystemSettings, "id" | "updatedAt">>,
     updatedBy?: string,
   ): Promise<TagSystemSettings> {
     const current = await this.getSettings();
@@ -86,47 +80,68 @@ export class AdminSettingsService {
     const data: Record<string, unknown> = {};
 
     // Core behavior
-    if (changes.caseSensitive !== undefined) data.caseSensitive = changes.caseSensitive;
-    if (changes.forceLowercase !== undefined) data.forceLowercase = changes.forceLowercase;
-    if (changes.spaceDelimiter !== undefined) data.spaceDelimiter = changes.spaceDelimiter;
-    if (changes.maxTagsPerPost !== undefined) data.maxTagsPerPost = changes.maxTagsPerPost;
+    if (changes.caseSensitive !== undefined)
+      data.caseSensitive = changes.caseSensitive;
+    if (changes.forceLowercase !== undefined)
+      data.forceLowercase = changes.forceLowercase;
+    if (changes.spaceDelimiter !== undefined)
+      data.spaceDelimiter = changes.spaceDelimiter;
+    if (changes.maxTagsPerPost !== undefined)
+      data.maxTagsPerPost = changes.maxTagsPerPost;
 
     // Autocomplete
-    if (changes.autocompleteLimit !== undefined) data.autocompleteLimit = changes.autocompleteLimit;
-    if (changes.autocompleteMode !== undefined) data.autocompleteMode = changes.autocompleteMode;
-    if (changes.autocompleteMinChars !== undefined) data.autocompleteMinChars = changes.autocompleteMinChars;
+    if (changes.autocompleteLimit !== undefined)
+      data.autocompleteLimit = changes.autocompleteLimit;
+    if (changes.autocompleteMode !== undefined)
+      data.autocompleteMode = changes.autocompleteMode;
+    if (changes.autocompleteMinChars !== undefined)
+      data.autocompleteMinChars = changes.autocompleteMinChars;
 
     // Protection
     if (changes.protectAll !== undefined) data.protectAll = changes.protectAll;
-    if (changes.protectInitial !== undefined) data.protectInitial = changes.protectInitial;
+    if (changes.protectInitial !== undefined)
+      data.protectInitial = changes.protectInitial;
 
     // Initial tags
-    if (changes.initialTags !== undefined) data.initialTags = changes.initialTags;
+    if (changes.initialTags !== undefined)
+      data.initialTags = changes.initialTags;
 
     // Tag cloud
-    if (changes.tagCloudMin !== undefined) data.tagCloudMin = changes.tagCloudMin;
-    if (changes.tagCloudMax !== undefined) data.tagCloudMax = changes.tagCloudMax;
+    if (changes.tagCloudMin !== undefined)
+      data.tagCloudMin = changes.tagCloudMin;
+    if (changes.tagCloudMax !== undefined)
+      data.tagCloudMax = changes.tagCloudMax;
 
     // Tree
     if (changes.enableTree !== undefined) data.enableTree = changes.enableTree;
-    if (changes.treeSeparator !== undefined) data.treeSeparator = changes.treeSeparator;
+    if (changes.treeSeparator !== undefined)
+      data.treeSeparator = changes.treeSeparator;
 
     // Following
-    if (changes.enableFollowing !== undefined) data.enableFollowing = changes.enableFollowing;
+    if (changes.enableFollowing !== undefined)
+      data.enableFollowing = changes.enableFollowing;
 
     // Auto-tagging
-    if (changes.autoTagMaxTags !== undefined) data.autoTagMaxTags = changes.autoTagMaxTags;
-    if (changes.autoTagMinConfidence !== undefined) data.autoTagMinConfidence = changes.autoTagMinConfidence;
-    if (changes.enableLlmAutoTag !== undefined) data.enableLlmAutoTag = changes.enableLlmAutoTag;
+    if (changes.autoTagMaxTags !== undefined)
+      data.autoTagMaxTags = changes.autoTagMaxTags;
+    if (changes.autoTagMinConfidence !== undefined)
+      data.autoTagMinConfidence = changes.autoTagMinConfidence;
+    if (changes.enableLlmAutoTag !== undefined)
+      data.enableLlmAutoTag = changes.enableLlmAutoTag;
 
     // Cleanup
-    if (changes.autoCleanupDays !== undefined) data.autoCleanupDays = changes.autoCleanupDays;
+    if (changes.autoCleanupDays !== undefined)
+      data.autoCleanupDays = changes.autoCleanupDays;
 
     // Limits
-    if (changes.maxNameLength !== undefined) data.maxNameLength = changes.maxNameLength;
-    if (changes.maxDescriptionLength !== undefined) data.maxDescriptionLength = changes.maxDescriptionLength;
-    if (changes.maxSynonyms !== undefined) data.maxSynonyms = changes.maxSynonyms;
-    if (changes.maxLinkedTags !== undefined) data.maxLinkedTags = changes.maxLinkedTags;
+    if (changes.maxNameLength !== undefined)
+      data.maxNameLength = changes.maxNameLength;
+    if (changes.maxDescriptionLength !== undefined)
+      data.maxDescriptionLength = changes.maxDescriptionLength;
+    if (changes.maxSynonyms !== undefined)
+      data.maxSynonyms = changes.maxSynonyms;
+    if (changes.maxLinkedTags !== undefined)
+      data.maxLinkedTags = changes.maxLinkedTags;
     if (changes.maxBulkIds !== undefined) data.maxBulkIds = changes.maxBulkIds;
 
     // Metadata
@@ -137,7 +152,7 @@ export class AdminSettingsService {
       data,
     });
 
-    this.cached = updated as TagSystemSettings;
+    this.cached = updated as unknown as TagSystemSettings;
 
     // Propagate to all registered services
     this.propagateConfig();
@@ -179,15 +194,14 @@ export class AdminSettingsService {
     let restored = 0;
 
     for (const entry of tagList) {
-      const name = settings.forceLowercase ? entry.name.toLowerCase() : entry.name;
+      const name = settings.forceLowercase
+        ? entry.name.toLowerCase()
+        : entry.name;
       const slug = entry.slug ?? this.slugify(name);
 
       const found = await this.prisma.tag.findFirst({
         where: {
-          OR: [
-            { slug },
-            { name: { equals: name, mode: 'insensitive' } },
-          ],
+          OR: [{ slug }, { name: { equals: name, mode: "insensitive" } }],
         },
       });
 
@@ -205,7 +219,7 @@ export class AdminSettingsService {
         let parentId: string | null = null;
         if (entry.parentName) {
           const parent = await this.prisma.tag.findFirst({
-            where: { name: { equals: entry.parentName, mode: 'insensitive' } },
+            where: { name: { equals: entry.parentName, mode: "insensitive" } },
           });
           parentId = parent?.id ?? null;
         }
@@ -274,12 +288,12 @@ export class AdminSettingsService {
       }),
     ]);
 
-    const avgUsage = allTags.length > 0
-      ? allTags.reduce((s: number, t) => s + t.usageCount, 0) / allTags.length
-      : 0;
-    const treeDepthMax = allTags.length > 0
-      ? Math.max(...allTags.map((t) => t.level ?? 1))
-      : 0;
+    const avgUsage =
+      allTags.length > 0
+        ? allTags.reduce((s: number, t) => s + t.usageCount, 0) / allTags.length
+        : 0;
+    const treeDepthMax =
+      allTags.length > 0 ? Math.max(...allTags.map((t) => t.level ?? 1)) : 0;
 
     return {
       settings,
@@ -339,7 +353,7 @@ export class AdminSettingsService {
       });
     }
 
-    this.cached = settings as TagSystemSettings;
+    this.cached = settings as unknown as TagSystemSettings;
     return this.cached;
   }
 
@@ -384,13 +398,13 @@ export class AdminSettingsService {
 
   private slugify(text: string): string {
     return text
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
       .substring(0, 200);
   }
 }

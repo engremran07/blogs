@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { createLogger } from "@/server/observability/logger";
 import { moderationService } from "@/server/wiring";
 import { bulkIdsSchema } from "@/features/comments/server/schemas";
@@ -9,14 +9,8 @@ const logger = createLogger("api/comments/bulk");
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-    }
-    const role = session.user.role;
-    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json({ success: false, error: "Insufficient permissions" }, { status: 403 });
-    }
+    const { userId, errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
     const body = await req.json();
     const { action, ids } = body;
 
@@ -37,7 +31,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const moderatorId = session.user.id || "system";
+    const moderatorId = userId || "system";
 
     switch (action) {
       case "delete": {

@@ -29,8 +29,7 @@ const PREFIX = '[Captcha]';
 const IS_DEV =
   typeof process !== 'undefined' && typeof process.env !== 'undefined'
     ? (process as { env: Record<string, string | undefined> }).env.NODE_ENV !== 'production'
-    : typeof window !== 'undefined' &&
-      (window as unknown as Record<string, unknown>).__DEV__ === true;
+    : typeof window !== 'undefined' && window.__DEV__ === true;
 
 /* ── noop for suppressed levels ── */
 const noop = (): void => {};

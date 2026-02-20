@@ -8,12 +8,12 @@ import type {
   CommentSystemSettings,
   CommentConfigConsumer,
   CommentStats,
-} from '../types';
-import { CommentStatus } from '../types';
-import { DEFAULT_CONFIG } from './constants';
-import { createLogger } from '@/server/observability/logger';
+} from "../types";
+import { CommentStatus } from "../types";
+import { DEFAULT_CONFIG } from "./constants";
+import { createLogger } from "@/server/observability/logger";
 
-const logger = createLogger('comments/admin-settings');
+const logger = createLogger("comments/admin-settings");
 
 export class CommentAdminSettingsService {
   private consumers: CommentConfigConsumer[] = [];
@@ -54,7 +54,7 @@ export class CommentAdminSettingsService {
    * Automatically propagates to all registered services.
    */
   async updateSettings(
-    changes: Partial<Omit<CommentSystemSettings, 'id' | 'updatedAt'>>,
+    changes: Partial<Omit<CommentSystemSettings, "id" | "updatedAt">>,
     updatedBy: string,
   ): Promise<CommentSystemSettings> {
     const current = await this.getSettings();
@@ -119,7 +119,12 @@ export class CommentAdminSettingsService {
       this.prisma.comment.count({ where: { isPinned: true } }),
       this.prisma.comment.count({ where: { isResolved: true } }),
       this.prisma.comment.count({ where: { createdAt: { gte: oneDayAgo } } }),
-      this.prisma.comment.count({ where: { status: CommentStatus.FLAGGED, createdAt: { gte: oneWeekAgo } } }),
+      this.prisma.comment.count({
+        where: {
+          status: CommentStatus.FLAGGED,
+          createdAt: { gte: oneWeekAgo },
+        },
+      }),
       this.prisma.comment.aggregate({ _avg: { spamScore: true } }),
     ]);
 
@@ -136,7 +141,9 @@ export class CommentAdminSettingsService {
         resolved,
         todayCount,
         recentFlagged,
-        averageSpamScore: avgSpamScore._avg.spamScore ?? 0,
+        averageSpamScore:
+          (avgSpamScore as { _avg: { spamScore: number | null } })._avg
+            .spamScore ?? 0,
         blockedEmailCount: settings.blockedEmails.length,
         blockedDomainCount: settings.blockedDomains.length,
         blockedIpCount: settings.blockedIps.length,
@@ -151,7 +158,7 @@ export class CommentAdminSettingsService {
 
   /** Add entries to a blocked list (emails, domains, or IPs) */
   async addToBlockedList(
-    list: 'blockedEmails' | 'blockedDomains' | 'blockedIps',
+    list: "blockedEmails" | "blockedDomains" | "blockedIps",
     entries: string[],
     updatedBy: string,
   ): Promise<CommentSystemSettings> {
@@ -163,7 +170,7 @@ export class CommentAdminSettingsService {
 
   /** Remove entries from a blocked list */
   async removeFromBlockedList(
-    list: 'blockedEmails' | 'blockedDomains' | 'blockedIps',
+    list: "blockedEmails" | "blockedDomains" | "blockedIps",
     entries: string[],
     updatedBy: string,
   ): Promise<CommentSystemSettings> {
@@ -176,25 +183,39 @@ export class CommentAdminSettingsService {
   // ─── Spam Keywords Management ───────────────────────────────────────────
 
   /** Add custom spam keywords */
-  async addSpamKeywords(keywords: string[], updatedBy: string): Promise<CommentSystemSettings> {
+  async addSpamKeywords(
+    keywords: string[],
+    updatedBy: string,
+  ): Promise<CommentSystemSettings> {
     const current = await this.getSettings();
     const existing = new Set(current.customSpamKeywords);
     for (const kw of keywords) existing.add(kw.toLowerCase().trim());
-    return this.updateSettings({ customSpamKeywords: [...existing] }, updatedBy);
+    return this.updateSettings(
+      { customSpamKeywords: [...existing] },
+      updatedBy,
+    );
   }
 
   /** Remove custom spam keywords */
-  async removeSpamKeywords(keywords: string[], updatedBy: string): Promise<CommentSystemSettings> {
+  async removeSpamKeywords(
+    keywords: string[],
+    updatedBy: string,
+  ): Promise<CommentSystemSettings> {
     const current = await this.getSettings();
     const toRemove = new Set(keywords.map((kw) => kw.toLowerCase().trim()));
-    const filtered = current.customSpamKeywords.filter((kw) => !toRemove.has(kw));
+    const filtered = current.customSpamKeywords.filter(
+      (kw) => !toRemove.has(kw),
+    );
     return this.updateSettings({ customSpamKeywords: filtered }, updatedBy);
   }
 
   // ─── Profanity Words Management ─────────────────────────────────────────
 
   /** Add profanity words */
-  async addProfanityWords(words: string[], updatedBy: string): Promise<CommentSystemSettings> {
+  async addProfanityWords(
+    words: string[],
+    updatedBy: string,
+  ): Promise<CommentSystemSettings> {
     const current = await this.getSettings();
     const existing = new Set(current.profanityWords);
     for (const w of words) existing.add(w.toLowerCase().trim());
@@ -202,7 +223,10 @@ export class CommentAdminSettingsService {
   }
 
   /** Remove profanity words */
-  async removeProfanityWords(words: string[], updatedBy: string): Promise<CommentSystemSettings> {
+  async removeProfanityWords(
+    words: string[],
+    updatedBy: string,
+  ): Promise<CommentSystemSettings> {
     const current = await this.getSettings();
     const toRemove = new Set(words.map((w) => w.toLowerCase().trim()));
     const filtered = current.profanityWords.filter((w) => !toRemove.has(w));
@@ -222,7 +246,7 @@ export class CommentAdminSettingsService {
     const settings = await this.getSettings();
 
     if (!settings.commentsEnabled) {
-      return { allowed: false, reason: 'Comments are globally disabled' };
+      return { allowed: false, reason: "Comments are globally disabled" };
     }
 
     if (settings.closeCommentsAfterDays > 0) {
@@ -329,7 +353,9 @@ export class CommentAdminSettingsService {
     return this.cached;
   }
 
-  private async propagateConfig(settings: CommentSystemSettings): Promise<void> {
+  private async propagateConfig(
+    settings: CommentSystemSettings,
+  ): Promise<void> {
     const cfg: Required<CommentsConfig> = {
       maxContentLength: settings.maxContentLength,
       maxAuthorNameLength: settings.maxAuthorNameLength,
@@ -370,7 +396,9 @@ export class CommentAdminSettingsService {
       try {
         consumer.updateConfig(cfg);
       } catch (err) {
-        logger.error('Config propagation error', { error: err instanceof Error ? err.message : String(err) });
+        logger.error("Config propagation error", {
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
   }

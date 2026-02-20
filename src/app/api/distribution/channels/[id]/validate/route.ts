@@ -2,17 +2,15 @@
  * /api/distribution/channels/[id]/validate — Validate channel credentials
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { distributionService } from "@/server/wiring";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(_req: NextRequest, ctx: Params) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await ctx.params;
     const result = await distributionService.validateChannelCredentials(id);

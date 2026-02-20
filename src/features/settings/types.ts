@@ -16,14 +16,25 @@
 
 // ─── Enums / Const Arrays ───────────────────────────────────────────────────
 
-export const ANNOUNCEMENT_TYPES = ['info', 'warning', 'success', 'error'] as const;
+export const ANNOUNCEMENT_TYPES = [
+  "info",
+  "warning",
+  "success",
+  "error",
+] as const;
 export type AnnouncementType = (typeof ANNOUNCEMENT_TYPES)[number];
 
-export const HEADER_STYLES = ['static', 'sticky', 'fixed'] as const;
+export const HEADER_STYLES = ["static", "sticky", "fixed"] as const;
 export type HeaderStyle = (typeof HEADER_STYLES)[number];
 
 export const SITEMAP_CHANGE_FREQS = [
-  'always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never',
+  "always",
+  "hourly",
+  "daily",
+  "weekly",
+  "monthly",
+  "yearly",
+  "never",
 ] as const;
 export type SitemapChangeFreq = (typeof SITEMAP_CHANGE_FREQS)[number];
 
@@ -32,7 +43,12 @@ export type SitemapChangeFreq = (typeof SITEMAP_CHANGE_FREQS)[number];
  * 'none' means CAPTCHA is not configured site-wide.
  */
 export const CAPTCHA_PROVIDERS = [
-  'none', 'turnstile', 'recaptcha-v3', 'recaptcha-v2', 'hcaptcha', 'custom',
+  "none",
+  "turnstile",
+  "recaptcha-v3",
+  "recaptcha-v2",
+  "hcaptcha",
+  "custom",
 ] as const;
 export type CaptchaProviderType = (typeof CAPTCHA_PROVIDERS)[number];
 
@@ -359,6 +375,96 @@ export interface SiteConfig {
   /** Enable distribution module (CORE — default: false) */
   distributionEnabled: boolean;
 
+  // ── Blog Layout ───────────────────────────────────────────────────────
+  /** Blog listing layout style (CORE — default: 'grid') */
+  blogLayout: string;
+  /** Number of columns in grid layout (CORE — default: 2) */
+  blogColumns: number;
+  /** Show author name in blog listing (CORE — default: true) */
+  showAuthor: boolean;
+  /** Show published date (CORE — default: true) */
+  showDate: boolean;
+  /** Show last-updated date (CORE — default: true) */
+  showUpdatedDate: boolean;
+  /** Show estimated read time (CORE — default: true) */
+  showReadTime: boolean;
+  /** Show tags in listing cards (CORE — default: true) */
+  showTags: boolean;
+  /** Show featured image in listing (CORE — default: true) */
+  showFeaturedImage: boolean;
+  /** Show excerpt in listing (CORE — default: true) */
+  showExcerpt: boolean;
+  /** Show view count on posts (CORE — default: false) */
+  showViewCount: boolean;
+
+  // ── Sidebar ───────────────────────────────────────────────────────────
+  /** Enable sidebar (CORE — default: true) */
+  sidebarEnabled: boolean;
+  /** Sidebar position: 'left' or 'right' (CORE — default: 'right') */
+  sidebarPosition: string;
+  /** Show search widget in sidebar (CORE — default: true) */
+  sidebarShowSearch: boolean;
+  /** Show recent posts widget (CORE — default: true) */
+  sidebarShowRecentPosts: boolean;
+  /** Show categories widget (CORE — default: true) */
+  sidebarShowCategories: boolean;
+  /** Show tag cloud widget (CORE — default: true) */
+  sidebarShowTags: boolean;
+  /** Show archive widget (CORE — default: false) */
+  sidebarShowArchive: boolean;
+  /** Number of recent posts to display (CORE — default: 5) */
+  sidebarRecentPostsCount: number;
+
+  // ── Single Post ───────────────────────────────────────────────────────
+  /** Show related posts section (CORE — default: true) */
+  relatedPostsEnabled: boolean;
+  /** Number of related posts (CORE — default: 3) */
+  relatedPostsCount: number;
+  /** Enable social sharing buttons (CORE — default: true) */
+  socialSharingEnabled: boolean;
+  /** Enable table of contents (CORE — default: false) */
+  tableOfContentsEnabled: boolean;
+  /** Show prev/next post navigation (CORE — default: true) */
+  showPostNavigation: boolean;
+
+  // ── Comment Settings ──────────────────────────────────────────────────
+  /** Enable comment moderation (CORE — default: true) */
+  enableCommentModeration: boolean;
+  /** Auto-approve comments without review (CORE — default: false) */
+  autoApproveComments: boolean;
+  /** Enable upvote/downvote on comments (CORE — default: false) */
+  enableCommentVoting: boolean;
+  /** Enable threaded/nested comments (CORE — default: true) */
+  enableCommentThreading: boolean;
+  /** Allow guest (non-registered) comments (CORE — default: true) */
+  allowGuestComments: boolean;
+  /** Maximum reply depth (CORE — default: 5) */
+  maxReplyDepth: number;
+  /** Close comments after N days, 0 = never (CORE — default: 0) */
+  closeCommentsAfterDays: number;
+  /** Edit window in minutes after posting (CORE — default: 30) */
+  editWindowMinutes: number;
+
+  // ── Defaults ──────────────────────────────────────────────────────────
+  /** Default status for new posts (CORE — default: 'DRAFT') */
+  defaultPostStatus: string;
+
+  // ── Additional SEO Verifications ──────────────────────────────────────
+  /** Yandex Webmaster verification code (on-request) */
+  seoYandexVerification: string | null;
+  /** Pinterest verification code (on-request) */
+  seoPinterestVerification: string | null;
+  /** Baidu Webmaster verification code (on-request) */
+  seoBaiduVerification: string | null;
+
+  // ── Menu / JSON Blobs ─────────────────────────────────────────────────
+  /** Serialised menu structure (JSON blob) */
+  menuStructure: unknown;
+  /** Theme configuration overrides (JSON blob) */
+  themeConfig: unknown;
+  /** Distribution module configuration (JSON blob) */
+  distributionConfig: unknown;
+
   // ── Admin Bar ─────────────────────────────────────────────────────────
   /** Enable admin bar globally (CORE — default: true) */
   adminBarEnabled: boolean;
@@ -497,6 +603,9 @@ export interface SeoConfig {
   seoGoogleVerification: string | null;
   seoGoogleAnalyticsId: string | null;
   seoBingVerification: string | null;
+  seoYandexVerification: string | null;
+  seoPinterestVerification: string | null;
+  seoBaiduVerification: string | null;
 }
 
 /** Extracts maintenance mode fields. */
@@ -679,23 +788,12 @@ export interface SiteConfigConsumer {
 
 // ─── Minimal Prisma Interface ───────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export interface PrismaDelegate {
-  findUnique(args: any): Promise<any>;
-  findFirst(args?: any): Promise<any>;
-  findMany(args?: any): Promise<any[]>;
-  create(args: any): Promise<any>;
-  update(args: any): Promise<any>;
-  updateMany(args: any): Promise<any>;
-  delete(args: any): Promise<any>;
-  deleteMany(args: any): Promise<any>;
-  count(args?: any): Promise<number>;
-}
+import type { PrismaDelegate } from "@/shared/prisma-delegate.types";
+export type { PrismaDelegate };
 
 export interface SiteSettingsPrismaClient {
-  siteSettings: PrismaDelegate;
+  siteSettings: PrismaDelegate<SiteSystemSettings>;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ─── API Response Envelope ──────────────────────────────────────────────────
 

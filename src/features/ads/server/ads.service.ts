@@ -1,10 +1,23 @@
 // src/features/ads/server/ads.service.ts
 import type {
-  AdsPrismaClient, CacheProvider, AdsConfig, SafeAdProvider,
-  AdsOverviewStats, PlacementStats, ComplianceScanResult, ComplianceIssue,
-  AdProviderType, AdPosition, AdPlacementRecord,
+  AdsPrismaClient,
+  CacheProvider,
+  AdsConfig,
+  SafeAdProvider,
+  AdsOverviewStats,
+  PlacementStats,
+  ComplianceScanResult,
+  ComplianceIssue,
+  AdProviderType,
+  AdPosition,
+  AdPlacementRecord,
+  AdsAggregateResult,
 } from "../types";
-import { PROVIDER_SENSITIVE_FIELDS, DEFAULT_ADS_TXT, generateSlug } from "./constants";
+import {
+  PROVIDER_SENSITIVE_FIELDS,
+  DEFAULT_ADS_TXT,
+  generateSlug,
+} from "./constants";
 import { sanitizeAdCode } from "./sanitization.util";
 
 export interface AdsServiceDeps {
@@ -33,7 +46,7 @@ export class AdsService {
       where,
       include: { _count: { select: { placements: true } } },
       orderBy: { priority: "desc" },
-    } as any);
+    });
   }
 
   stripSensitiveFields(provider: any): SafeAdProvider {
@@ -47,7 +60,7 @@ export class AdsService {
   async createProvider(input: Record<string, any>): Promise<any> {
     const slug = input.slug || generateSlug(input.name);
     const provider = await this.prisma.adProvider.create({
-      data: { ...input, slug } as any,
+      data: { ...input, slug },
       include: { _count: { select: { placements: true } } },
     });
     await this.cache.invalidatePrefix("ads:");
@@ -58,7 +71,7 @@ export class AdsService {
     return this.prisma.adProvider.findUnique({
       where: { id },
       include: { _count: { select: { placements: true } } },
-    } as any);
+    });
   }
 
   async updateProvider(id: string, input: Record<string, any>): Promise<any> {
@@ -67,7 +80,7 @@ export class AdsService {
     }
     const provider = await this.prisma.adProvider.update({
       where: { id },
-      data: input as any,
+      data: input,
       include: { _count: { select: { placements: true } } },
     });
     await this.cache.invalidatePrefix("ads:");
@@ -118,13 +131,13 @@ export class AdsService {
       where,
       include: { _count: { select: { placements: true } } },
       orderBy: { renderPriority: "desc" },
-    } as any);
+    });
   }
 
   async createSlot(input: Record<string, any>): Promise<any> {
     const slug = input.slug || generateSlug(input.name);
     const slot = await this.prisma.adSlot.create({
-      data: { ...input, slug } as any,
+      data: { ...input, slug },
       include: { _count: { select: { placements: true } } },
     });
     await this.cache.invalidatePrefix("ads:");
@@ -135,7 +148,7 @@ export class AdsService {
     return this.prisma.adSlot.findUnique({
       where: { id },
       include: { _count: { select: { placements: true } } },
-    } as any);
+    });
   }
 
   async updateSlot(id: string, input: Record<string, any>): Promise<any> {
@@ -144,7 +157,7 @@ export class AdsService {
     }
     const slot = await this.prisma.adSlot.update({
       where: { id },
-      data: input as any,
+      data: input,
       include: { _count: { select: { placements: true } } },
     });
     await this.cache.invalidatePrefix("ads:");
@@ -165,7 +178,7 @@ export class AdsService {
         provider: { select: { name: true, type: true } },
         slot: { select: { name: true, position: true, format: true } },
       },
-    } as any);
+    });
   }
 
   async findPlacementsForPage(
@@ -208,7 +221,10 @@ export class AdsService {
     if (containerWidth && containerWidth > 0) {
       where.OR = [
         { minContainerWidth: 0, maxContainerWidth: 0 },
-        { minContainerWidth: { lte: containerWidth }, maxContainerWidth: { gte: containerWidth } },
+        {
+          minContainerWidth: { lte: containerWidth },
+          maxContainerWidth: { gte: containerWidth },
+        },
         { minContainerWidth: { lte: containerWidth }, maxContainerWidth: 0 },
       ];
     }
@@ -245,7 +261,7 @@ export class AdsService {
         },
       },
       orderBy: { slot: { renderPriority: "desc" } },
-    } as any);
+    });
 
     return placements.map((p: any) => this.stripForPublicResponse(p));
   }
@@ -257,7 +273,7 @@ export class AdsService {
         slot: { select: { name: true, position: true, format: true } },
       },
       orderBy: { createdAt: "desc" },
-    } as any);
+    });
   }
 
   async createPlacement(input: Record<string, any>): Promise<any> {
@@ -269,7 +285,7 @@ export class AdsService {
       input.customHtml = sanitizeAdCode(input.customHtml);
     }
     const placement = await this.prisma.adPlacement.create({
-      data: input as any,
+      data: input,
       include: {
         provider: { select: { name: true, type: true } },
         slot: { select: { name: true, position: true, format: true } },
@@ -289,7 +305,7 @@ export class AdsService {
     }
     const placement = await this.prisma.adPlacement.update({
       where: { id },
-      data: input as any,
+      data: input,
       include: {
         provider: { select: { name: true, type: true } },
         slot: { select: { name: true, position: true, format: true } },
@@ -312,7 +328,9 @@ export class AdsService {
       where: { placementId: id, createdAt: { gte: since } },
     });
 
-    const impressions = logs.filter((l: any) => l.eventType === "IMPRESSION").length;
+    const impressions = logs.filter(
+      (l: any) => l.eventType === "IMPRESSION",
+    ).length;
     const clicks = logs.filter((l: any) => l.eventType === "CLICK").length;
     const viewable = logs.filter((l: any) => l.eventType === "VIEWABLE").length;
     const closes = logs.filter((l: any) => l.eventType === "CLOSE").length;
@@ -329,8 +347,17 @@ export class AdsService {
   }
 
   async getOverviewStats(): Promise<AdsOverviewStats> {
-    const [activeProviders, activeSlots, activePlacements, totalProviders, totalSlots, totalPlacements] = await Promise.all([
-      this.prisma.adProvider.count({ where: { isActive: true, killSwitch: false } }),
+    const [
+      activeProviders,
+      activeSlots,
+      activePlacements,
+      totalProviders,
+      totalSlots,
+      totalPlacements,
+    ] = await Promise.all([
+      this.prisma.adProvider.count({
+        where: { isActive: true, killSwitch: false },
+      }),
       this.prisma.adSlot.count({ where: { isActive: true } }),
       this.prisma.adPlacement.count({ where: { isActive: true } }),
       this.prisma.adProvider.count(),
@@ -338,9 +365,9 @@ export class AdsService {
       this.prisma.adPlacement.count(),
     ]);
 
-    const totals = await this.prisma.adPlacement.aggregate({
+    const totals = (await this.prisma.adPlacement.aggregate!({
       _sum: { impressions: true, clicks: true, revenue: true },
-    });
+    })) as unknown as AdsAggregateResult;
 
     const totalImpressions = totals._sum?.impressions ?? 0;
     const totalClicks = totals._sum?.clicks ?? 0;
@@ -356,7 +383,10 @@ export class AdsService {
     });
     const byProvider = providers.map((p) => {
       const pls = (p.placements ?? []) as AdPlacementRecord[];
-      const impressions = pls.reduce((sum, pl) => sum + (pl.impressions ?? 0), 0);
+      const impressions = pls.reduce(
+        (sum, pl) => sum + (pl.impressions ?? 0),
+        0,
+      );
       const clicks = pls.reduce((sum, pl) => sum + (pl.clicks ?? 0), 0);
       return {
         type: p.type as AdProviderType,
@@ -375,21 +405,30 @@ export class AdsService {
         },
       },
     });
-    const positionMap = new Map<string, { impressions: number; clicks: number }>();
+    const positionMap = new Map<
+      string,
+      { impressions: number; clicks: number }
+    >();
     for (const slot of slots) {
-      const existing = positionMap.get(slot.position) ?? { impressions: 0, clicks: 0 };
+      const existing = positionMap.get(slot.position) ?? {
+        impressions: 0,
+        clicks: 0,
+      };
       for (const pl of (slot.placements ?? []) as AdPlacementRecord[]) {
         existing.impressions += pl.impressions ?? 0;
         existing.clicks += pl.clicks ?? 0;
       }
       positionMap.set(slot.position, existing);
     }
-    const byPosition = Array.from(positionMap.entries()).map(([position, stats]) => ({
-      position: position as AdPosition,
-      impressions: stats.impressions,
-      clicks: stats.clicks,
-      ctr: stats.impressions > 0 ? (stats.clicks / stats.impressions) * 100 : 0,
-    }));
+    const byPosition = Array.from(positionMap.entries()).map(
+      ([position, stats]) => ({
+        position: position as AdPosition,
+        impressions: stats.impressions,
+        clicks: stats.clicks,
+        ctr:
+          stats.impressions > 0 ? (stats.clicks / stats.impressions) * 100 : 0,
+      }),
+    );
 
     return {
       totalProviders,
@@ -426,7 +465,11 @@ export class AdsService {
           rule: "MISSING_AD_CONTENT",
         });
       }
-      if (p.startDate && p.endDate && new Date(p.startDate) >= new Date(p.endDate)) {
+      if (
+        p.startDate &&
+        p.endDate &&
+        new Date(p.startDate) >= new Date(p.endDate)
+      ) {
         issues.push({
           placementId: p.id,
           severity: "medium",
@@ -465,7 +508,8 @@ export class AdsService {
     let txt = DEFAULT_ADS_TXT;
     for (const p of providers) {
       if (p.publisherId) {
-        const domain = DOMAIN_MAP[p.type] ?? `${p.type.toLowerCase().replace(/_/g, "")}.com`;
+        const domain =
+          DOMAIN_MAP[p.type] ?? `${p.type.toLowerCase().replace(/_/g, "")}.com`;
         txt += `${domain}, ${p.publisherId}, DIRECT\n`;
       }
     }
@@ -494,7 +538,7 @@ export class AdsService {
   ): Promise<void> {
     // Click deduplication: reject same placement + IP within 30s
     if (eventType === "CLICK") {
-      const ip = (metadata as any)?.ip || "unknown";
+      const ip = typeof metadata?.ip === "string" ? metadata.ip : "unknown";
       const key = `${placementId}:${ip}`;
       const now = Date.now();
       const last = this.clickDedup.get(key);
@@ -505,7 +549,8 @@ export class AdsService {
       // Prune old entries periodically
       if (this.clickDedup.size > 10_000) {
         for (const [k, v] of this.clickDedup) {
-          if (now - v > AdsService.CLICK_DEDUP_WINDOW) this.clickDedup.delete(k);
+          if (now - v > AdsService.CLICK_DEDUP_WINDOW)
+            this.clickDedup.delete(k);
         }
       }
     }
@@ -517,12 +562,12 @@ export class AdsService {
     if (eventType === "IMPRESSION") {
       await this.prisma.adPlacement.update({
         where: { id: placementId },
-        data: { impressions: { increment: 1 } } as any,
+        data: { impressions: { increment: 1 } },
       });
     } else if (eventType === "CLICK") {
       await this.prisma.adPlacement.update({
         where: { id: placementId },
-        data: { clicks: { increment: 1 } } as any,
+        data: { clicks: { increment: 1 } },
       });
     }
   }

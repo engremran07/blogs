@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { blogService } from "@/server/wiring";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { createLogger } from "@/server/observability/logger";
 import { UpdateCategorySchema } from "@/features/blog/server/schemas";
 import type { ScanPrisma } from "@/features/ads/server/scan-pages";
@@ -51,21 +51,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-    // SEC-003: Require content-management role
-    const role = session.user.role;
-    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 },
-      );
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await params;
     const body = await req.json();
@@ -98,21 +85,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-    // SEC-003: Require content-management role
-    const role = session.user.role;
-    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 },
-      );
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await params;
 

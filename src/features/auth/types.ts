@@ -9,12 +9,12 @@
 // ─── Roles ──────────────────────────────────────────────────────────────────
 
 export const USER_ROLES = [
-  'SUBSCRIBER',
-  'CONTRIBUTOR',
-  'AUTHOR',
-  'EDITOR',
-  'ADMINISTRATOR',
-  'SUPER_ADMIN',
+  "SUBSCRIBER",
+  "CONTRIBUTOR",
+  "AUTHOR",
+  "EDITOR",
+  "ADMINISTRATOR",
+  "SUPER_ADMIN",
 ] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
@@ -22,18 +22,18 @@ export type UserRole = (typeof USER_ROLES)[number];
 // ─── Display Name ───────────────────────────────────────────────────────────
 
 export const DISPLAY_NAME_OPTIONS = [
-  'username',
-  'firstName',
-  'lastName',
-  'nickname',
-  'email',
+  "username",
+  "firstName",
+  "lastName",
+  "nickname",
+  "email",
 ] as const;
 
 export type DisplayNamePreference = (typeof DISPLAY_NAME_OPTIONS)[number];
 
 // ─── Cookie SameSite ────────────────────────────────────────────────────────
 
-export const SAME_SITE_OPTIONS = ['lax', 'strict', 'none'] as const;
+export const SAME_SITE_OPTIONS = ["lax", "strict", "none"] as const;
 export type SameSiteOption = (typeof SAME_SITE_OPTIONS)[number];
 
 // ─── User Model (safe — no password/tokens) ────────────────────────────────
@@ -87,6 +87,37 @@ export interface SafeUser {
   updatedAt: Date;
 }
 
+// ─── Full User Record (DB-level — includes password hash) ──────────────────
+
+/** Full User row as stored in DB. Includes sensitive fields — never expose to clients. */
+export interface UserRecord extends SafeUser {
+  password: string;
+  resetPasswordToken: string | null;
+  resetPasswordExpires: Date | null;
+  customCapabilities: string[];
+}
+
+/** UserRecord with optional relation count (returned when `_count` is included in select). */
+export type UserWithCount = UserRecord & {
+  _count?: { posts: number; comments?: number };
+};
+
+/** DB row shape for EmailChangeRequest. */
+export interface EmailChangeRequestRecord {
+  id: string;
+  userId: string;
+  oldEmail: string;
+  newEmail: string;
+  oldEmailCode: string;
+  newEmailCode: string;
+  oldEmailVerified: boolean;
+  newEmailVerified: boolean;
+  adminApproved: boolean;
+  completedAt: Date | null;
+  expiresAt: Date;
+  createdAt: Date;
+}
+
 // ─── Auth Results ───────────────────────────────────────────────────────────
 
 export interface AuthTokens {
@@ -118,7 +149,7 @@ export interface AccessTokenPayload {
 
 export interface RefreshTokenPayload {
   sub: string;
-  tokenType: 'refresh';
+  tokenType: "refresh";
   sid: string;
   iat?: number;
   exp?: number;
@@ -278,7 +309,7 @@ export interface PaginationParams {
   page: number;
   limit: number;
   sortBy: string;
-  sortOrder: 'asc' | 'desc';
+  sortOrder: "asc" | "desc";
 }
 
 export interface PaginatedResult<T> {
@@ -299,7 +330,7 @@ export class AuthError extends Error {
   public readonly statusCode: number;
   constructor(message: string, statusCode = 401) {
     super(message);
-    this.name = 'AuthError';
+    this.name = "AuthError";
     this.statusCode = statusCode;
   }
 }
@@ -308,7 +339,7 @@ export class ValidationError extends Error {
   public readonly statusCode: number;
   constructor(message: string, statusCode = 400) {
     super(message);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
     this.statusCode = statusCode;
   }
 }
@@ -317,7 +348,7 @@ export class NotFoundError extends Error {
   public readonly statusCode: number;
   constructor(message: string, statusCode = 404) {
     super(message);
-    this.name = 'NotFoundError';
+    this.name = "NotFoundError";
     this.statusCode = statusCode;
   }
 }
@@ -330,10 +361,18 @@ export class NotFoundError extends Error {
  */
 export interface MailProvider {
   sendWelcomeEmail(email: string, firstName?: string | null): Promise<void>;
-  sendEmailVerification(email: string, token: string, code: string): Promise<void>;
+  sendEmailVerification(
+    email: string,
+    token: string,
+    code: string,
+  ): Promise<void>;
   sendPasswordReset(email: string, token: string): Promise<void>;
   sendPasswordResetConfirmation(email: string): Promise<void>;
-  sendEmailChangeVerification(email: string, code: string, type: 'OLD' | 'NEW'): Promise<void>;
+  sendEmailChangeVerification(
+    email: string,
+    code: string,
+    type: "OLD" | "NEW",
+  ): Promise<void>;
 }
 
 /**
@@ -341,33 +380,27 @@ export interface MailProvider {
  * (reCAPTCHA, hCaptcha, Turnstile, etc.)
  */
 export interface CaptchaProvider {
-  verify(token: string, ip: string, captchaId?: string, captchaType?: string): Promise<boolean>;
+  verify(
+    token: string,
+    ip: string,
+    captchaId?: string,
+    captchaType?: string,
+  ): Promise<boolean>;
 }
 
 // ─── Minimal Prisma Interface ───────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export interface PrismaDelegate {
-  findUnique(args: any): Promise<any>;
-  findFirst(args?: any): Promise<any>;
-  findMany(args?: any): Promise<any[]>;
-  create(args: any): Promise<any>;
-  update(args: any): Promise<any>;
-  updateMany(args: any): Promise<any>;
-  delete(args: any): Promise<any>;
-  deleteMany(args: any): Promise<any>;
-  count(args?: any): Promise<number>;
-}
+import type { PrismaDelegate } from "@/shared/prisma-delegate.types";
+export type { PrismaDelegate };
 
 export interface UsersPrismaClient {
-  user: PrismaDelegate;
+  user: PrismaDelegate<UserRecord>;
   userSession: PrismaDelegate;
   emailVerificationToken: PrismaDelegate;
-  emailChangeRequest: PrismaDelegate;
+  emailChangeRequest: PrismaDelegate<EmailChangeRequestRecord>;
   userSettings: PrismaDelegate;
   $transaction(operations: unknown[]): Promise<unknown[]>;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ─── API Response Envelope ──────────────────────────────────────────────────
 

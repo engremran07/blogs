@@ -25,7 +25,7 @@ type HCaptchaAPI = {
 
 function getHCaptcha(): HCaptchaAPI | undefined {
   if (typeof window === 'undefined') return undefined;
-  return (window as unknown as Record<string, unknown>).hcaptcha as HCaptchaAPI | undefined;
+  return window.hcaptcha;
 }
 
 function HCaptchaInner({

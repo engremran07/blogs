@@ -17,6 +17,7 @@ interface SeoScoreResult {
 interface UseSeoScoreOptions {
   resourceType: "post" | "page" | null;
   resourceId: string | null;
+  resourceSlug?: string | null;
 }
 
 interface UseSeoScoreReturn {

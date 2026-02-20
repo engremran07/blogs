@@ -1,7 +1,7 @@
-/**
+﻿/**
  * ============================================================================
  * MODULE:   components/site-settings/site-settings.service.ts
- * PURPOSE:  DB-backed dynamic site settings — fully configurable at runtime.
+ * PURPOSE:  DB-backed dynamic site settings â€” fully configurable at runtime.
  *
  * Features:
  *   - Singleton `SiteSettings` row in the database
@@ -9,9 +9,9 @@
  *   - Kill switches: top bar, announcement, maintenance mode, dark mode,
  *     comments, RSS, search, CAPTCHA
  *   - 17 convenience sub-config extractors with dedicated getters + updaters
- *   - Consumer propagation — any service can subscribe to config changes
+ *   - Consumer propagation â€” any service can subscribe to config changes
  *   - ~110 configurable fields across 17 categories
- *   - ON-REQUEST fields default to null — lightweight fresh installs
+ *   - ON-REQUEST fields default to null â€” lightweight fresh installs
  * ============================================================================
  */
 
@@ -43,11 +43,11 @@ import type {
   CustomCodeConfig,
   ModuleKillSwitchConfig,
   AdminBarConfig,
-} from '../types';
-import { DEFAULT_SITE_CONFIG } from './constants';
-import { updateSiteSettingsSchema } from './schemas';
+} from "../types";
+import { DEFAULT_SITE_CONFIG } from "./constants";
+import { updateSiteSettingsSchema } from "./schemas";
 
-// ─── Service ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export class SiteSettingsService {
   private consumers: SiteConfigConsumer[] = [];
@@ -55,14 +55,14 @@ export class SiteSettingsService {
 
   constructor(private readonly prisma: SiteSettingsPrismaClient) {}
 
-  // ─── Consumer Registration ──────────────────────────────────────────────
+  // â”€â”€â”€ Consumer Registration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /** Register a service to receive config updates when admin changes settings. */
   registerConsumer(consumer: SiteConfigConsumer): void {
     this.consumers.push(consumer);
   }
 
-  // ─── Read Settings ──────────────────────────────────────────────────────
+  // â”€â”€â”€ Read Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /** Get current settings (cached). Creates default row if none exists. */
   async getSettings(): Promise<SiteSystemSettings> {
@@ -80,13 +80,17 @@ export class SiteSettingsService {
   async getSettingsResponse(): Promise<ApiResponse<SiteSystemSettings>> {
     try {
       const settings = await this.getSettings();
-      return { success: true, data: settings, timestamp: new Date().toISOString() };
+      return {
+        success: true,
+        data: settings,
+        timestamp: new Date().toISOString(),
+      };
     } catch {
       return {
         success: false,
         error: {
-          code: 'SITE_SETTINGS_READ_ERROR',
-          message: 'Failed to read site settings',
+          code: "SITE_SETTINGS_READ_ERROR",
+          message: "Failed to read site settings",
           statusCode: 500,
         },
         timestamp: new Date().toISOString(),
@@ -94,11 +98,11 @@ export class SiteSettingsService {
     }
   }
 
-  // ─── Update Settings ────────────────────────────────────────────────────
+  // â”€â”€â”€ Update Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  /** Partial update — only provided fields are changed. */
+  /** Partial update â€” only provided fields are changed. */
   async updateSettings(
-    updates: Record<string, unknown>,
+    updates: Partial<SiteConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
     try {
@@ -106,7 +110,7 @@ export class SiteSettingsService {
       const current = await this.getSettings();
 
       const data: Record<string, unknown> = {
-        ...parsed,
+        ...(parsed as Record<string, unknown>),
         updatedAt: new Date(),
       };
       if (updatedBy) data.updatedBy = updatedBy;
@@ -119,13 +123,17 @@ export class SiteSettingsService {
       this.cached = updated as unknown as SiteSystemSettings;
       this.propagateToConsumers();
 
-      return { success: true, data: this.cached, timestamp: new Date().toISOString() };
+      return {
+        success: true,
+        data: this.cached,
+        timestamp: new Date().toISOString(),
+      };
     } catch {
       return {
         success: false,
         error: {
-          code: 'SITE_SETTINGS_UPDATE_ERROR',
-          message: 'Failed to update site settings',
+          code: "SITE_SETTINGS_UPDATE_ERROR",
+          message: "Failed to update site settings",
           statusCode: 400,
         },
         timestamp: new Date().toISOString(),
@@ -134,14 +142,13 @@ export class SiteSettingsService {
   }
 
   /** Reset all settings to defaults. */
-  async resetToDefaults(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(
-      { ...DEFAULT_SITE_CONFIG } as unknown as Record<string, unknown>,
-      updatedBy,
-    );
+  async resetToDefaults(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
+    return this.updateSettings({ ...DEFAULT_SITE_CONFIG }, updatedBy);
   }
 
-  // ─── Top Bar ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ Top Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getTopBarConfig(): Promise<TopBarConfig> {
     const s = await this.getSettings();
@@ -164,13 +171,17 @@ export class SiteSettingsService {
   async getTopBarConfigResponse(): Promise<ApiResponse<TopBarConfig>> {
     try {
       const config = await this.getTopBarConfig();
-      return { success: true, data: config, timestamp: new Date().toISOString() };
+      return {
+        success: true,
+        data: config,
+        timestamp: new Date().toISOString(),
+      };
     } catch {
       return {
         success: false,
         error: {
-          code: 'TOP_BAR_READ_ERROR',
-          message: 'Failed to read top bar config',
+          code: "TOP_BAR_READ_ERROR",
+          message: "Failed to read top bar config",
           statusCode: 500,
         },
         timestamp: new Date().toISOString(),
@@ -178,11 +189,15 @@ export class SiteSettingsService {
     }
   }
 
-  async enableTopBar(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async enableTopBar(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ topBarEnabled: true }, updatedBy);
   }
 
-  async disableTopBar(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async disableTopBar(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ topBarEnabled: false }, updatedBy);
   }
 
@@ -190,10 +205,10 @@ export class SiteSettingsService {
     updates: Partial<TopBarConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── Announcement Banner ─────────────────────────────────────────────
+  // â”€â”€â”€ Announcement Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getAnnouncementConfig(): Promise<AnnouncementConfig> {
     const s = await this.getSettings();
@@ -216,7 +231,9 @@ export class SiteSettingsService {
     return this.updateSettings(updates, updatedBy);
   }
 
-  async disableAnnouncement(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async disableAnnouncement(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ announcementEnabled: false }, updatedBy);
   }
 
@@ -224,10 +241,10 @@ export class SiteSettingsService {
     updates: Partial<AnnouncementConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── Navigation / Header ─────────────────────────────────────────────
+  // â”€â”€â”€ Navigation / Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getNavigationConfig(): Promise<NavigationConfig> {
     const s = await this.getSettings();
@@ -243,10 +260,10 @@ export class SiteSettingsService {
     updates: Partial<NavigationConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── Appearance / Theme ───────────────────────────────────────────────
+  // â”€â”€â”€ Appearance / Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getAppearanceConfig(): Promise<AppearanceConfig> {
     const s = await this.getSettings();
@@ -267,18 +284,22 @@ export class SiteSettingsService {
     updates: Partial<AppearanceConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  async enableDarkMode(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async enableDarkMode(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ darkModeEnabled: true }, updatedBy);
   }
 
-  async disableDarkMode(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async disableDarkMode(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ darkModeEnabled: false }, updatedBy);
   }
 
-  // ─── CAPTCHA (site-wide provider) ─────────────────────────────────────
+  // â”€â”€â”€ CAPTCHA (site-wide provider) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getCaptchaConfig(): Promise<CaptchaConfig> {
     const s = await this.getSettings();
@@ -311,13 +332,17 @@ export class SiteSettingsService {
   async getCaptchaConfigResponse(): Promise<ApiResponse<CaptchaConfig>> {
     try {
       const config = await this.getCaptchaConfig();
-      return { success: true, data: config, timestamp: new Date().toISOString() };
+      return {
+        success: true,
+        data: config,
+        timestamp: new Date().toISOString(),
+      };
     } catch {
       return {
         success: false,
         error: {
-          code: 'CAPTCHA_CONFIG_READ_ERROR',
-          message: 'Failed to read captcha config',
+          code: "CAPTCHA_CONFIG_READ_ERROR",
+          message: "Failed to read captcha config",
           statusCode: 500,
         },
         timestamp: new Date().toISOString(),
@@ -327,9 +352,11 @@ export class SiteSettingsService {
 
   /**
    * Get the public (non-secret) CAPTCHA config safe for frontend consumption.
-   * Excludes the secret key — only returns provider, site key, and thresholds.
+   * Excludes the secret key â€” only returns provider, site key, and thresholds.
    */
-  async getPublicCaptchaConfig(): Promise<Omit<CaptchaConfig, 'captchaSecretKey'>> {
+  async getPublicCaptchaConfig(): Promise<
+    Omit<CaptchaConfig, "captchaSecretKey">
+  > {
     const cfg = await this.getCaptchaConfig();
     const { captchaSecretKey: _secret, ...publicCfg } = cfg;
     return publicCfg;
@@ -339,17 +366,19 @@ export class SiteSettingsService {
     updates: Partial<CaptchaConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
   /** Check if CAPTCHA is configured and active (provider != 'none' and has keys). */
   isCaptchaActive(): boolean {
     const s = this.cached;
     if (!s) return false;
-    return s.captchaProvider !== 'none' && !!s.captchaSiteKey && !!s.captchaSecretKey;
+    return (
+      s.captchaProvider !== "none" && !!s.captchaSiteKey && !!s.captchaSecretKey
+    );
   }
 
-  // ─── Footer ───────────────────────────────────────────────────────────
+  // â”€â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getFooterConfig(): Promise<FooterConfig> {
     const s = await this.getSettings();
@@ -365,10 +394,10 @@ export class SiteSettingsService {
     updates: Partial<FooterConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── Social Links ────────────────────────────────────────────────────
+  // â”€â”€â”€ Social Links â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getSocialLinks(): Promise<SocialLinksConfig> {
     const s = await this.getSettings();
@@ -390,10 +419,10 @@ export class SiteSettingsService {
     updates: Partial<SocialLinksConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── SEO ──────────────────────────────────────────────────────────────
+  // â”€â”€â”€ SEO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getSeoConfig(): Promise<SeoConfig> {
     const s = await this.getSettings();
@@ -406,6 +435,9 @@ export class SiteSettingsService {
       seoGoogleVerification: s.seoGoogleVerification,
       seoGoogleAnalyticsId: s.seoGoogleAnalyticsId,
       seoBingVerification: s.seoBingVerification,
+      seoYandexVerification: s.seoYandexVerification,
+      seoPinterestVerification: s.seoPinterestVerification,
+      seoBaiduVerification: s.seoBaiduVerification,
     };
   }
 
@@ -413,10 +445,10 @@ export class SiteSettingsService {
     updates: Partial<SeoConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── Reading / Content ────────────────────────────────────────────────
+  // â”€â”€â”€ Reading / Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getReadingConfig(): Promise<ReadingConfig> {
     const s = await this.getSettings();
@@ -436,34 +468,46 @@ export class SiteSettingsService {
     updates: Partial<ReadingConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  async enableComments(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async enableComments(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ enableComments: true }, updatedBy);
   }
 
-  async disableComments(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async disableComments(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ enableComments: false }, updatedBy);
   }
 
-  async enableRss(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async enableRss(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ enableRss: true }, updatedBy);
   }
 
-  async disableRss(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async disableRss(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ enableRss: false }, updatedBy);
   }
 
-  async enableSearch(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async enableSearch(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ enableSearch: true }, updatedBy);
   }
 
-  async disableSearch(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async disableSearch(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ enableSearch: false }, updatedBy);
   }
 
-  // ─── Privacy & Legal ─────────────────────────────────────────────────
+  // â”€â”€â”€ Privacy & Legal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getPrivacyConfig(): Promise<PrivacyConfig> {
     const s = await this.getSettings();
@@ -480,26 +524,34 @@ export class SiteSettingsService {
     updates: Partial<PrivacyConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  async enableCookieConsent(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async enableCookieConsent(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ cookieConsentEnabled: true }, updatedBy);
   }
 
-  async disableCookieConsent(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async disableCookieConsent(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ cookieConsentEnabled: false }, updatedBy);
   }
 
-  async enableGdpr(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async enableGdpr(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ gdprEnabled: true }, updatedBy);
   }
 
-  async disableGdpr(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async disableGdpr(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ gdprEnabled: false }, updatedBy);
   }
 
-  // ─── Email Sender ────────────────────────────────────────────────────
+  // â”€â”€â”€ Email Sender â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getEmailSenderConfig(): Promise<EmailSenderConfig> {
     const s = await this.getSettings();
@@ -510,37 +562,36 @@ export class SiteSettingsService {
     };
   }
 
-  async getSmtpConfig(): Promise<import('../types').SmtpConfig> {
+  async getSmtpConfig(): Promise<import("../types").SmtpConfig> {
     const s = await this.getSettings();
-    const raw = s as unknown as Record<string, unknown>;
     return {
-      smtpHost: (raw.smtpHost as string) ?? null,
-      smtpPort: (raw.smtpPort as number) ?? 587,
-      smtpUser: (raw.smtpUser as string) ?? null,
-      smtpPassword: (raw.smtpPassword as string) ?? null,
-      smtpSecure: (raw.smtpSecure as boolean) ?? true,
-      emailFromName: (raw.emailFromName as string) ?? null,
-      emailFromAddress: (raw.emailFromAddress as string) ?? null,
+      smtpHost: s.smtpHost ?? null,
+      smtpPort: s.smtpPort ?? 587,
+      smtpUser: s.smtpUser ?? null,
+      smtpPassword: s.smtpPassword ?? null,
+      smtpSecure: s.smtpSecure ?? true,
+      emailFromName: s.emailFromName ?? null,
+      emailFromAddress: s.emailFromAddress ?? null,
     };
   }
 
-  async getNotificationConfig(): Promise<import('../types').EmailNotificationConfig> {
+  async getNotificationConfig(): Promise<
+    import("../types").EmailNotificationConfig
+  > {
     const s = await this.getSettings();
-    const raw = s as unknown as Record<string, unknown>;
     return {
-      emailNotifyOnComment: (raw.emailNotifyOnComment as boolean) ?? true,
-      emailNotifyOnUser: (raw.emailNotifyOnUser as boolean) ?? true,
-      emailNotifyOnContact: (raw.emailNotifyOnContact as boolean) ?? true,
-      emailWelcomeEnabled: (raw.emailWelcomeEnabled as boolean) ?? true,
+      emailNotifyOnComment: s.emailNotifyOnComment ?? true,
+      emailNotifyOnUser: s.emailNotifyOnUser ?? true,
+      emailNotifyOnContact: s.emailNotifyOnContact ?? true,
+      emailWelcomeEnabled: s.emailWelcomeEnabled ?? true,
     };
   }
 
-  async getDigestConfig(): Promise<import('../types').EmailDigestConfig> {
+  async getDigestConfig(): Promise<import("../types").EmailDigestConfig> {
     const s = await this.getSettings();
-    const raw = s as unknown as Record<string, unknown>;
     return {
-      emailDigestEnabled: (raw.emailDigestEnabled as boolean) ?? false,
-      emailDigestFrequency: (raw.emailDigestFrequency as string) ?? 'weekly',
+      emailDigestEnabled: s.emailDigestEnabled ?? false,
+      emailDigestFrequency: s.emailDigestFrequency ?? "weekly",
     };
   }
 
@@ -548,10 +599,10 @@ export class SiteSettingsService {
     updates: Partial<EmailSenderConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── Third-Party Integrations ─────────────────────────────────────────
+  // â”€â”€â”€ Third-Party Integrations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getIntegrationConfig(): Promise<IntegrationConfig> {
     const s = await this.getSettings();
@@ -568,10 +619,10 @@ export class SiteSettingsService {
     updates: Partial<IntegrationConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── Media ────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Media â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getMediaConfig(): Promise<MediaConfig> {
     const s = await this.getSettings();
@@ -586,7 +637,7 @@ export class SiteSettingsService {
     updates: Partial<MediaConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
   /**
@@ -596,16 +647,16 @@ export class SiteSettingsService {
   isFileTypeAllowed(filename: string): boolean {
     const config = this.cached;
     if (!config || !config.allowedFileTypes) return true;
-    const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+    const ext = filename.split(".").pop()?.toLowerCase() ?? "";
     if (!ext) return false;
     const allowed = config.allowedFileTypes
-      .split(',')
-      .map((s) => s.trim().toLowerCase().replace(/^\./, ''))
+      .split(",")
+      .map((s) => s.trim().toLowerCase().replace(/^\./, ""))
       .filter(Boolean);
     return allowed.length === 0 || allowed.includes(ext);
   }
 
-  // ─── Date & Locale ───────────────────────────────────────────────────
+  // â”€â”€â”€ Date & Locale â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getDateLocaleConfig(): Promise<DateLocaleConfig> {
     const s = await this.getSettings();
@@ -623,10 +674,10 @@ export class SiteSettingsService {
     updates: Partial<DateLocaleConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── PWA ──────────────────────────────────────────────────────────────
+  // â”€â”€â”€ PWA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getPwaConfig(): Promise<PwaConfig> {
     const s = await this.getSettings();
@@ -643,14 +694,18 @@ export class SiteSettingsService {
     updates: Partial<PwaConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  async enablePwa(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async enablePwa(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ pwaEnabled: true }, updatedBy);
   }
 
-  async disablePwa(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async disablePwa(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ pwaEnabled: false }, updatedBy);
   }
 
@@ -664,20 +719,20 @@ export class SiteSettingsService {
       name: s.pwaName || s.siteName,
       short_name: s.pwaShortName || s.siteName,
       description: s.siteDescription,
-      start_url: '/',
-      display: 'standalone',
-      theme_color: s.pwaThemeColor || s.primaryColor || '#3b82f6',
-      background_color: s.pwaBackgroundColor || '#ffffff',
+      start_url: "/",
+      display: "standalone",
+      theme_color: s.pwaThemeColor || s.primaryColor || "#3b82f6",
+      background_color: s.pwaBackgroundColor || "#ffffff",
       icons: s.logoUrl
         ? [
-            { src: s.logoUrl, sizes: '192x192', type: 'image/png' },
-            { src: s.logoUrl, sizes: '512x512', type: 'image/png' },
+            { src: s.logoUrl, sizes: "192x192", type: "image/png" },
+            { src: s.logoUrl, sizes: "512x512", type: "image/png" },
           ]
         : [],
     };
   }
 
-  // ─── Robots / Crawling ────────────────────────────────────────────────
+  // â”€â”€â”€ Robots / Crawling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getRobotsConfig(): Promise<RobotsConfig> {
     const s = await this.getSettings();
@@ -692,7 +747,7 @@ export class SiteSettingsService {
     updates: Partial<RobotsConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
   /**
@@ -703,14 +758,14 @@ export class SiteSettingsService {
     const s = await this.getSettings();
     if (s.robotsTxtCustom) return s.robotsTxtCustom;
 
-    const lines = ['User-agent: *', 'Allow: /'];
+    const lines = ["User-agent: *", "Allow: /"];
     if (s.sitemapEnabled && s.siteUrl) {
-      lines.push('', `Sitemap: ${s.siteUrl}/sitemap.xml`);
+      lines.push("", `Sitemap: ${s.siteUrl}/sitemap.xml`);
     }
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
-  // ─── Maintenance Mode ────────────────────────────────────────────────
+  // â”€â”€â”€ Maintenance Mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getMaintenanceConfig(): Promise<MaintenanceConfig> {
     const s = await this.getSettings();
@@ -730,7 +785,9 @@ export class SiteSettingsService {
     return this.updateSettings(updates, updatedBy);
   }
 
-  async disableMaintenance(updatedBy?: string): Promise<ApiResponse<SiteSystemSettings>> {
+  async disableMaintenance(
+    updatedBy?: string,
+  ): Promise<ApiResponse<SiteSystemSettings>> {
     return this.updateSettings({ maintenanceMode: false }, updatedBy);
   }
 
@@ -743,13 +800,13 @@ export class SiteSettingsService {
     if (!config.maintenanceMode) return true;
     if (!config.maintenanceAllowedIps) return false;
     const allowed = config.maintenanceAllowedIps
-      .split(',')
+      .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
     return allowed.includes(ip);
   }
 
-  // ─── Identity ────────────────────────────────────────────────────────
+  // â”€â”€â”€ Identity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getIdentityConfig(): Promise<IdentityConfig> {
     const s = await this.getSettings();
@@ -770,10 +827,10 @@ export class SiteSettingsService {
     updates: Partial<IdentityConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── Contact ─────────────────────────────────────────────────────────
+  // â”€â”€â”€ Contact â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getContactConfig(): Promise<ContactConfig> {
     const s = await this.getSettings();
@@ -788,10 +845,10 @@ export class SiteSettingsService {
     updates: Partial<ContactConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── Custom Code ─────────────────────────────────────────────────────
+  // â”€â”€â”€ Custom Code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getCustomCodeConfig(): Promise<CustomCodeConfig> {
     const s = await this.getSettings();
@@ -805,10 +862,10 @@ export class SiteSettingsService {
     updates: Partial<CustomCodeConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── Module Kill Switches ─────────────────────────────────────────────
+  // â”€â”€â”€ Module Kill Switches â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getModuleKillSwitchConfig(): Promise<ModuleKillSwitchConfig> {
     const s = await this.getSettings();
@@ -823,10 +880,10 @@ export class SiteSettingsService {
     updates: Partial<ModuleKillSwitchConfig>,
     updatedBy?: string,
   ): Promise<ApiResponse<SiteSystemSettings>> {
-    return this.updateSettings(updates as Record<string, unknown>, updatedBy);
+    return this.updateSettings(updates, updatedBy);
   }
 
-  // ─── Admin Bar Config ─────────────────────────────────────────────────
+  // â”€â”€â”€ Admin Bar Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getAdminBarConfig(): Promise<AdminBarConfig> {
     const s = await this.getSettings();
@@ -845,12 +902,12 @@ export class SiteSettingsService {
       adminBarShowSiteNameDropdown: s.adminBarShowSiteNameDropdown ?? true,
       adminBarShowUserDropdown: s.adminBarShowUserDropdown ?? true,
       adminBarShowEnvBadge: s.adminBarShowEnvBadge ?? true,
-      adminBarBackgroundColor: s.adminBarBackgroundColor ?? '#0d0d18',
-      adminBarAccentColor: s.adminBarAccentColor ?? '#6c63ff',
+      adminBarBackgroundColor: s.adminBarBackgroundColor ?? "#0d0d18",
+      adminBarAccentColor: s.adminBarAccentColor ?? "#6c63ff",
     };
   }
 
-  // ─── Public Page Config (optimised frontend payload) ──────────────────
+  // â”€â”€â”€ Public Page Config (optimised frontend payload) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * Returns a minimal config object safe for public/frontend consumption.
@@ -960,7 +1017,7 @@ export class SiteSettingsService {
       maintenanceMode: s.maintenanceMode,
       maintenanceMessage: s.maintenanceMessage,
 
-      // CAPTCHA (public — no secret key)
+      // CAPTCHA (public â€” no secret key)
       captchaProvider: s.captchaProvider,
       captchaSiteKey: s.captchaSiteKey,
       captchaThreshold: s.captchaThreshold,
@@ -972,14 +1029,14 @@ export class SiteSettingsService {
     };
   }
 
-  // ─── Cache Invalidation ──────────────────────────────────────────────────
+  // â”€â”€â”€ Cache Invalidation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /** Force reload from DB on next access. */
   invalidateCache(): void {
     this.cached = null;
   }
 
-  // ─── Internals ───────────────────────────────────────────────────────────
+  // â”€â”€â”€ Internals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private async loadFromDb(): Promise<SiteSystemSettings> {
     const existing = await this.prisma.siteSettings.findFirst();
@@ -989,7 +1046,7 @@ export class SiteSettingsService {
       return this.cached;
     }
 
-    // First run — seed with defaults
+    // First run â€” seed with defaults
     const created = await this.prisma.siteSettings.create({
       data: {
         ...DEFAULT_SITE_CONFIG,

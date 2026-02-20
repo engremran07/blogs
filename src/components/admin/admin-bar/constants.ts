@@ -68,7 +68,7 @@ export const ROLE_COLORS: Record<string, string> = {
   ADMINISTRATOR: "from-red-500 to-red-700",
   EDITOR: "from-blue-500 to-blue-700",
   AUTHOR: "from-green-500 to-green-700",
-  CONTRIBUTOR: "from-teal-500 to-teal-700",
+  CONTRIBUTOR: "from-yellow-500 to-yellow-700",
   SUBSCRIBER: "from-gray-500 to-gray-700",
 };
 

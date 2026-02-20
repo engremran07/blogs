@@ -6,7 +6,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { siteSettingsService } from "@/server/wiring";
 
 const killSwitchSchema = z.object({
@@ -15,16 +15,8 @@ const killSwitchSchema = z.object({
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (
-      !session?.user ||
-      !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)
-    ) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 },
-      );
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const settings = await siteSettingsService.getSettings();
     const enabled = settings.distributionEnabled ?? false;
@@ -42,16 +34,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (
-      !session?.user ||
-      !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)
-    ) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 },
-      );
-    }
+    const { userId, errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const parsed = killSwitchSchema.safeParse(body);
@@ -69,7 +53,7 @@ export async function POST(req: NextRequest) {
     // Use siteSettingsService so the in-memory cache is updated atomically
     const result = await siteSettingsService.updateSettings(
       { distributionEnabled: isEnabled },
-      session.user.id ?? session.user.email ?? "admin",
+      userId,
     );
 
     if (!result.success) {

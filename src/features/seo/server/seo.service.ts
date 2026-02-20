@@ -33,14 +33,14 @@ import type {
   ApiResponse,
   Logger,
   CacheProvider,
-} from '../types';
+} from "../types";
 import {
   CACHE_KEYS,
   CACHE_TTLS,
   CHECK_TO_CATEGORY_MAP,
   VOLUME_HISTORY_DEFAULTS,
-} from './constants';
-import { auditContent, aggregateSiteAudit } from './seo-audit.util';
+} from "./constants";
+import { auditContent, aggregateSiteAudit } from "./seo-audit.util";
 import {
   extractKeywords,
   inferKeywordIntent,
@@ -50,7 +50,7 @@ import {
   countWords,
   slugify,
   generateExcerpt,
-} from './seo-text.util';
+} from "./seo-text.util";
 import {
   generateSitemapXml,
   generateSitemapIndexXml,
@@ -60,21 +60,24 @@ import {
   buildPageEntries,
   buildStaticEntries,
   normalizeSitemapConfig,
-} from './sitemap.util';
-import { generateRobotsTxt, buildDefaultRobotsConfig } from './robots.util';
+} from "./sitemap.util";
+import { generateRobotsTxt, buildDefaultRobotsConfig } from "./robots.util";
 import {
   validateEdgeCreation,
   findShortestPath,
   analyzeGraph,
-} from './entity-graph.util';
-import { assembleSeoMeta } from './meta.util';
-import type { InterlinkPrisma } from './interlink.service';
+} from "./entity-graph.util";
+import { assembleSeoMeta } from "./meta.util";
+import type { InterlinkPrisma } from "./interlink.service";
 
 /* ========================================================================== */
 /*  SECTION 1 — Helper: Response Envelope                                     */
 /* ========================================================================== */
 
-function ok<T>(data: T, meta?: Partial<ApiResponse<T>['meta']>): ApiResponse<T> {
+function ok<T>(
+  data: T,
+  meta?: Partial<ApiResponse<T>["meta"]>,
+): ApiResponse<T> {
   return {
     success: true,
     data,
@@ -146,7 +149,7 @@ export class SeoService {
 
       const suggestions = await this.deps.seoSuggestion.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
       });
@@ -155,8 +158,8 @@ export class SeoService {
 
       return ok(suggestions, { page, pageSize, total });
     } catch (err) {
-      this.log.error('listSuggestions failed', { error: err });
-      return fail('LIST_SUGGESTIONS_FAILED', String(err));
+      this.log.error("listSuggestions failed", { error: err });
+      return fail("LIST_SUGGESTIONS_FAILED", String(err));
     }
   }
 
@@ -165,24 +168,31 @@ export class SeoService {
    * Runs a full audit and converts failed/warned checks into actionable suggestions.
    */
   async generateSuggestions(
-    scope: 'site' | 'post' | 'page',
+    scope: "site" | "post" | "page",
     targetId?: string,
   ): Promise<ApiResponse<SeoSuggestion[]>> {
     try {
-      if (scope === 'post' || scope === 'page') {
-        if (!targetId) return fail('MISSING_TARGET_ID', 'targetId is required for post/page scope.');
+      if (scope === "post" || scope === "page") {
+        if (!targetId)
+          return fail(
+            "MISSING_TARGET_ID",
+            "targetId is required for post/page scope.",
+          );
 
-        const delegate = scope === 'post' ? this.deps.post : this.deps.page;
+        const delegate = scope === "post" ? this.deps.post : this.deps.page;
         const content = await delegate.findUnique({
           where: { id: targetId },
           include: { categories: true, tags: true },
         });
-        if (!content) return fail('NOT_FOUND', `${scope} not found.`);
+        if (!content) return fail("NOT_FOUND", `${scope} not found.`);
 
-        const auditResult = auditContent(content, scope === 'post' ? 'POST' : 'PAGE');
+        const auditResult = auditContent(
+          content,
+          scope === "post" ? "POST" : "PAGE",
+        );
         const suggestions = await this.createSuggestionsFromAudit(
           auditResult,
-          scope === 'post' ? 'POST' : 'PAGE',
+          scope === "post" ? "POST" : "PAGE",
           targetId,
         );
 
@@ -191,30 +201,30 @@ export class SeoService {
 
       // Site-wide scope — include both posts and pages
       const posts = await this.deps.post.findMany({
-        where: { status: 'PUBLISHED' },
+        where: { status: "PUBLISHED" },
         include: { categories: true, tags: true },
       });
 
       const pages = await this.deps.page.findMany({
-        where: { status: 'PUBLISHED' },
+        where: { status: "PUBLISHED" },
       });
 
       const allSuggestions: SeoSuggestion[] = [];
       for (const post of posts) {
-        const auditResult = auditContent(post, 'POST');
+        const auditResult = auditContent(post, "POST");
         const suggestions = await this.createSuggestionsFromAudit(
           auditResult,
-          'POST',
+          "POST",
           post.id,
         );
         allSuggestions.push(...suggestions);
       }
 
       for (const page of pages) {
-        const auditResult = auditContent(page, 'PAGE');
+        const auditResult = auditContent(page, "PAGE");
         const suggestions = await this.createSuggestionsFromAudit(
           auditResult,
-          'PAGE',
+          "PAGE",
           page.id,
         );
         allSuggestions.push(...suggestions);
@@ -222,15 +232,15 @@ export class SeoService {
 
       return ok(allSuggestions, { total: allSuggestions.length });
     } catch (err) {
-      this.log.error('generateSuggestions failed', { error: err });
-      return fail('GENERATE_SUGGESTIONS_FAILED', String(err));
+      this.log.error("generateSuggestions failed", { error: err });
+      return fail("GENERATE_SUGGESTIONS_FAILED", String(err));
     }
   }
 
   /** Decide on a suggestion (approve/reject). */
   async decideSuggestion(
     suggestionId: string,
-    status: 'APPROVED' | 'REJECTED',
+    status: "APPROVED" | "REJECTED",
     note?: string,
     decidedBy?: string,
   ): Promise<ApiResponse<SeoSuggestion>> {
@@ -245,8 +255,8 @@ export class SeoService {
       });
       return ok(updated);
     } catch (err) {
-      this.log.error('decideSuggestion failed', { error: err });
-      return fail('DECIDE_SUGGESTION_FAILED', String(err));
+      this.log.error("decideSuggestion failed", { error: err });
+      return fail("DECIDE_SUGGESTION_FAILED", String(err));
     }
   }
 
@@ -259,16 +269,19 @@ export class SeoService {
         where: { id: suggestionId },
       });
       const suggestion = suggestions[0];
-      if (!suggestion) return fail('NOT_FOUND', 'Suggestion not found.');
-      if (suggestion.status !== 'APPROVED' && suggestion.status !== 'NEW') {
-        return fail('INVALID_STATUS', 'Only APPROVED or NEW suggestions can be applied.');
+      if (!suggestion) return fail("NOT_FOUND", "Suggestion not found.");
+      if (suggestion.status !== "APPROVED" && suggestion.status !== "NEW") {
+        return fail(
+          "INVALID_STATUS",
+          "Only APPROVED or NEW suggestions can be applied.",
+        );
       }
 
       await this.applySingleSuggestion(suggestion);
 
       const updated = await this.deps.seoSuggestion.update({
         where: { id: suggestionId },
-        data: { status: 'APPLIED', appliedAt: new Date().toISOString() },
+        data: { status: "APPLIED", appliedAt: new Date().toISOString() },
       });
 
       // Invalidate cache
@@ -279,8 +292,8 @@ export class SeoService {
 
       return ok(updated);
     } catch (err) {
-      this.log.error('applySuggestion failed', { error: err });
-      return fail('APPLY_SUGGESTION_FAILED', String(err));
+      this.log.error("applySuggestion failed", { error: err });
+      return fail("APPLY_SUGGESTION_FAILED", String(err));
     }
   }
 
@@ -302,9 +315,9 @@ export class SeoService {
         where: { id: postId },
         include: { categories: true, tags: true },
       });
-      if (!content) return fail('NOT_FOUND', 'Post not found.');
+      if (!content) return fail("NOT_FOUND", "Post not found.");
 
-      const result = auditContent(content, 'POST');
+      const result = auditContent(content, "POST");
 
       if (this.cache) {
         await this.cache.set(cacheKey, result, CACHE_TTLS.AUDIT);
@@ -312,8 +325,8 @@ export class SeoService {
 
       return ok(result);
     } catch (err) {
-      this.log.error('auditPost failed', { error: err });
-      return fail('AUDIT_FAILED', String(err));
+      this.log.error("auditPost failed", { error: err });
+      return fail("AUDIT_FAILED", String(err));
     }
   }
 
@@ -329,11 +342,11 @@ export class SeoService {
       const content = await this.deps.page.findUnique({
         where: { id: pageId },
       });
-      if (!content) return fail('NOT_FOUND', 'Page not found.');
+      if (!content) return fail("NOT_FOUND", "Page not found.");
 
       // Pages don't have categories/tags relations — supply empty arrays
       const contentWithDefaults = { ...content, categories: [], tags: [] };
-      const result = auditContent(contentWithDefaults, 'PAGE');
+      const result = auditContent(contentWithDefaults, "PAGE");
 
       if (this.cache) {
         await this.cache.set(cacheKey, result, CACHE_TTLS.AUDIT);
@@ -341,35 +354,33 @@ export class SeoService {
 
       return ok(result);
     } catch (err) {
-      this.log.error('auditPage failed', { error: err });
-      return fail('AUDIT_FAILED', String(err));
+      this.log.error("auditPage failed", { error: err });
+      return fail("AUDIT_FAILED", String(err));
     }
   }
 
   /** Site-wide audit across all published posts and pages. */
-  async auditSite(
-    limit: number = 50,
-  ): Promise<ApiResponse<SiteAuditResult>> {
+  async auditSite(limit: number = 50): Promise<ApiResponse<SiteAuditResult>> {
     try {
       const halfLimit = Math.ceil(limit / 2);
 
       const posts = await this.deps.post.findMany({
-        where: { status: 'PUBLISHED' },
+        where: { status: "PUBLISHED" },
         include: { categories: true, tags: true },
         take: halfLimit,
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { updatedAt: "desc" },
       });
 
       const pages = await this.deps.page.findMany({
-        where: { status: 'PUBLISHED' },
+        where: { status: "PUBLISHED" },
         take: limit - posts.length,
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { updatedAt: "desc" },
       });
 
       const results: AuditResult[] = [];
       for (const post of posts) {
         try {
-          results.push(auditContent(post, 'POST'));
+          results.push(auditContent(post, "POST"));
         } catch (err) {
           this.log.warn(`Audit failed for post ${post.id}`, { error: err });
         }
@@ -377,7 +388,7 @@ export class SeoService {
 
       for (const page of pages) {
         try {
-          results.push(auditContent(page, 'PAGE'));
+          results.push(auditContent(page, "PAGE"));
         } catch (err) {
           this.log.warn(`Audit failed for page ${page.id}`, { error: err });
         }
@@ -386,8 +397,8 @@ export class SeoService {
       const siteResult = aggregateSiteAudit(results) as SiteAuditResult;
       return ok(siteResult);
     } catch (err) {
-      this.log.error('auditSite failed', { error: err });
-      return fail('SITE_AUDIT_FAILED', String(err));
+      this.log.error("auditSite failed", { error: err });
+      return fail("SITE_AUDIT_FAILED", String(err));
     }
   }
 
@@ -397,16 +408,16 @@ export class SeoService {
 
   /** Refresh the keyword index from all published posts and pages. */
   async refreshKeywords(
-    _source: string = 'system',
+    _source: string = "system",
   ): Promise<ApiResponse<{ total: number }>> {
     try {
       const posts = await this.deps.post.findMany({
-        where: { status: 'PUBLISHED' },
+        where: { status: "PUBLISHED" },
         include: { tags: true, categories: true },
       });
 
       const pages = await this.deps.page.findMany({
-        where: { status: 'PUBLISHED' },
+        where: { status: "PUBLISHED" },
       });
 
       const allTerms = new Map<string, { intent: string; source: string }>();
@@ -420,7 +431,7 @@ export class SeoService {
             if (slug) {
               allTerms.set(slug, {
                 intent: inferKeywordIntent(kw),
-                source: 'seoKeywords',
+                source: "seoKeywords",
               });
             }
           }
@@ -433,7 +444,7 @@ export class SeoService {
             if (slug) {
               allTerms.set(slug, {
                 intent: inferKeywordIntent(tag.name),
-                source: 'tags',
+                source: "tags",
               });
             }
           }
@@ -446,7 +457,7 @@ export class SeoService {
             if (slug) {
               allTerms.set(slug, {
                 intent: inferKeywordIntent(tag),
-                source: 'autoTags',
+                source: "autoTags",
               });
             }
           }
@@ -459,7 +470,7 @@ export class SeoService {
           if (slug && !allTerms.has(slug)) {
             allTerms.set(slug, {
               intent: kw.intent,
-              source: 'content-analysis',
+              source: "content-analysis",
             });
           }
         }
@@ -467,17 +478,23 @@ export class SeoService {
 
       // --- Process pages (Page model has no seoKeywords field) ---
       for (const page of pages) {
-        const pageSeoKeywords = (page as unknown as Record<string, unknown>).seoKeywords as string[] | undefined;
+        const pageSeoKeywords = (page as unknown as Record<string, unknown>)
+          .seoKeywords as string[] | undefined;
         if (pageSeoKeywords && Array.isArray(pageSeoKeywords)) {
           for (const kw of pageSeoKeywords) {
             const s = slugify(kw);
-            if (s) allTerms.set(s, { intent: inferKeywordIntent(kw), source: 'seoKeywords' });
+            if (s)
+              allTerms.set(s, {
+                intent: inferKeywordIntent(kw),
+                source: "seoKeywords",
+              });
           }
         }
         const pageKeywords = extractKeywords(page.content, 5);
         for (const kw of pageKeywords) {
           const s = slugify(kw.term);
-          if (s && !allTerms.has(s)) allTerms.set(s, { intent: kw.intent, source: 'content-analysis' });
+          if (s && !allTerms.has(s))
+            allTerms.set(s, { intent: kw.intent, source: "content-analysis" });
         }
       }
 
@@ -489,13 +506,13 @@ export class SeoService {
             where: { slug },
             create: {
               slug,
-              term: slug.replace(/-/g, ' '),
-              intent: intent as SeoKeyword['intent'],
+              term: slug.replace(/-/g, " "),
+              intent: intent as SeoKeyword["intent"],
               source: kwSource,
             },
             update: {
               source: kwSource,
-              intent: intent as SeoKeyword['intent'],
+              intent: intent as SeoKeyword["intent"],
             },
           });
           total++;
@@ -508,11 +525,11 @@ export class SeoService {
         await this.cache.invalidatePattern(`${CACHE_KEYS.KEYWORDS}:*`);
       }
 
-      this.log.info('Keywords refreshed', { total });
+      this.log.info("Keywords refreshed", { total });
       return ok({ total });
     } catch (err) {
-      this.log.error('refreshKeywords failed', { error: err });
-      return fail('REFRESH_KEYWORDS_FAILED', String(err));
+      this.log.error("refreshKeywords failed", { error: err });
+      return fail("REFRESH_KEYWORDS_FAILED", String(err));
     }
   }
 
@@ -529,7 +546,7 @@ export class SeoService {
       if (filters?.intent) where.intent = filters.intent;
       if (filters?.source) where.source = filters.source;
       if (filters?.search) {
-        where.term = { contains: filters.search, mode: 'insensitive' };
+        where.term = { contains: filters.search, mode: "insensitive" };
       }
 
       const page = filters?.page ?? 1;
@@ -537,15 +554,15 @@ export class SeoService {
 
       const keywords = await this.deps.seoKeyword.findMany({
         where,
-        orderBy: { lastSeenAt: 'desc' },
+        orderBy: { lastSeenAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
       });
 
       return ok(keywords, { page, pageSize });
     } catch (err) {
-      this.log.error('listKeywords failed', { error: err });
-      return fail('LIST_KEYWORDS_FAILED', String(err));
+      this.log.error("listKeywords failed", { error: err });
+      return fail("LIST_KEYWORDS_FAILED", String(err));
     }
   }
 
@@ -555,24 +572,29 @@ export class SeoService {
 
   /** Refresh entities from categories, tags, and auto-tags (from posts and pages). */
   async refreshEntities(
-    source: string = 'system',
+    source: string = "system",
   ): Promise<ApiResponse<{ entities: number; edges: number }>> {
     try {
       const categories = await this.deps.category.findMany();
       const tags = await this.deps.tag.findMany();
       const posts = await this.deps.post.findMany({
-        where: { status: 'PUBLISHED' },
+        where: { status: "PUBLISHED" },
         include: { categories: true, tags: true },
       });
       const pages = await this.deps.page.findMany({
-        where: { status: 'PUBLISHED' },
+        where: { status: "PUBLISHED" },
       });
 
       // Merge posts and pages into a single content list for co-occurrence
       // Pages lack categories/tags relations — supply empty arrays
-      const allContent: Array<AuditableContent & { _type: 'POST' | 'PAGE' }> = [
-        ...posts.map((p) => ({ ...p, _type: 'POST' as const })),
-        ...pages.map((p) => ({ ...p, categories: [], tags: [], _type: 'PAGE' as const })),
+      const allContent: Array<AuditableContent & { _type: "POST" | "PAGE" }> = [
+        ...posts.map((p) => ({ ...p, _type: "POST" as const })),
+        ...pages.map((p) => ({
+          ...p,
+          categories: [],
+          tags: [],
+          _type: "PAGE" as const,
+        })),
       ];
 
       const entityMap = new Map<string, SeoEntity>();
@@ -580,8 +602,8 @@ export class SeoService {
       // Upsert categories as entities
       for (const cat of categories) {
         const entity = await this.deps.seoEntity.upsert({
-          where: { slug_type: { slug: cat.slug, type: 'CATEGORY' } },
-          create: { slug: cat.slug, type: 'CATEGORY', name: cat.name, source },
+          where: { slug_type: { slug: cat.slug, type: "CATEGORY" } },
+          create: { slug: cat.slug, type: "CATEGORY", name: cat.name, source },
           update: { name: cat.name, source },
         });
         entityMap.set(`CATEGORY:${cat.slug}`, entity);
@@ -590,8 +612,8 @@ export class SeoService {
       // Upsert tags as entities
       for (const tag of tags) {
         const entity = await this.deps.seoEntity.upsert({
-          where: { slug_type: { slug: tag.slug, type: 'TAG' } },
-          create: { slug: tag.slug, type: 'TAG', name: tag.name, source },
+          where: { slug_type: { slug: tag.slug, type: "TAG" } },
+          create: { slug: tag.slug, type: "TAG", name: tag.name, source },
           update: { name: tag.name, source },
         });
         entityMap.set(`TAG:${tag.slug}`, entity);
@@ -600,7 +622,8 @@ export class SeoService {
       // Upsert auto-tags as entities (from both posts and pages)
       const autoTagSet = new Set<string>();
       for (const item of allContent) {
-        const autoTags = (item as AuditableContent & { autoTags?: string[] }).autoTags;
+        const autoTags = (item as AuditableContent & { autoTags?: string[] })
+          .autoTags;
         if (autoTags) {
           for (const at of autoTags) autoTagSet.add(at);
         }
@@ -609,8 +632,8 @@ export class SeoService {
         const slug = slugify(autoTag);
         if (!slug) continue;
         const entity = await this.deps.seoEntity.upsert({
-          where: { slug_type: { slug, type: 'AUTO_TAG' } },
-          create: { slug, type: 'AUTO_TAG', name: autoTag, source },
+          where: { slug_type: { slug, type: "AUTO_TAG" } },
+          create: { slug, type: "AUTO_TAG", name: autoTag, source },
           update: { name: autoTag, source },
         });
         entityMap.set(`AUTO_TAG:${slug}`, entity);
@@ -620,8 +643,12 @@ export class SeoService {
       let edgeCount = 0;
       for (const item of allContent) {
         const contentEntityIds: string[] = [];
-        const categories = (item as AuditableContent & { categories?: { slug: string }[] }).categories;
-        const tags = (item as AuditableContent & { tags?: { slug: string; name: string }[] }).tags;
+        const categories = (
+          item as AuditableContent & { categories?: { slug: string }[] }
+        ).categories;
+        const tags = (
+          item as AuditableContent & { tags?: { slug: string; name: string }[] }
+        ).tags;
 
         if (categories) {
           for (const cat of categories) {
@@ -639,20 +666,23 @@ export class SeoService {
         // Create co-occurrence edges between all entity pairs in this content
         for (let i = 0; i < contentEntityIds.length; i++) {
           for (let j = i + 1; j < contentEntityIds.length; j++) {
-            const [fromId, toId] = [contentEntityIds[i], contentEntityIds[j]].sort();
+            const [fromId, toId] = [
+              contentEntityIds[i],
+              contentEntityIds[j],
+            ].sort();
             try {
               await this.deps.seoEntityEdge.upsert({
                 where: {
                   fromId_toId_relation: {
                     fromId,
                     toId,
-                    relation: 'CO_OCCURRENCE',
+                    relation: "CO_OCCURRENCE",
                   },
                 },
                 create: {
                   fromId,
                   toId,
-                  relation: 'CO_OCCURRENCE',
+                  relation: "CO_OCCURRENCE",
                   weight: 1,
                 },
                 update: {
@@ -661,7 +691,7 @@ export class SeoService {
               });
               edgeCount++;
             } catch (err) {
-              this.log.warn('Edge upsert failed', { fromId, toId, error: err });
+              this.log.warn("Edge upsert failed", { fromId, toId, error: err });
             }
           }
         }
@@ -671,11 +701,14 @@ export class SeoService {
         await this.cache.invalidatePattern(`${CACHE_KEYS.ENTITIES}:*`);
       }
 
-      this.log.info('Entities refreshed', { entities: entityMap.size, edges: edgeCount });
+      this.log.info("Entities refreshed", {
+        entities: entityMap.size,
+        edges: edgeCount,
+      });
       return ok({ entities: entityMap.size, edges: edgeCount });
     } catch (err) {
-      this.log.error('refreshEntities failed', { error: err });
-      return fail('REFRESH_ENTITIES_FAILED', String(err));
+      this.log.error("refreshEntities failed", { error: err });
+      return fail("REFRESH_ENTITIES_FAILED", String(err));
     }
   }
 
@@ -692,7 +725,7 @@ export class SeoService {
       if (filters?.type) where.type = filters.type;
       if (filters?.source) where.source = filters.source;
       if (filters?.search) {
-        where.name = { contains: filters.search, mode: 'insensitive' };
+        where.name = { contains: filters.search, mode: "insensitive" };
       }
 
       const page = filters?.page ?? 1;
@@ -700,29 +733,29 @@ export class SeoService {
 
       const entities = await this.deps.seoEntity.findMany({
         where,
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { updatedAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
       });
 
       return ok(entities, { page, pageSize });
     } catch (err) {
-      this.log.error('listEntities failed', { error: err });
-      return fail('LIST_ENTITIES_FAILED', String(err));
+      this.log.error("listEntities failed", { error: err });
+      return fail("LIST_ENTITIES_FAILED", String(err));
     }
   }
 
   /** Analyze the entity graph. */
   async analyzeEntityGraph(): Promise<
-    ApiResponse<import('../types').GraphAnalysis>
+    ApiResponse<import("../types").GraphAnalysis>
   > {
     try {
       const edges = await this.deps.seoEntityEdge.findMany();
       const analysis = analyzeGraph(edges);
       return ok(analysis);
     } catch (err) {
-      this.log.error('analyzeEntityGraph failed', { error: err });
-      return fail('GRAPH_ANALYSIS_FAILED', String(err));
+      this.log.error("analyzeEntityGraph failed", { error: err });
+      return fail("GRAPH_ANALYSIS_FAILED", String(err));
     }
   }
 
@@ -730,14 +763,14 @@ export class SeoService {
   async findEntityPath(
     fromId: string,
     toId: string,
-  ): Promise<ApiResponse<import('../types').ShortestPath>> {
+  ): Promise<ApiResponse<import("../types").ShortestPath>> {
     try {
       const edges = await this.deps.seoEntityEdge.findMany();
       const path = findShortestPath(edges, fromId, toId);
       return ok(path);
     } catch (err) {
-      this.log.error('findEntityPath failed', { error: err });
-      return fail('FIND_PATH_FAILED', String(err));
+      this.log.error("findEntityPath failed", { error: err });
+      return fail("FIND_PATH_FAILED", String(err));
     }
   }
 
@@ -751,8 +784,8 @@ export class SeoService {
       const valid = validateEdgeCreation(edges, fromId, toId);
       return ok({ valid });
     } catch (err) {
-      this.log.error('validateNewEdge failed', { error: err });
-      return fail('EDGE_VALIDATION_FAILED', String(err));
+      this.log.error("validateNewEdge failed", { error: err });
+      return fail("EDGE_VALIDATION_FAILED", String(err));
     }
   }
 
@@ -776,8 +809,8 @@ export class SeoService {
       );
       return ok({ recorded: true });
     } catch (err) {
-      this.log.error('recordVolumeSnapshot failed', { error: err });
-      return fail('RECORD_SNAPSHOT_FAILED', String(err));
+      this.log.error("recordVolumeSnapshot failed", { error: err });
+      return fail("RECORD_SNAPSHOT_FAILED", String(err));
     }
   }
 
@@ -821,11 +854,14 @@ export class SeoService {
       query += ` ORDER BY "timestamp" DESC LIMIT $${paramIdx}`;
       params.push(limit);
 
-      const rows = (await this.deps.rawQuery(query, ...params)) as KeywordVolumeSnapshot[];
+      const rows = (await this.deps.rawQuery(
+        query,
+        ...params,
+      )) as KeywordVolumeSnapshot[];
       return ok(rows);
     } catch (err) {
-      this.log.error('getVolumeHistory failed', { error: err });
-      return fail('GET_HISTORY_FAILED', String(err));
+      this.log.error("getVolumeHistory failed", { error: err });
+      return fail("GET_HISTORY_FAILED", String(err));
     }
   }
 
@@ -860,18 +896,20 @@ export class SeoService {
       const currentVolume = currentRows[0]?.avg_volume ?? 0;
       const previousVolume = previousRows[0]?.avg_volume ?? 0;
 
-      let direction: TrendDirection = 'STABLE';
+      let direction: TrendDirection = "STABLE";
       let changePercent = 0;
 
       if (previousVolume > 0) {
         changePercent =
           ((currentVolume - previousVolume) / previousVolume) * 100;
         if (changePercent >= VOLUME_HISTORY_DEFAULTS.TREND_RISING_THRESHOLD)
-          direction = 'RISING';
-        else if (changePercent <= VOLUME_HISTORY_DEFAULTS.TREND_FALLING_THRESHOLD)
-          direction = 'FALLING';
+          direction = "RISING";
+        else if (
+          changePercent <= VOLUME_HISTORY_DEFAULTS.TREND_FALLING_THRESHOLD
+        )
+          direction = "FALLING";
       } else if (currentVolume > 0) {
-        direction = 'RISING';
+        direction = "RISING";
         changePercent = 100;
       }
 
@@ -883,8 +921,8 @@ export class SeoService {
         changePercent: Math.round(changePercent * 100) / 100,
       });
     } catch (err) {
-      this.log.error('getKeywordTrend failed', { error: err });
-      return fail('GET_TREND_FAILED', String(err));
+      this.log.error("getKeywordTrend failed", { error: err });
+      return fail("GET_TREND_FAILED", String(err));
     }
   }
 
@@ -895,7 +933,7 @@ export class SeoService {
   ): Promise<ApiResponse<KeywordTrend[]>> {
     try {
       const keywords = await this.deps.seoKeyword.findMany({
-        orderBy: { lastSeenAt: 'desc' },
+        orderBy: { lastSeenAt: "desc" },
         take: limit * 3, // fetch extra to filter
       });
 
@@ -909,11 +947,13 @@ export class SeoService {
         }
       }
 
-      trends.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+      trends.sort(
+        (a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent),
+      );
       return ok(trends.slice(0, limit));
     } catch (err) {
-      this.log.error('getTrendingKeywords failed', { error: err });
-      return fail('GET_TRENDING_FAILED', String(err));
+      this.log.error("getTrendingKeywords failed", { error: err });
+      return fail("GET_TRENDING_FAILED", String(err));
     }
   }
 
@@ -929,29 +969,40 @@ export class SeoService {
       )) as unknown[];
       return ok({ deleted: Array.isArray(result) ? result.length : 0 });
     } catch (err) {
-      this.log.error('cleanupVolumeHistory failed', { error: err });
-      return fail('CLEANUP_FAILED', String(err));
+      this.log.error("cleanupVolumeHistory failed", { error: err });
+      return fail("CLEANUP_FAILED", String(err));
     }
   }
 
   /** Export volume history to CSV. */
   async exportVolumeHistoryCsv(keyword: string): Promise<ApiResponse<string>> {
     try {
-      const historyResult = await this.getVolumeHistory(keyword, undefined, undefined, 10000);
+      const historyResult = await this.getVolumeHistory(
+        keyword,
+        undefined,
+        undefined,
+        10000,
+      );
       if (!historyResult.success || !historyResult.data) {
-        return fail('EXPORT_FAILED', 'Could not retrieve history.');
+        return fail("EXPORT_FAILED", "Could not retrieve history.");
       }
 
       const lines: string[] = [VOLUME_HISTORY_DEFAULTS.CSV_HEADER];
       for (const row of historyResult.data) {
-        const line = [row.keyword, row.volume, row.timestamp, row.source, row.competition ?? ''].join(',');
+        const line = [
+          row.keyword,
+          row.volume,
+          row.timestamp,
+          row.source,
+          row.competition ?? "",
+        ].join(",");
         lines.push(line);
       }
 
-      return ok(lines.join('\n'));
+      return ok(lines.join("\n"));
     } catch (err) {
-      this.log.error('exportVolumeHistoryCsv failed', { error: err });
-      return fail('EXPORT_FAILED', String(err));
+      this.log.error("exportVolumeHistoryCsv failed", { error: err });
+      return fail("EXPORT_FAILED", String(err));
     }
   }
 
@@ -970,21 +1021,21 @@ export class SeoService {
       });
 
       if (suggestions.length === 0) {
-        return fail('NO_SUGGESTIONS', 'No valid suggestions found.');
+        return fail("NO_SUGGESTIONS", "No valid suggestions found.");
       }
 
       const batch = await this.deps.batchOperation.create({
         data: {
           name,
           suggestions: suggestions as unknown as SeoSuggestion[],
-          status: 'PENDING',
+          status: "PENDING",
         },
       });
 
       return ok(batch);
     } catch (err) {
-      this.log.error('createBatch failed', { error: err });
-      return fail('CREATE_BATCH_FAILED', String(err));
+      this.log.error("createBatch failed", { error: err });
+      return fail("CREATE_BATCH_FAILED", String(err));
     }
   }
 
@@ -994,14 +1045,14 @@ export class SeoService {
       const batch = await this.deps.batchOperation.findUnique({
         where: { id: batchId },
       });
-      if (!batch) return fail('NOT_FOUND', 'Batch not found.');
-      if (batch.status !== 'PENDING') {
-        return fail('INVALID_STATUS', 'Batch is not in PENDING status.');
+      if (!batch) return fail("NOT_FOUND", "Batch not found.");
+      if (batch.status !== "PENDING") {
+        return fail("INVALID_STATUS", "Batch is not in PENDING status.");
       }
 
       await this.deps.batchOperation.update({
         where: { id: batchId },
-        data: { status: 'IN_PROGRESS' },
+        data: { status: "IN_PROGRESS" },
       });
 
       const results: BatchResult[] = [];
@@ -1022,7 +1073,7 @@ export class SeoService {
       await this.deps.batchOperation.update({
         where: { id: batchId },
         data: {
-          status: allSucceeded ? 'COMPLETED' : 'FAILED',
+          status: allSucceeded ? "COMPLETED" : "FAILED",
           appliedAt: new Date().toISOString(),
           results,
         },
@@ -1030,8 +1081,8 @@ export class SeoService {
 
       return ok(results);
     } catch (err) {
-      this.log.error('applyBatch failed', { error: err });
-      return fail('APPLY_BATCH_FAILED', String(err));
+      this.log.error("applyBatch failed", { error: err });
+      return fail("APPLY_BATCH_FAILED", String(err));
     }
   }
 
@@ -1047,15 +1098,15 @@ export class SeoService {
 
       const batches = await this.deps.batchOperation.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: ((filters?.page ?? 1) - 1) * (filters?.pageSize ?? 20),
         take: filters?.pageSize ?? 20,
       });
 
       return ok(batches);
     } catch (err) {
-      this.log.error('listBatches failed', { error: err });
-      return fail('LIST_BATCHES_FAILED', String(err));
+      this.log.error("listBatches failed", { error: err });
+      return fail("LIST_BATCHES_FAILED", String(err));
     }
   }
 
@@ -1082,22 +1133,30 @@ export class SeoService {
       const halfLimit = Math.ceil(limit / 2);
 
       const posts = await this.deps.post.findMany({
-        where: { status: 'PUBLISHED' },
+        where: { status: "PUBLISHED" },
         include: { categories: true, tags: true },
         take: halfLimit,
-        orderBy: { updatedAt: 'asc' },
+        orderBy: { updatedAt: "asc" },
       });
 
       const pages = await this.deps.page.findMany({
-        where: { status: 'PUBLISHED' },
+        where: { status: "PUBLISHED" },
         take: limit - posts.length,
-        orderBy: { updatedAt: 'asc' },
+        orderBy: { updatedAt: "asc" },
       });
 
       // Merge into a unified content list
       const allContent = [
-        ...posts.map((p) => ({ ...p, _delegate: this.deps.post, _type: 'POST' as const })),
-        ...pages.map((p) => ({ ...p, _delegate: this.deps.page, _type: 'PAGE' as const })),
+        ...posts.map((p) => ({
+          ...p,
+          _delegate: this.deps.post,
+          _type: "POST" as const,
+        })),
+        ...pages.map((p) => ({
+          ...p,
+          _delegate: this.deps.page,
+          _type: "PAGE" as const,
+        })),
       ];
 
       const stats: BulkEnhancementStats = {
@@ -1109,12 +1168,12 @@ export class SeoService {
       };
 
       const seoFields = [
-        'seoTitle',
-        'seoDescription',
-        'seoKeywords',
-        'excerpt',
-        'ogTitle',
-        'ogDescription',
+        "seoTitle",
+        "seoDescription",
+        "seoKeywords",
+        "excerpt",
+        "ogTitle",
+        "ogDescription",
       ] as const;
 
       // Initialize field completeness
@@ -1127,13 +1186,26 @@ export class SeoService {
       }
 
       // ── Build content index for auto-interlinking ──
-      const { InterlinkService } = await import('./interlink.service');
+      const { InterlinkService } = await import("./interlink.service");
       const depsExt = this.deps as unknown as Record<string, unknown>;
       const interlinkSvc = new InterlinkService({
-        post: this.deps.post as unknown as InterlinkPrisma['post'],
-        page: this.deps.page as unknown as InterlinkPrisma['page'],
-        internalLink: (depsExt.internalLink ?? { findMany: async () => [], count: async () => 0, create: async () => ({}), upsert: async () => ({}), update: async () => ({}), updateMany: async () => ({}), deleteMany: async () => ({}) }) as InterlinkPrisma['internalLink'],
-        interlinkExclusion: (depsExt.interlinkExclusion ?? { findMany: async () => [], count: async () => 0, create: async () => ({}), delete: async () => ({}) }) as InterlinkPrisma['interlinkExclusion'],
+        post: this.deps.post as unknown as InterlinkPrisma["post"],
+        page: this.deps.page as unknown as InterlinkPrisma["page"],
+        internalLink: (depsExt.internalLink ?? {
+          findMany: async () => [],
+          count: async () => 0,
+          create: async () => ({}),
+          upsert: async () => ({}),
+          update: async () => ({}),
+          updateMany: async () => ({}),
+          deleteMany: async () => ({}),
+        }) as InterlinkPrisma["internalLink"],
+        interlinkExclusion: (depsExt.interlinkExclusion ?? {
+          findMany: async () => [],
+          count: async () => 0,
+          create: async () => ({}),
+          delete: async () => ({}),
+        }) as InterlinkPrisma["interlinkExclusion"],
       });
       const contentIndex = await interlinkSvc.buildIndex();
 
@@ -1148,17 +1220,20 @@ export class SeoService {
           if (!item.seoTitle) {
             updates.seoTitle = generateSeoTitle(
               item.title,
-              (item.seoKeywords ?? []),
+              item.seoKeywords ?? [],
             );
-            fieldsUpdated.push('seoTitle');
+            fieldsUpdated.push("seoTitle");
           } else {
             // PHASE 2: Quality check — upgrade short/generic titles
             const title = item.seoTitle as string;
             if (title.length < 20 || title === item.title) {
-              const improved = generateSeoTitle(item.title, (item.seoKeywords ?? []));
+              const improved = generateSeoTitle(
+                item.title,
+                item.seoKeywords ?? [],
+              );
               if (improved.length > title.length) {
                 updates.seoTitle = improved;
-                fieldsUpdated.push('seoTitle:improved');
+                fieldsUpdated.push("seoTitle:improved");
               }
             }
             stats.fieldCompleteness.seoTitle.filled++;
@@ -1168,21 +1243,21 @@ export class SeoService {
           if (!item.seoDescription) {
             updates.seoDescription = generateSeoDescription(
               item.content,
-              (item.seoKeywords ?? []),
+              item.seoKeywords ?? [],
             );
-            fieldsUpdated.push('seoDescription');
+            fieldsUpdated.push("seoDescription");
           } else {
             // PHASE 2: Upgrade short descriptions
             const desc = item.seoDescription as string;
             if (desc.length < 80) {
               const improved = generateSeoDescription(
                 item.content,
-                (item.seoKeywords ?? []),
+                item.seoKeywords ?? [],
                 155,
               );
               if (improved.length > desc.length) {
                 updates.seoDescription = improved;
-                fieldsUpdated.push('seoDescription:improved');
+                fieldsUpdated.push("seoDescription:improved");
               }
             }
             stats.fieldCompleteness.seoDescription.filled++;
@@ -1191,7 +1266,7 @@ export class SeoService {
           // Generate missing excerpt
           if (!item.excerpt) {
             updates.excerpt = generateExcerpt(item.content);
-            fieldsUpdated.push('excerpt');
+            fieldsUpdated.push("excerpt");
           } else {
             // PHASE 2: Upgrade very short excerpts
             const exc = item.excerpt as string;
@@ -1199,7 +1274,7 @@ export class SeoService {
               const improved = generateExcerpt(item.content);
               if (improved && improved.length > exc.length) {
                 updates.excerpt = improved;
-                fieldsUpdated.push('excerpt:improved');
+                fieldsUpdated.push("excerpt:improved");
               }
             }
             stats.fieldCompleteness.excerpt.filled++;
@@ -1209,18 +1284,25 @@ export class SeoService {
           if (!item.seoKeywords || item.seoKeywords.length === 0) {
             const extracted = extractKeywords(item.content, 8);
             updates.seoKeywords = extracted.map((k) => k.term);
-            fieldsUpdated.push('seoKeywords');
+            fieldsUpdated.push("seoKeywords");
           } else {
             // PHASE 4: Enrich sparse keywords (< 3)
             if (item.seoKeywords.length < 3) {
               const extracted = extractKeywords(item.content, 8);
-              const existing = new Set((item.seoKeywords as string[]).map((k: string) => k.toLowerCase()));
+              const existing = new Set(
+                (item.seoKeywords as string[]).map((k: string) =>
+                  k.toLowerCase(),
+                ),
+              );
               const newKw = extracted
-                .map(k => k.term)
-                .filter(t => !existing.has(t.toLowerCase()));
+                .map((k) => k.term)
+                .filter((t) => !existing.has(t.toLowerCase()));
               if (newKw.length > 0) {
-                updates.seoKeywords = [...item.seoKeywords, ...newKw.slice(0, 5)];
-                fieldsUpdated.push('seoKeywords:enriched');
+                updates.seoKeywords = [
+                  ...item.seoKeywords,
+                  ...newKw.slice(0, 5),
+                ];
+                fieldsUpdated.push("seoKeywords:enriched");
               }
             }
             stats.fieldCompleteness.seoKeywords.filled++;
@@ -1228,8 +1310,9 @@ export class SeoService {
 
           // Generate missing OG title
           if (!item.ogTitle) {
-            updates.ogTitle = (updates.seoTitle as string) ?? item.seoTitle ?? item.title;
-            fieldsUpdated.push('ogTitle');
+            updates.ogTitle =
+              (updates.seoTitle as string) ?? item.seoTitle ?? item.title;
+            fieldsUpdated.push("ogTitle");
           } else {
             stats.fieldCompleteness.ogTitle.filled++;
           }
@@ -1237,8 +1320,10 @@ export class SeoService {
           // Generate missing OG description
           if (!item.ogDescription) {
             updates.ogDescription =
-              (updates.seoDescription as string) ?? item.seoDescription ?? item.excerpt;
-            fieldsUpdated.push('ogDescription');
+              (updates.seoDescription as string) ??
+              item.seoDescription ??
+              item.excerpt;
+            fieldsUpdated.push("ogDescription");
           } else {
             stats.fieldCompleteness.ogDescription.filled++;
           }
@@ -1248,17 +1333,18 @@ export class SeoService {
           const rt = calculateReadingTime(item.content);
           if (!item.wordCount || item.wordCount !== wc) {
             updates.wordCount = wc;
-            if (!item.wordCount) fieldsUpdated.push('wordCount');
+            if (!item.wordCount) fieldsUpdated.push("wordCount");
           }
           if (!item.readingTime || item.readingTime !== rt) {
             updates.readingTime = rt;
-            if (!item.readingTime) fieldsUpdated.push('readingTime');
+            if (!item.readingTime) fieldsUpdated.push("readingTime");
           }
 
           // ── PHASE 3: Auto-interlinking ──
           if (item.content && wc >= 50) {
             try {
-              const { scanContentForLinks, injectLinksIntoContent } = await import('./interlink.service');
+              const { scanContentForLinks, injectLinksIntoContent } =
+                await import("./interlink.service");
               const candidates = scanContentForLinks(
                 {
                   id: item.id,
@@ -1271,7 +1357,7 @@ export class SeoService {
                 contentIndex,
               );
 
-              const unlinked = candidates.filter(c => !c.alreadyLinked);
+              const unlinked = candidates.filter((c) => !c.alreadyLinked);
               if (unlinked.length > 0) {
                 const { html, inserted } = injectLinksIntoContent(
                   item.content,
@@ -1284,7 +1370,10 @@ export class SeoService {
                 }
               }
             } catch (linkErr) {
-              this.log.warn(`Interlinking failed for ${item._type} ${item.id}`, { error: linkErr });
+              this.log.warn(
+                `Interlinking failed for ${item._type} ${item.id}`,
+                { error: linkErr },
+              );
             }
           }
 
@@ -1303,7 +1392,9 @@ export class SeoService {
           stats.enhanced++;
         } catch (err) {
           stats.failed++;
-          this.log.warn(`Enhancement failed for ${item._type} ${item.id}`, { error: err });
+          this.log.warn(`Enhancement failed for ${item._type} ${item.id}`, {
+            error: err,
+          });
         }
       }
 
@@ -1316,8 +1407,8 @@ export class SeoService {
 
       return ok(stats);
     } catch (err) {
-      this.log.error('bulkEnhanceContent failed', { error: err });
-      return fail('BULK_ENHANCE_FAILED', String(err));
+      this.log.error("bulkEnhanceContent failed", { error: err });
+      return fail("BULK_ENHANCE_FAILED", String(err));
     }
   }
 
@@ -1339,9 +1430,7 @@ export class SeoService {
   /* ======================================================================== */
 
   /** Generate a full sitemap XML. */
-  async generateSitemap(
-    config: SitemapConfig,
-  ): Promise<ApiResponse<string>> {
+  async generateSitemap(config: SitemapConfig): Promise<ApiResponse<string>> {
     try {
       const cacheKey = `${CACHE_KEYS.SITEMAP}:full`;
       if (this.cache) {
@@ -1358,7 +1447,7 @@ export class SeoService {
       // Posts
       if (normalizedConfig.includePosts) {
         const posts = await this.deps.post.findMany({
-          where: { status: 'PUBLISHED' },
+          where: { status: "PUBLISHED" },
           select: {
             slug: true,
             updatedAt: true,
@@ -1367,7 +1456,7 @@ export class SeoService {
             seoKeywords: true,
             publishedAt: true,
           },
-          orderBy: { updatedAt: 'desc' },
+          orderBy: { updatedAt: "desc" },
         });
         allEntries.push(
           ...buildPostEntries(
@@ -1380,9 +1469,7 @@ export class SeoService {
       // Categories
       if (normalizedConfig.includeCategories) {
         const categories = await this.deps.category.findMany();
-        allEntries.push(
-          ...buildCategoryEntries(categories, normalizedConfig),
-        );
+        allEntries.push(...buildCategoryEntries(categories, normalizedConfig));
       }
 
       // Tags
@@ -1394,7 +1481,7 @@ export class SeoService {
       // Pages
       if (normalizedConfig.includePages) {
         const pages = await this.deps.page.findMany({
-          where: { status: 'PUBLISHED' },
+          where: { status: "PUBLISHED" },
           select: { slug: true, updatedAt: true },
         });
         allEntries.push(
@@ -1406,7 +1493,10 @@ export class SeoService {
       }
 
       // Custom URLs
-      if (normalizedConfig.customUrls && normalizedConfig.customUrls.length > 0) {
+      if (
+        normalizedConfig.customUrls &&
+        normalizedConfig.customUrls.length > 0
+      ) {
         allEntries.push(...normalizedConfig.customUrls);
       }
 
@@ -1418,15 +1508,13 @@ export class SeoService {
 
       return ok(xml);
     } catch (err) {
-      this.log.error('generateSitemap failed', { error: err });
-      return fail('SITEMAP_GENERATION_FAILED', String(err));
+      this.log.error("generateSitemap failed", { error: err });
+      return fail("SITEMAP_GENERATION_FAILED", String(err));
     }
   }
 
   /** Generate a sitemap index pointing to typed sub-sitemaps. */
-  async generateSitemapIndex(
-    baseUrl: string,
-  ): Promise<ApiResponse<string>> {
+  async generateSitemapIndex(baseUrl: string): Promise<ApiResponse<string>> {
     try {
       const now = new Date().toISOString();
       const sitemaps = [
@@ -1440,8 +1528,8 @@ export class SeoService {
       const xml = generateSitemapIndexXml(sitemaps, { withXsl: true });
       return ok(xml);
     } catch (err) {
-      this.log.error('generateSitemapIndex failed', { error: err });
-      return fail('SITEMAP_INDEX_FAILED', String(err));
+      this.log.error("generateSitemapIndex failed", { error: err });
+      return fail("SITEMAP_INDEX_FAILED", String(err));
     }
   }
 
@@ -1452,24 +1540,25 @@ export class SeoService {
     try {
       const sitemapResult = await this.generateSitemap(config);
       if (!sitemapResult.success) {
-        return fail('STATS_FAILED', 'Could not generate sitemap for stats.');
+        return fail("STATS_FAILED", "Could not generate sitemap for stats.");
       }
       // Re-parse to count entries (simpler to just count from generation)
       // We already have the XML, parse entry count from it
-      const urlMatches = sitemapResult.data!.match(/<url>/g);
+      const sitemapData = sitemapResult.data ?? "";
+      const urlMatches = sitemapData.match(/<url>/g);
       const totalUrls = urlMatches ? urlMatches.length : 0;
 
       const stats: SitemapStats = {
         totalUrls,
         byType: {},
         lastGenerated: new Date().toISOString(),
-        sizeBytes: new TextEncoder().encode(sitemapResult.data!).length,
+        sizeBytes: new TextEncoder().encode(sitemapData).length,
       };
 
       return ok(stats);
     } catch (err) {
-      this.log.error('getSitemapStats failed', { error: err });
-      return fail('STATS_FAILED', String(err));
+      this.log.error("getSitemapStats failed", { error: err });
+      return fail("STATS_FAILED", String(err));
     }
   }
 
@@ -1486,7 +1575,7 @@ export class SeoService {
       const defaultConfig = buildDefaultRobotsConfig(baseUrl);
       return generateRobotsTxt(defaultConfig);
     }
-    return generateRobotsTxt(buildDefaultRobotsConfig('https://example.com'));
+    return generateRobotsTxt(buildDefaultRobotsConfig("https://example.com"));
   }
 
   /* ======================================================================== */
@@ -1497,11 +1586,12 @@ export class SeoService {
   async assemblePostMeta(
     postId: string,
     options: Parameters<typeof assembleSeoMeta>[1],
-  ): Promise<ApiResponse<import('../types').SeoMeta>> {
+  ): Promise<ApiResponse<import("../types").SeoMeta>> {
     try {
       const cacheKey = `${CACHE_KEYS.META}:${postId}`;
       if (this.cache) {
-        const cached = await this.cache.get<import('../types').SeoMeta>(cacheKey);
+        const cached =
+          await this.cache.get<import("../types").SeoMeta>(cacheKey);
         if (cached) return ok(cached);
       }
 
@@ -1509,7 +1599,7 @@ export class SeoService {
         where: { id: postId },
         include: { categories: true, tags: true, author: true },
       });
-      if (!content) return fail('NOT_FOUND', 'Post not found.');
+      if (!content) return fail("NOT_FOUND", "Post not found.");
 
       const meta = assembleSeoMeta(content, options);
 
@@ -1519,8 +1609,8 @@ export class SeoService {
 
       return ok(meta);
     } catch (err) {
-      this.log.error('assemblePostMeta failed', { error: err });
-      return fail('META_ASSEMBLY_FAILED', String(err));
+      this.log.error("assemblePostMeta failed", { error: err });
+      return fail("META_ASSEMBLY_FAILED", String(err));
     }
   }
 
@@ -1528,23 +1618,24 @@ export class SeoService {
   async assemblePageMeta(
     pageId: string,
     options: Parameters<typeof assembleSeoMeta>[1],
-  ): Promise<ApiResponse<import('../types').SeoMeta>> {
+  ): Promise<ApiResponse<import("../types").SeoMeta>> {
     try {
       const cacheKey = `${CACHE_KEYS.META}:page:${pageId}`;
       if (this.cache) {
-        const cached = await this.cache.get<import('../types').SeoMeta>(cacheKey);
+        const cached =
+          await this.cache.get<import("../types").SeoMeta>(cacheKey);
         if (cached) return ok(cached);
       }
 
       const content = await this.deps.page.findUnique({
         where: { id: pageId },
       });
-      if (!content) return fail('NOT_FOUND', 'Page not found.');
+      if (!content) return fail("NOT_FOUND", "Page not found.");
 
       // Pages don't have categories/tags relations — supply empty arrays
       const contentWithDefaults = { ...content, categories: [], tags: [] };
       // Default pathPrefix to '' for pages (not '/blog')
-      const pageOptions = { ...options, pathPrefix: options.pathPrefix ?? '' };
+      const pageOptions = { ...options, pathPrefix: options.pathPrefix ?? "" };
       const meta = assembleSeoMeta(contentWithDefaults, pageOptions);
 
       if (this.cache) {
@@ -1553,18 +1644,18 @@ export class SeoService {
 
       return ok(meta);
     } catch (err) {
-      this.log.error('assemblePageMeta failed', { error: err });
-      return fail('META_ASSEMBLY_FAILED', String(err));
+      this.log.error("assemblePageMeta failed", { error: err });
+      return fail("META_ASSEMBLY_FAILED", String(err));
     }
   }
 
   /** Assemble SEO meta for any content type by specifying type + ID. */
   async assembleMeta(
-    contentType: 'POST' | 'PAGE',
+    contentType: "POST" | "PAGE",
     contentId: string,
     options: Parameters<typeof assembleSeoMeta>[1],
-  ): Promise<ApiResponse<import('../types').SeoMeta>> {
-    return contentType === 'POST'
+  ): Promise<ApiResponse<import("../types").SeoMeta>> {
+    return contentType === "POST"
       ? this.assemblePostMeta(contentId, options)
       : this.assemblePageMeta(contentId, options);
   }
@@ -1582,10 +1673,11 @@ export class SeoService {
     const created: SeoSuggestion[] = [];
 
     for (const check of audit.checks) {
-      if (check.status === 'pass' || check.status === 'info') continue;
+      if (check.status === "pass" || check.status === "info") continue;
 
       const category =
-        (CHECK_TO_CATEGORY_MAP[check.name] as SeoSuggestionCategory) ?? 'CONTENT';
+        (CHECK_TO_CATEGORY_MAP[check.name] as SeoSuggestionCategory) ??
+        "CONTENT";
 
       try {
         const suggestion = await this.deps.seoSuggestion.create({
@@ -1596,8 +1688,8 @@ export class SeoService {
             title: check.name,
             description: check.message,
             severity: check.severity,
-            status: 'NEW',
-            source: 'AUDIT',
+            status: "NEW",
+            source: "AUDIT",
             proposed: check.details ?? null,
             autoApply: false,
           },
@@ -1618,11 +1710,11 @@ export class SeoService {
     suggestion: SeoSuggestion,
   ): Promise<void> {
     const delegate =
-      suggestion.targetType === 'POST' ? this.deps.post : this.deps.page;
+      suggestion.targetType === "POST" ? this.deps.post : this.deps.page;
     const proposed = suggestion.proposed ?? {};
 
     switch (suggestion.category) {
-      case 'META': {
+      case "META": {
         const updates: Record<string, unknown> = {};
         if (proposed.seoTitle) updates.seoTitle = proposed.seoTitle;
         if (proposed.seoDescription)
@@ -1639,7 +1731,7 @@ export class SeoService {
         break;
       }
 
-      case 'CONTENT': {
+      case "CONTENT": {
         const updates: Record<string, unknown> = {};
         if (proposed.seoKeywords) updates.seoKeywords = proposed.seoKeywords;
         if (proposed.excerpt) updates.excerpt = proposed.excerpt;
@@ -1654,24 +1746,24 @@ export class SeoService {
         break;
       }
 
-      case 'IMAGE':
-      case 'LINKING':
-      case 'TECHNICAL':
-      case 'SOCIAL':
-      case 'STRUCTURED_DATA':
-      case 'PERFORMANCE': {
+      case "IMAGE":
+      case "LINKING":
+      case "TECHNICAL":
+      case "SOCIAL":
+      case "STRUCTURED_DATA":
+      case "PERFORMANCE": {
         // These categories may propose field-level updates
         if (proposed && Object.keys(proposed).length > 0) {
           const safeKeys = [
-            'seoTitle',
-            'seoDescription',
-            'ogTitle',
-            'ogDescription',
-            'ogImage',
-            'twitterCard',
-            'canonicalUrl',
-            'seoKeywords',
-            'excerpt',
+            "seoTitle",
+            "seoDescription",
+            "ogTitle",
+            "ogDescription",
+            "ogImage",
+            "twitterCard",
+            "canonicalUrl",
+            "seoKeywords",
+            "excerpt",
           ];
           const updates: Record<string, unknown> = {};
           for (const key of safeKeys) {

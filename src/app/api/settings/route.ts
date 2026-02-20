@@ -1,37 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { siteSettingsService, commentAdminSettings, captchaAdminSettings } from "@/server/wiring";
 import { updateSiteSettingsSchema } from "@/features/settings/server/schemas";
 import { createLogger } from "@/server/observability/logger";
 
 const logger = createLogger("api/settings");
 
-/**
- * Require ADMINISTRATOR or SUPER_ADMIN role.
- * Returns the session if authorised, or a 401/403 Response.
- */
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json(
-      { success: false, error: "Authentication required" },
-      { status: 401 },
-    );
-  }
-  const role = session.user.role;
-  if (!["ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-    return NextResponse.json(
-      { success: false, error: "Forbidden — admin role required" },
-      { status: 403 },
-    );
-  }
-  return session;
-}
-
 export async function GET() {
   try {
-    const guard = await requireAdmin();
-    if (guard instanceof NextResponse) return guard;
+    const { errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const result = await siteSettingsService.getSettingsResponse();
     if (!result.success) {
@@ -49,8 +27,8 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const guard = await requireAdmin();
-    if (guard instanceof NextResponse) return guard;
+    const { session, errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const parsed = updateSiteSettingsSchema.safeParse(body);
@@ -65,7 +43,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const updatedBy = guard.user.id ?? guard.user.email ?? undefined;
+    const updatedBy = session.user.id ?? session.user.email ?? undefined;
     const result = await siteSettingsService.updateSettings(
       parsed.data as Record<string, unknown>,
       updatedBy,

@@ -10,7 +10,7 @@
  * PATCH → validates with the group's dedicated Zod schema and updates
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { siteSettingsService } from "@/server/wiring";
 import {
   updateTopBarSchema,
@@ -37,22 +37,10 @@ import {
   updateAdminBarSchema,
 } from "@/features/settings/server/schemas";
 import { createLogger } from "@/server/observability/logger";
+import type { SiteConfig } from "@/features/settings/types";
 import type { ZodSchema } from "zod";
 
 const logger = createLogger("api/settings/[group]");
-
-/** Require ADMINISTRATOR or SUPER_ADMIN role. */
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-  }
-  const role = session.user.role;
-  if (!["ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-    return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-  }
-  return session;
-}
 
 type GroupSpec = {
   getter: () => Promise<unknown>;
@@ -61,28 +49,94 @@ type GroupSpec = {
 
 function getGroupSpec(group: string): GroupSpec | null {
   const specs: Record<string, GroupSpec> = {
-    topbar: { getter: () => siteSettingsService.getTopBarConfig(), schema: updateTopBarSchema },
-    announcement: { getter: () => siteSettingsService.getAnnouncementConfig(), schema: updateAnnouncementSchema },
-    navigation: { getter: () => siteSettingsService.getNavigationConfig(), schema: updateNavigationSchema },
-    appearance: { getter: () => siteSettingsService.getAppearanceConfig(), schema: updateAppearanceSchema },
-    footer: { getter: () => siteSettingsService.getFooterConfig(), schema: updateFooterSchema },
-    social: { getter: () => siteSettingsService.getSocialLinks(), schema: updateSocialLinksSchema },
-    seo: { getter: () => siteSettingsService.getSeoConfig(), schema: updateSeoSchema },
-    reading: { getter: () => siteSettingsService.getReadingConfig(), schema: updateReadingSchema },
-    privacy: { getter: () => siteSettingsService.getPrivacyConfig(), schema: updatePrivacySchema },
-    captcha: { getter: () => siteSettingsService.getCaptchaConfig(), schema: updateCaptchaSchema },
-    pwa: { getter: () => siteSettingsService.getPwaConfig(), schema: updatePwaSchema },
-    email: { getter: () => siteSettingsService.getEmailSenderConfig(), schema: updateEmailSenderSchema },
-    media: { getter: () => siteSettingsService.getMediaConfig(), schema: updateMediaSchema },
-    "date-locale": { getter: () => siteSettingsService.getDateLocaleConfig(), schema: updateDateLocaleSchema },
-    robots: { getter: () => siteSettingsService.getRobotsConfig(), schema: updateRobotsSchema },
-    maintenance: { getter: () => siteSettingsService.getMaintenanceConfig(), schema: updateMaintenanceSchema },
-    integrations: { getter: () => siteSettingsService.getIntegrationConfig(), schema: updateIntegrationsSchema },
-    identity: { getter: () => siteSettingsService.getIdentityConfig(), schema: updateIdentitySchema },
-    contact: { getter: () => siteSettingsService.getContactConfig(), schema: updateContactSchema },
-    "custom-code": { getter: () => siteSettingsService.getCustomCodeConfig(), schema: updateCustomCodeSchema },
-    "kill-switches": { getter: () => siteSettingsService.getModuleKillSwitchConfig(), schema: updateModuleKillSwitchSchema },
-    "admin-bar": { getter: () => siteSettingsService.getAdminBarConfig(), schema: updateAdminBarSchema },
+    topbar: {
+      getter: () => siteSettingsService.getTopBarConfig(),
+      schema: updateTopBarSchema,
+    },
+    announcement: {
+      getter: () => siteSettingsService.getAnnouncementConfig(),
+      schema: updateAnnouncementSchema,
+    },
+    navigation: {
+      getter: () => siteSettingsService.getNavigationConfig(),
+      schema: updateNavigationSchema,
+    },
+    appearance: {
+      getter: () => siteSettingsService.getAppearanceConfig(),
+      schema: updateAppearanceSchema,
+    },
+    footer: {
+      getter: () => siteSettingsService.getFooterConfig(),
+      schema: updateFooterSchema,
+    },
+    social: {
+      getter: () => siteSettingsService.getSocialLinks(),
+      schema: updateSocialLinksSchema,
+    },
+    seo: {
+      getter: () => siteSettingsService.getSeoConfig(),
+      schema: updateSeoSchema,
+    },
+    reading: {
+      getter: () => siteSettingsService.getReadingConfig(),
+      schema: updateReadingSchema,
+    },
+    privacy: {
+      getter: () => siteSettingsService.getPrivacyConfig(),
+      schema: updatePrivacySchema,
+    },
+    captcha: {
+      getter: () => siteSettingsService.getCaptchaConfig(),
+      schema: updateCaptchaSchema,
+    },
+    pwa: {
+      getter: () => siteSettingsService.getPwaConfig(),
+      schema: updatePwaSchema,
+    },
+    email: {
+      getter: () => siteSettingsService.getEmailSenderConfig(),
+      schema: updateEmailSenderSchema,
+    },
+    media: {
+      getter: () => siteSettingsService.getMediaConfig(),
+      schema: updateMediaSchema,
+    },
+    "date-locale": {
+      getter: () => siteSettingsService.getDateLocaleConfig(),
+      schema: updateDateLocaleSchema,
+    },
+    robots: {
+      getter: () => siteSettingsService.getRobotsConfig(),
+      schema: updateRobotsSchema,
+    },
+    maintenance: {
+      getter: () => siteSettingsService.getMaintenanceConfig(),
+      schema: updateMaintenanceSchema,
+    },
+    integrations: {
+      getter: () => siteSettingsService.getIntegrationConfig(),
+      schema: updateIntegrationsSchema,
+    },
+    identity: {
+      getter: () => siteSettingsService.getIdentityConfig(),
+      schema: updateIdentitySchema,
+    },
+    contact: {
+      getter: () => siteSettingsService.getContactConfig(),
+      schema: updateContactSchema,
+    },
+    "custom-code": {
+      getter: () => siteSettingsService.getCustomCodeConfig(),
+      schema: updateCustomCodeSchema,
+    },
+    "kill-switches": {
+      getter: () => siteSettingsService.getModuleKillSwitchConfig(),
+      schema: updateModuleKillSwitchSchema,
+    },
+    "admin-bar": {
+      getter: () => siteSettingsService.getAdminBarConfig(),
+      schema: updateAdminBarSchema,
+    },
   };
   return specs[group] ?? null;
 }
@@ -92,8 +146,8 @@ export async function GET(
   { params }: { params: Promise<{ group: string }> },
 ) {
   try {
-    const guard = await requireAdmin();
-    if (guard instanceof NextResponse) return guard;
+    const { errorResponse } = await requireAuth({ level: "admin" });
+    if (errorResponse) return errorResponse;
 
     const { group } = await params;
     const spec = getGroupSpec(group);
@@ -105,10 +159,17 @@ export async function GET(
     }
 
     const data = await spec.getter();
-    return NextResponse.json({ success: true, data, timestamp: new Date().toISOString() });
+    return NextResponse.json({
+      success: true,
+      data,
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
     logger.error("[api/settings/[group]] GET error:", { error });
-    return NextResponse.json({ success: false, error: "Failed to fetch setting group" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch setting group" },
+      { status: 500 },
+    );
   }
 }
 
@@ -117,8 +178,8 @@ export async function PATCH(
   { params }: { params: Promise<{ group: string }> },
 ) {
   try {
-    const guard = await requireAdmin();
-    if (guard instanceof NextResponse) return guard;
+    const { session, errorResponse } = await requireAuth({ level: "admin" });
+    if (errorResponse) return errorResponse;
 
     const { group } = await params;
     const spec = getGroupSpec(group);
@@ -133,29 +194,44 @@ export async function PATCH(
     const parsed = spec.schema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        {
+          success: false,
+          error: "Validation failed",
+          details: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 },
       );
     }
 
-    const updatedBy = guard.user.id ?? guard.user.email ?? undefined;
+    const updatedBy = session.user.id ?? session.user.email ?? undefined;
     const result = await siteSettingsService.updateSettings(
-      parsed.data as Record<string, unknown>,
+      parsed.data as Partial<SiteConfig>,
       updatedBy,
     );
 
     if (!result.success) {
-      const statusCode = 'error' in result && typeof result.error === 'object' && result.error !== null && 'statusCode' in result.error
-        ? (result.error as { statusCode: number }).statusCode
-        : 500;
+      const statusCode =
+        "error" in result &&
+        typeof result.error === "object" &&
+        result.error !== null &&
+        "statusCode" in result.error
+          ? (result.error as { statusCode: number }).statusCode
+          : 500;
       return NextResponse.json(result, { status: statusCode });
     }
 
     // Return only the group's updated data
     const freshData = await spec.getter();
-    return NextResponse.json({ success: true, data: freshData, timestamp: new Date().toISOString() });
+    return NextResponse.json({
+      success: true,
+      data: freshData,
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
     logger.error("[api/settings/[group]] PATCH error:", { error });
-    return NextResponse.json({ success: false, error: "Failed to update setting group" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to update setting group" },
+      { status: 500 },
+    );
   }
 }

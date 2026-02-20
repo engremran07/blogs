@@ -25,7 +25,7 @@ type TurnstileAPI = {
 
 function getTurnstile(): TurnstileAPI | undefined {
   if (typeof window === 'undefined') return undefined;
-  return (window as unknown as Record<string, unknown>).turnstile as TurnstileAPI | undefined;
+  return window.turnstile;
 }
 
 function CloudflareTurnstileInner({

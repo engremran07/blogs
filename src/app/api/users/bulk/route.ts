@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { createLogger } from "@/server/observability/logger";
 import { z } from "zod";
 import { USER_ROLES } from "@/features/auth/types";
 
 const logger = createLogger("api/users/bulk");
-
-const ADMIN_ROLES = ["ADMINISTRATOR", "SUPER_ADMIN"];
 
 const bulkActionSchema = z.discriminatedUnion("action", [
   z.object({
@@ -23,10 +21,8 @@ const bulkActionSchema = z.discriminatedUnion("action", [
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || !ADMIN_ROLES.includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { userId, userRole, errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const validation = bulkActionSchema.safeParse(body);
@@ -38,8 +34,8 @@ export async function POST(req: NextRequest) {
     }
 
     const parsed = validation.data;
-    const callerRole = session.user.role;
-    const callerId = (session.user as { id?: string })?.id;
+    const callerRole = userRole;
+    const callerId = userId;
 
     // Prevent operating on yourself
     if (callerId && parsed.ids.includes(callerId)) {

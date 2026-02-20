@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { mediaService } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
 import { UploadMediaSchema } from "@/features/media/server/schemas";
@@ -42,13 +42,8 @@ const mediaListQuerySchema = z.object({
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const { errorResponse } = await requireAuth();
+    if (errorResponse) return errorResponse;
 
     const { searchParams } = new URL(req.url);
 
@@ -98,25 +93,8 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const role = (session.user as { role?: string })?.role;
-    if (
-      !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR", "AUTHOR"].includes(
-        role || ""
-      )
-    ) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
+    const { userId, errorResponse } = await requireAuth({ level: 'author' });
+    if (errorResponse) return errorResponse;
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -168,7 +146,7 @@ export async function POST(req: NextRequest) {
         description: validation.data.description,
         tags: validation.data.tags,
       },
-      (session.user as { id?: string })?.id
+      userId
     );
 
     if (!result.success) {

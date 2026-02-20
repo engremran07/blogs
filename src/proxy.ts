@@ -1,5 +1,5 @@
 /**
- * Root Next.js Middleware — runs before every matched request.
+ * Root Next.js Proxy — runs before every matched request (src/proxy.ts).
  *
  * Responsibilities:
  *  1. CSP nonce generation (injected into response headers)
@@ -8,7 +8,7 @@
  *  4. Rate limiting on mutation API routes (via @upstash/ratelimit)
  *
  * Auth is handled by NextAuth's `authorized` callback in auth.ts.
- * This middleware handles everything ELSE that should happen before
+ * This proxy handles everything ELSE that should happen before
  * a function cold-starts.
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -49,9 +49,7 @@ export async function proxy(req: NextRequest) {
 
   // ── 2. CSRF validation on mutation API routes ────────────────────────────
   const isMutation =
-    req.method !== "GET" &&
-    req.method !== "HEAD" &&
-    req.method !== "OPTIONS";
+    req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS";
 
   if (pathname.startsWith("/api/") && isMutation && !shouldSkipCsrf(pathname)) {
     const headerToken = req.headers.get("x-csrf-token");
@@ -65,7 +63,11 @@ export async function proxy(req: NextRequest) {
   }
 
   // ── 3. Rate limiting on mutation API routes ──────────────────────────────
-  if (pathname.startsWith("/api/") && isMutation && !pathname.startsWith("/api/auth")) {
+  if (
+    pathname.startsWith("/api/") &&
+    isMutation &&
+    !pathname.startsWith("/api/auth")
+  ) {
     const rateLimited = await checkRateLimit(req);
     if (rateLimited) {
       return NextResponse.json(
@@ -174,7 +176,5 @@ function generateNonce(): string {
 // Run on API routes + all page routes (for CSP nonce injection).
 // Skip static files, images, fonts, Next.js internals.
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|uploads/).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|uploads/).*)"],
 };

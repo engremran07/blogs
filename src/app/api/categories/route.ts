@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { blogService } from "@/server/wiring";
 import { prisma } from "@/server/db/prisma";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { createLogger } from "@/server/observability/logger";
 import { CreateCategorySchema, BulkCreateCategoriesSchema } from "@/features/blog/server/schemas";
 import { z } from "zod";
@@ -44,21 +44,8 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-    // SEC-003: Require content-management role
-    const role = session.user.role;
-    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 },
-      );
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
 
@@ -166,21 +153,8 @@ const BulkReorderSchema = z.object({
  */
 export async function PUT(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-    // SEC-003: Require content-management role
-    const role = session.user.role;
-    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 },
-      );
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const parsed = BulkReorderSchema.safeParse(body);

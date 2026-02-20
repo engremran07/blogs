@@ -1,25 +1,85 @@
 // src/app/api/profile/route.ts
-// Self-service profile endpoints: data export (GET) and account deletion (DELETE)
+// Self-service profile endpoints: data export (GET), profile update (PATCH), account deletion (DELETE)
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { z } from "zod";
+import { requireAuth } from "@/server/api-auth";
 import { prisma } from "@/server/db/prisma";
 import { userService, consentService } from "@/server/wiring";
 import { deleteAccountSchema } from "@/features/auth/server/schemas";
+
+const updateProfileSchema = z.object({
+  displayName: z.string().trim().max(100).nullable().optional(),
+  bio: z.string().max(1000).nullable().optional(),
+  website: z.string().url().or(z.literal("")).nullable().optional(),
+  phoneNumber: z.string().max(30).nullable().optional(),
+  facebook: z.string().max(255).nullable().optional(),
+  twitter: z.string().max(255).nullable().optional(),
+  instagram: z.string().max(255).nullable().optional(),
+  linkedin: z.string().max(255).nullable().optional(),
+  github: z.string().max(255).nullable().optional(),
+});
+
+/**
+ * PATCH /api/profile — Self-service profile update
+ * Users can update their own displayName, bio, website, social links.
+ */
+export async function PATCH(req: NextRequest) {
+  const { userId, errorResponse } = await requireAuth();
+  if (errorResponse) return errorResponse;
+
+  try {
+    const body = await req.json();
+    const parsed = updateProfileSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+
+    const data: Record<string, unknown> = {};
+    const fields = parsed.data;
+    if (fields.displayName !== undefined) data.displayName = fields.displayName;
+    if (fields.bio !== undefined) data.bio = fields.bio;
+    if (fields.website !== undefined) data.website = fields.website || null;
+    if (fields.phoneNumber !== undefined) data.phoneNumber = fields.phoneNumber;
+    if (fields.facebook !== undefined) data.facebook = fields.facebook;
+    if (fields.twitter !== undefined) data.twitter = fields.twitter;
+    if (fields.instagram !== undefined) data.instagram = fields.instagram;
+    if (fields.linkedin !== undefined) data.linkedin = fields.linkedin;
+    if (fields.github !== undefined) data.github = fields.github;
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ success: true, message: "No changes" });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      select: {
+        id: true, displayName: true, bio: true, website: true,
+        phoneNumber: true, facebook: true, twitter: true,
+        instagram: true, linkedin: true, github: true,
+      },
+      data,
+    });
+
+    return NextResponse.json({ success: true, data: updated });
+  } catch (err) {
+    console.error("[Profile PATCH] Error:", err);
+    return NextResponse.json(
+      { success: false, error: "Failed to update profile" },
+      { status: 500 },
+    );
+  }
+}
 
 /**
  * GET /api/profile — GDPR Article 20 data export
  * Returns a JSON dump of all personal data associated with the authenticated user.
  */
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { success: false, error: "Authentication required" },
-      { status: 401 },
-    );
-  }
-
-  const userId = session.user.id;
+  const { userId, errorResponse } = await requireAuth();
+  if (errorResponse) return errorResponse;
 
   try {
     const [user, comments, sessions, emailVerifications, emailChanges] =
@@ -146,13 +206,8 @@ export async function GET() {
  * Requires password confirmation and "DELETE MY ACCOUNT" text.
  */
 export async function DELETE(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json(
-      { success: false, error: "Authentication required" },
-      { status: 401 },
-    );
-  }
+  const { session, userId, errorResponse } = await requireAuth();
+  if (errorResponse) return errorResponse;
 
   try {
     const body = await req.json();
@@ -172,14 +227,14 @@ export async function DELETE(req: NextRequest) {
 
     // Log account deletion consent event before deleting
     await consentService.log({
-      userId: session.user.id,
+      userId,
       email: session.user.email,
       consentType: "account_deletion",
       granted: true,
       details: "User confirmed account self-deletion",
     });
 
-    const result = await userService.deleteMyAccount(session.user.id, password);
+    const result = await userService.deleteMyAccount(userId, password);
     return NextResponse.json({ success: true, message: result.message });
   } catch (err: unknown) {
     const message =

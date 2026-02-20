@@ -16,7 +16,7 @@
  * ============================================================================
  */
 
-import * as crypto from 'crypto';
+import * as crypto from "crypto";
 import type {
   UserConfig,
   UserConfigConsumer,
@@ -27,12 +27,20 @@ import type {
   SafeUser,
   AuthResult,
   SessionContext,
-} from '../types';
-import { AuthError, ValidationError } from '../types';
-import { DEFAULT_USER_CONFIG, msToExpiresIn, USER_SENSITIVE_FIELDS } from './constants';
-import { hashPassword, comparePassword, validatePasswordStrength } from './password.util';
-import { sanitizeEmail, sanitizeText, sanitizeSlug } from './sanitization.util';
-import { createLogger } from '@/server/observability/logger';
+} from "../types";
+import { AuthError, ValidationError } from "../types";
+import {
+  DEFAULT_USER_CONFIG,
+  msToExpiresIn,
+  USER_SENSITIVE_FIELDS,
+} from "./constants";
+import {
+  hashPassword,
+  comparePassword,
+  validatePasswordStrength,
+} from "./password.util";
+import { sanitizeEmail, sanitizeText, sanitizeSlug } from "./sanitization.util";
+import { createLogger } from "@/server/observability/logger";
 
 // ─── Logger interface — keeps service framework-agnostic ────────────────────
 
@@ -42,7 +50,7 @@ interface Logger {
   error(message: string): void;
 }
 
-const _authLogger = createLogger('auth');
+const _authLogger = createLogger("auth");
 const consoleLogger: Logger = {
   log: (m) => _authLogger.info(m),
   warn: (m) => _authLogger.warn(m),
@@ -89,7 +97,7 @@ export class AuthService implements UserConfigConsumer {
   async validateUser(email: string, password: string): Promise<SafeUser> {
     const normalEmail = sanitizeEmail(email);
     if (!normalEmail) {
-      throw new ValidationError('Invalid email format');
+      throw new ValidationError("Invalid email format");
     }
 
     const user = await this.prisma.user.findUnique({
@@ -97,12 +105,12 @@ export class AuthService implements UserConfigConsumer {
     });
 
     if (!user) {
-      throw new AuthError('Invalid credentials');
+      throw new AuthError("Invalid credentials");
     }
 
     const valid = await comparePassword(password, user.password);
     if (!valid) {
-      throw new AuthError('Invalid credentials');
+      throw new AuthError("Invalid credentials");
     }
 
     return this.stripSensitiveFields(user);
@@ -118,7 +126,7 @@ export class AuthService implements UserConfigConsumer {
     context?: SessionContext,
   ): Promise<AuthResult> {
     if (!this.config.loginEnabled) {
-      throw new AuthError('Login is currently disabled', 403);
+      throw new AuthError("Login is currently disabled", 403);
     }
 
     const payload = { email: user.email, sub: user.id, role: user.role };
@@ -129,7 +137,7 @@ export class AuthService implements UserConfigConsumer {
 
     const sessionId = crypto.randomUUID();
     const refreshToken = await this.jwt.sign(
-      { sub: user.id, tokenType: 'refresh', sid: sessionId },
+      { sub: user.id, tokenType: "refresh", sid: sessionId },
       {
         expiresIn: msToExpiresIn(this.config.refreshTokenExpiryMs),
         secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
@@ -156,7 +164,9 @@ export class AuthService implements UserConfigConsumer {
     });
 
     // Fetch full user to return safe fields (caller may pass minimal object)
-    const fullUser = await this.prisma.user.findUnique({ where: { id: user.id } });
+    const fullUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+    });
     return {
       accessToken,
       refreshToken,
@@ -175,27 +185,32 @@ export class AuthService implements UserConfigConsumer {
     lastName?: string;
   }): Promise<SafeUser> {
     if (!this.config.registrationEnabled) {
-      throw new AuthError('Registration is currently disabled', 403);
+      throw new AuthError("Registration is currently disabled", 403);
     }
 
     const normalEmail = sanitizeEmail(data.email);
     if (!normalEmail) {
-      throw new ValidationError('Invalid email format');
+      throw new ValidationError("Invalid email format");
     }
 
     const existing = await this.prisma.user.findUnique({
       where: { email: normalEmail },
     });
     if (existing) {
-      throw new ValidationError('Email already registered');
+      throw new ValidationError("Email already registered");
     }
 
     validatePasswordStrength(data.password, this.config);
 
-    const hashedPw = await hashPassword(data.password, this.config.bcryptRounds);
+    const hashedPw = await hashPassword(
+      data.password,
+      this.config.bcryptRounds,
+    );
 
     // Generate unique username
-    const baseUsername = sanitizeSlug(data.username || normalEmail.split('@')[0]);
+    const baseUsername = sanitizeSlug(
+      data.username || normalEmail.split("@")[0],
+    );
     let username = baseUsername;
     let counter = 1;
     while (await this.prisma.user.findUnique({ where: { username } })) {
@@ -203,8 +218,12 @@ export class AuthService implements UserConfigConsumer {
       counter++;
     }
 
-    const firstName = sanitizeText(data.firstName || data.name?.split(' ')[0] || '');
-    const lastName = sanitizeText(data.lastName || data.name?.split(' ').slice(1).join(' ') || '');
+    const firstName = sanitizeText(
+      data.firstName || data.name?.split(" ")[0] || "",
+    );
+    const lastName = sanitizeText(
+      data.lastName || data.name?.split(" ").slice(1).join(" ") || "",
+    );
 
     try {
       const user = await this.prisma.user.create({
@@ -221,23 +240,33 @@ export class AuthService implements UserConfigConsumer {
       this.logger.log(`New user registered: ${user.email}`);
 
       // Fire-and-forget emails
-      this.mail.sendWelcomeEmail(user.email, user.firstName).catch((err: unknown) => {
-        this.logger.error(`Failed to send welcome email: ${this.errorMsg(err)}`);
-      });
+      this.mail
+        .sendWelcomeEmail(user.email, user.firstName)
+        .catch((err: unknown) => {
+          this.logger.error(
+            `Failed to send welcome email: ${this.errorMsg(err)}`,
+          );
+        });
 
       if (this.config.requireEmailVerification) {
         const verification = await this.createEmailVerificationToken(user.id);
         this.mail
-          .sendEmailVerification(user.email, verification.token, verification.code)
+          .sendEmailVerification(
+            user.email,
+            verification.token,
+            verification.code,
+          )
           .catch((err: unknown) => {
-            this.logger.error(`Failed to send verification email: ${this.errorMsg(err)}`);
+            this.logger.error(
+              `Failed to send verification email: ${this.errorMsg(err)}`,
+            );
           });
       }
 
       return this.stripSensitiveFields(user);
     } catch (error: unknown) {
       this.logger.error(`Registration failed: ${this.errorMsg(error)}`);
-      throw new ValidationError('Registration failed. Please try again.');
+      throw new ValidationError("Registration failed. Please try again.");
     }
   }
 
@@ -248,7 +277,8 @@ export class AuthService implements UserConfigConsumer {
     dev_token?: string;
   }> {
     const normalEmail = sanitizeEmail(email);
-    const GENERIC_MSG = 'If this email exists, a password reset link has been sent.';
+    const GENERIC_MSG =
+      "If this email exists, a password reset link has been sent.";
 
     if (!normalEmail) return { message: GENERIC_MSG };
 
@@ -257,7 +287,7 @@ export class AuthService implements UserConfigConsumer {
     });
     if (!user) return { message: GENERIC_MSG };
 
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = crypto.randomBytes(32).toString("hex");
     const hashedToken = this.hashToken(token);
     const expires = new Date(Date.now() + this.config.passwordResetExpiryMs);
 
@@ -273,16 +303,21 @@ export class AuthService implements UserConfigConsumer {
       await this.mail.sendPasswordReset(user.email, token);
       this.logger.log(`Password reset requested for: ${user.email}`);
     } catch (error: unknown) {
-      this.logger.error(`Failed to send password reset email: ${this.errorMsg(error)}`);
+      this.logger.error(
+        `Failed to send password reset email: ${this.errorMsg(error)}`,
+      );
     }
 
     return {
-      message: 'Password reset link sent.',
-      dev_token: process.env.NODE_ENV === 'development' ? token : undefined,
+      message: "Password reset link sent.",
+      dev_token: process.env.NODE_ENV === "development" ? token : undefined,
     };
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     validatePasswordStrength(newPassword, this.config);
 
     const hashedToken = this.hashToken(token);
@@ -294,7 +329,7 @@ export class AuthService implements UserConfigConsumer {
     });
 
     if (!user) {
-      throw new AuthError('Invalid or expired token');
+      throw new AuthError("Invalid or expired token");
     }
 
     const hashedPw = await hashPassword(newPassword, this.config.bcryptRounds);
@@ -314,12 +349,16 @@ export class AuthService implements UserConfigConsumer {
       data: { revokedAt: new Date() },
     });
 
-    this.mail.sendPasswordResetConfirmation(user.email).catch((err: unknown) => {
-      this.logger.error(`Failed to send reset confirmation email: ${this.errorMsg(err)}`);
-    });
+    this.mail
+      .sendPasswordResetConfirmation(user.email)
+      .catch((err: unknown) => {
+        this.logger.error(
+          `Failed to send reset confirmation email: ${this.errorMsg(err)}`,
+        );
+      });
 
     this.logger.log(`Password reset successful for user: ${user.email}`);
-    return { message: 'Password successfully reset' };
+    return { message: "Password successfully reset" };
   }
 
   // ─── Refresh Tokens ───────────────────────────────────────────────────
@@ -334,8 +373,8 @@ export class AuthService implements UserConfigConsumer {
         secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
       });
 
-      if (decoded.tokenType !== 'refresh' || !decoded.sub) {
-        throw new AuthError('Invalid token type');
+      if (decoded.tokenType !== "refresh" || !decoded.sub) {
+        throw new AuthError("Invalid token type");
       }
 
       const refreshTokenHash = this.hashToken(refreshToken);
@@ -348,11 +387,13 @@ export class AuthService implements UserConfigConsumer {
       });
 
       if (!session || (decoded.sid && session.id !== decoded.sid)) {
-        throw new AuthError('Session expired');
+        throw new AuthError("Session expired");
       }
 
-      const user = await this.prisma.user.findUnique({ where: { id: decoded.sub } });
-      if (!user) throw new AuthError('User not found');
+      const user = await this.prisma.user.findUnique({
+        where: { id: decoded.sub },
+      });
+      if (!user) throw new AuthError("User not found");
 
       const payload = { email: user.email, sub: user.id, role: user.role };
       const accessToken = await this.jwt.sign(payload, {
@@ -360,7 +401,7 @@ export class AuthService implements UserConfigConsumer {
       });
 
       const newRefresh = await this.jwt.sign(
-        { sub: user.id, tokenType: 'refresh', sid: session.id },
+        { sub: user.id, tokenType: "refresh", sid: session.id },
         {
           expiresIn: msToExpiresIn(this.config.refreshTokenExpiryMs),
           secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
@@ -382,7 +423,7 @@ export class AuthService implements UserConfigConsumer {
       };
     } catch (err: unknown) {
       if (err instanceof AuthError) throw err;
-      throw new AuthError('Invalid or expired refresh token');
+      throw new AuthError("Invalid or expired refresh token");
     }
   }
 
@@ -422,19 +463,25 @@ export class AuthService implements UserConfigConsumer {
     dev_code?: string;
   }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new ValidationError('User not found');
+    if (!user) throw new ValidationError("User not found");
 
     if (user.isEmailVerified) {
-      return { message: 'Email already verified' };
+      return { message: "Email already verified" };
     }
 
     const verification = await this.createEmailVerificationToken(user.id);
-    await this.mail.sendEmailVerification(user.email, verification.token, verification.code);
+    await this.mail.sendEmailVerification(
+      user.email,
+      verification.token,
+      verification.code,
+    );
 
     return {
-      message: 'Verification email sent',
-      dev_token: process.env.NODE_ENV === 'development' ? verification.token : undefined,
-      dev_code: process.env.NODE_ENV === 'development' ? verification.code : undefined,
+      message: "Verification email sent",
+      dev_token:
+        process.env.NODE_ENV === "development" ? verification.token : undefined,
+      dev_code:
+        process.env.NODE_ENV === "development" ? verification.code : undefined,
     };
   }
 
@@ -449,7 +496,7 @@ export class AuthService implements UserConfigConsumer {
     });
 
     if (!verification) {
-      throw new AuthError('Invalid or expired verification token');
+      throw new AuthError("Invalid or expired verification token");
     }
 
     await this.prisma.$transaction([
@@ -463,25 +510,33 @@ export class AuthService implements UserConfigConsumer {
       }),
     ]);
 
-    return { message: 'Email verified successfully' };
+    return { message: "Email verified successfully" };
   }
 
-  async verifyEmailCode(email: string, code: string): Promise<{ message: string }> {
+  async verifyEmailCode(
+    email: string,
+    code: string,
+  ): Promise<{ message: string }> {
     const normalEmail = sanitizeEmail(email);
-    if (!normalEmail) throw new ValidationError('Invalid email format');
+    if (!normalEmail) throw new ValidationError("Invalid email format");
 
-    const codeRegex = new RegExp(`^\\d{${this.config.emailVerificationCodeLength}}$`);
+    const codeRegex = new RegExp(
+      `^\\d{${this.config.emailVerificationCodeLength}}$`,
+    );
     if (!code || !codeRegex.test(code)) {
       throw new ValidationError(
         `Verification code must be ${this.config.emailVerificationCodeLength} digits`,
       );
     }
 
-    const user = await this.prisma.user.findUnique({ where: { email: normalEmail } });
-    if (!user) throw new ValidationError('Invalid or expired verification code');
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalEmail },
+    });
+    if (!user)
+      throw new ValidationError("Invalid or expired verification code");
 
     if (user.isEmailVerified) {
-      return { message: 'Email already verified' };
+      return { message: "Email already verified" };
     }
 
     const codeHash = this.hashToken(code);
@@ -495,7 +550,7 @@ export class AuthService implements UserConfigConsumer {
     });
 
     if (!verification) {
-      throw new AuthError('Invalid or expired verification code');
+      throw new AuthError("Invalid or expired verification code");
     }
 
     await this.prisma.$transaction([
@@ -509,7 +564,7 @@ export class AuthService implements UserConfigConsumer {
       }),
     ]);
 
-    return { message: 'Email verified successfully' };
+    return { message: "Email verified successfully" };
   }
 
   // ─── CAPTCHA Verification (optional) ──────────────────────────────────
@@ -521,21 +576,21 @@ export class AuthService implements UserConfigConsumer {
     captchaType?: string,
   ): Promise<void> {
     if (!this.captcha) return;
-    if (!token) throw new ValidationError('CAPTCHA token is required');
+    if (!token) throw new ValidationError("CAPTCHA token is required");
 
     const valid = await this.captcha.verify(token, ip, captchaId, captchaType);
-    if (!valid) throw new ValidationError('CAPTCHA verification failed');
+    if (!valid) throw new ValidationError("CAPTCHA verification failed");
   }
 
   // ─── Private Helpers ──────────────────────────────────────────────────
 
   private hashToken(token: string): string {
-    return crypto.createHash('sha256').update(token).digest('hex');
+    return crypto.createHash("sha256").update(token).digest("hex");
   }
 
   private generateVerificationCode(): string {
     const len = this.config.emailVerificationCodeLength;
-    let code = '';
+    let code = "";
     for (let i = 0; i < len; i++) {
       code += crypto.randomInt(0, 10).toString();
     }
@@ -545,11 +600,13 @@ export class AuthService implements UserConfigConsumer {
   private async createEmailVerificationToken(
     userId: string,
   ): Promise<{ token: string; code: string }> {
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = crypto.randomBytes(32).toString("hex");
     const tokenHash = this.hashToken(token);
     const code = this.generateVerificationCode();
     const codeHash = this.hashToken(code);
-    const expiresAt = new Date(Date.now() + this.config.emailVerificationExpiryMs);
+    const expiresAt = new Date(
+      Date.now() + this.config.emailVerificationExpiryMs,
+    );
 
     // Invalidate outstanding tokens
     await this.prisma.emailVerificationToken.updateMany({
@@ -586,11 +643,20 @@ export class AuthService implements UserConfigConsumer {
 
     if (sessions.length >= this.config.maxActiveSessions) {
       // Sort by lastUsedAt ascending → revoke the oldest
-      const sorted = sessions.sort(
-        (a: { lastUsedAt?: Date; createdAt: Date }, b: { lastUsedAt?: Date; createdAt: Date }) =>
-          (a.lastUsedAt ?? a.createdAt).getTime() - (b.lastUsedAt ?? b.createdAt).getTime(),
+      const typedSessions = sessions as {
+        id: string;
+        lastUsedAt?: Date;
+        createdAt: Date;
+      }[];
+      const sorted = typedSessions.sort(
+        (a, b) =>
+          (a.lastUsedAt ?? a.createdAt).getTime() -
+          (b.lastUsedAt ?? b.createdAt).getTime(),
       );
-      const toRevoke = sorted.slice(0, sorted.length - this.config.maxActiveSessions + 1);
+      const toRevoke = sorted.slice(
+        0,
+        sorted.length - this.config.maxActiveSessions + 1,
+      );
       for (const s of toRevoke) {
         await this.prisma.userSession.update({
           where: { id: s.id },

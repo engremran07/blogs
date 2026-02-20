@@ -1,8 +1,17 @@
 // src/features/distribution/server/distribution.service.ts
-import { SocialPlatform, DistributionStatus, DistributionEvent } from "../types";
+import {
+  SocialPlatform,
+  DistributionStatus,
+  DistributionEvent,
+} from "../types";
 import type {
-  DistributionPrismaClient, DistributionConfig,
-  PaginatedResult, DistributionRecordData,
+  DistributionPrismaClient,
+  DistributionConfig,
+  PaginatedResult,
+  DistributionRecordData,
+  DistributionChannelData,
+  PlatformCredentials,
+  PostData,
 } from "../types";
 import type { DistributionEventBus } from "./events";
 import { DEFAULT_CONFIG, VALID_STATUS_TRANSITIONS } from "./constants";
@@ -16,7 +25,10 @@ export class DistributionService {
   private config: DistributionConfig;
 
   /** Circuit breaker state per platform — tracks consecutive failures */
-  private circuitBreakers = new Map<string, { failures: number; lastFailure: number; open: boolean }>();
+  private circuitBreakers = new Map<
+    string,
+    { failures: number; lastFailure: number; open: boolean }
+  >();
   /** Rate limit cooldowns per platform — timestamp when next request is allowed */
   private rateLimitCooldowns = new Map<string, number>();
 
@@ -34,7 +46,11 @@ export class DistributionService {
 
   private getCircuitBreaker(platform: string) {
     if (!this.circuitBreakers.has(platform)) {
-      this.circuitBreakers.set(platform, { failures: 0, lastFailure: 0, open: false });
+      this.circuitBreakers.set(platform, {
+        failures: 0,
+        lastFailure: 0,
+        open: false,
+      });
     }
     return this.circuitBreakers.get(platform)!;
   }
@@ -106,9 +122,25 @@ export class DistributionService {
 
   // ── Health Check ─────────────────────────────────────────────────────────
 
-  async healthCheck(): Promise<Record<string, { status: string; circuitOpen: boolean; rateLimited: boolean }>> {
-    const platforms = ["twitter", "facebook", "linkedin", "telegram", "whatsapp", "pinterest", "reddit"];
-    const result: Record<string, { status: string; circuitOpen: boolean; rateLimited: boolean }> = {};
+  async healthCheck(): Promise<
+    Record<
+      string,
+      { status: string; circuitOpen: boolean; rateLimited: boolean }
+    >
+  > {
+    const platforms = [
+      "twitter",
+      "facebook",
+      "linkedin",
+      "telegram",
+      "whatsapp",
+      "pinterest",
+      "reddit",
+    ];
+    const result: Record<
+      string,
+      { status: string; circuitOpen: boolean; rateLimited: boolean }
+    > = {};
 
     for (const platform of platforms) {
       const circuitOpen = this.isCircuitOpen(platform);
@@ -131,12 +163,19 @@ export class DistributionService {
 
   async getChannels(enabledOnly = false): Promise<any[]> {
     const where = enabledOnly ? { enabled: true } : {};
-    return this.prisma.distributionChannel.findMany({ where, orderBy: { createdAt: "desc" } } as any);
+    return this.prisma.distributionChannel.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
   }
 
   async createChannel(input: Record<string, any>): Promise<any> {
-    const channel = await this.prisma.distributionChannel.create({ data: input as any });
-    await this.eventBus.emit(DistributionEvent.CHANNEL_CREATED, { channelId: channel.id });
+    const channel = await this.prisma.distributionChannel.create({
+      data: input,
+    });
+    await this.eventBus.emit(DistributionEvent.CHANNEL_CREATED, {
+      channelId: channel.id,
+    });
     return channel;
   }
 
@@ -147,26 +186,37 @@ export class DistributionService {
   async updateChannel(id: string, input: Record<string, any>): Promise<any> {
     const channel = await this.prisma.distributionChannel.update({
       where: { id },
-      data: input as any,
+      data: input,
     });
-    await this.eventBus.emit(DistributionEvent.CHANNEL_UPDATED, { channelId: channel.id });
+    await this.eventBus.emit(DistributionEvent.CHANNEL_UPDATED, {
+      channelId: channel.id,
+    });
     return channel;
   }
 
   async deleteChannel(id: string): Promise<void> {
     await this.prisma.distributionChannel.delete({ where: { id } });
-    await this.eventBus.emit(DistributionEvent.CHANNEL_DELETED, { channelId: id });
+    await this.eventBus.emit(DistributionEvent.CHANNEL_DELETED, {
+      channelId: id,
+    });
   }
 
-  async validateChannelCredentials(id: string): Promise<{ valid: boolean; error?: string }> {
-    const channel = await this.prisma.distributionChannel.findUnique({ where: { id } });
+  async validateChannelCredentials(
+    id: string,
+  ): Promise<{ valid: boolean; error?: string }> {
+    const channel = await this.prisma.distributionChannel.findUnique({
+      where: { id },
+    });
     if (!channel) return { valid: false, error: "Channel not found" };
 
     const connector = getConnector(channel.platform as SocialPlatform);
-    if (!connector) return { valid: false, error: `No connector for ${channel.platform}` };
+    if (!connector)
+      return { valid: false, error: `No connector for ${channel.platform}` };
 
     try {
-      const valid = await connector.validateCredentials(channel.credentials as any);
+      const valid = await connector.validateCredentials(
+        channel.credentials as PlatformCredentials,
+      );
       return { valid };
     } catch (err: any) {
       return { valid: false, error: err.message };
@@ -175,7 +225,9 @@ export class DistributionService {
 
   // ── Records / Distributions ──────────────────────────────────────────────
 
-  async getDistributions(query: Record<string, any> = {}): Promise<PaginatedResult<DistributionRecordData>> {
+  async getDistributions(
+    query: Record<string, any> = {},
+  ): Promise<PaginatedResult<DistributionRecordData>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -192,20 +244,34 @@ export class DistributionService {
         skip,
         take: limit,
         orderBy: { createdAt: query.sortOrder ?? "desc" },
-        include: { post: { select: { title: true, slug: true } }, channel: { select: { name: true, platform: true } } },
-      } as any),
+        include: {
+          post: { select: { title: true, slug: true } },
+          channel: { select: { name: true, platform: true } },
+        },
+      }),
       this.prisma.distributionRecord.count({ where }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
-    return { data, total, page, limit, totalPages, hasNext: page < totalPages, hasPrev: page > 1 };
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
+    };
   }
 
   async getDistributionById(id: string): Promise<any | null> {
     return this.prisma.distributionRecord.findUnique({
       where: { id },
-      include: { post: { select: { title: true, slug: true } }, channel: { select: { name: true, platform: true } } },
-    } as any);
+      include: {
+        post: { select: { title: true, slug: true } },
+        channel: { select: { name: true, platform: true } },
+      },
+    });
   }
 
   async getPostDistributions(postId: string): Promise<any[]> {
@@ -213,13 +279,15 @@ export class DistributionService {
       where: { postId },
       orderBy: { createdAt: "desc" },
       include: { channel: { select: { name: true, platform: true } } },
-    } as any);
+    });
   }
 
   // ── Distribute ───────────────────────────────────────────────────────────
 
   async distributePost(input: Record<string, any>): Promise<any[]> {
-    const post = await this.prisma.post.findUnique({ where: { id: input.postId } });
+    const post = (await this.prisma.post.findUnique({
+      where: { id: input.postId },
+    })) as PostData | null;
     if (!post) throw new Error("Post not found");
 
     const results: any[] = [];
@@ -235,7 +303,7 @@ export class DistributionService {
             content: "",
             error: `Circuit breaker open for ${platform} — too many consecutive failures`,
             maxRetries: 0,
-          } as any,
+          },
         });
         results.push(record);
         continue;
@@ -251,14 +319,14 @@ export class DistributionService {
             content: "",
             error: `Rate limited — cooldown active for ${platform}`,
             maxRetries: this.config.maxRetries ?? 3,
-          } as any,
+          },
         });
         results.push(record);
         continue;
       }
 
       const message = MessageBuilder.build({
-        post: post as any,
+        post: post,
         platform,
         style: input.style,
         overrideMessage: input.messageOverride,
@@ -268,7 +336,7 @@ export class DistributionService {
 
       const channel = await this.prisma.distributionChannel.findFirst({
         where: { platform, enabled: true },
-      } as any);
+      });
 
       const status = input.scheduledFor
         ? DistributionStatus.SCHEDULED
@@ -283,7 +351,7 @@ export class DistributionService {
           content: message.text,
           scheduledFor: input.scheduledFor ?? null,
           maxRetries: this.config.maxRetries ?? 3,
-        } as any,
+        },
       });
 
       if (!input.scheduledFor) {
@@ -297,10 +365,11 @@ export class DistributionService {
 
             // Use retry with exponential backoff
             const result = await this.withRetry(
-              () => connector.post(
-                { text: message.text, url: message.url, title: post.title },
-                channel.credentials as any,
-              ),
+              () =>
+                connector.post(
+                  { text: message.text, url: message.url, title: post.title },
+                  channel.credentials as PlatformCredentials,
+                ),
               this.config.maxRetries ?? 3,
               this.config.retryDelayMs ?? 5_000,
               this.config.retryBackoffMultiplier ?? 2,
@@ -319,27 +388,40 @@ export class DistributionService {
               });
               // Update channel's lastPublishedAt
               if (channel?.id) {
-                await this.prisma.distributionChannel.update({
-                  where: { id: channel.id },
-                  data: { lastPublishedAt: publishedAt },
-                }).catch(() => { /* non-critical */ });
+                await this.prisma.distributionChannel
+                  .update({
+                    where: { id: channel.id },
+                    data: { lastPublishedAt: publishedAt },
+                  })
+                  .catch(() => {
+                    /* non-critical */
+                  });
               }
               this.recordSuccess(platform);
             } else {
               await this.prisma.distributionRecord.update({
                 where: { id: record.id },
-                data: { status: DistributionStatus.FAILED, error: result.error },
+                data: {
+                  status: DistributionStatus.FAILED,
+                  error: result.error,
+                },
               });
               this.recordFailure(platform);
             }
           } catch (err: any) {
-            const isRateLimit = err.message?.includes("rate limit") || err.message?.includes("429") || err.code === "RATE_LIMITED";
+            const isRateLimit =
+              err.message?.includes("rate limit") ||
+              err.message?.includes("429") ||
+              err.code === "RATE_LIMITED";
 
             if (isRateLimit) {
               this.setRateLimitCooldown(platform);
               await this.prisma.distributionRecord.update({
                 where: { id: record.id },
-                data: { status: DistributionStatus.RATE_LIMITED, error: `Rate limited: ${err.message}` },
+                data: {
+                  status: DistributionStatus.RATE_LIMITED,
+                  error: `Rate limited: ${err.message}`,
+                },
               });
             } else {
               await this.prisma.distributionRecord.update({
@@ -353,7 +435,9 @@ export class DistributionService {
       }
 
       // Re-fetch to return the latest state after updates
-      const finalRecord = await this.prisma.distributionRecord.findUnique({ where: { id: record.id } });
+      const finalRecord = await this.prisma.distributionRecord.findUnique({
+        where: { id: record.id },
+      });
       results.push(finalRecord ?? record);
     }
 
@@ -364,7 +448,9 @@ export class DistributionService {
     return results;
   }
 
-  async bulkDistribute(input: Record<string, any>): Promise<{ total: number; created: number; errors: string[] }> {
+  async bulkDistribute(
+    input: Record<string, any>,
+  ): Promise<{ total: number; created: number; errors: string[] }> {
     const errors: string[] = [];
     let created = 0;
 
@@ -396,9 +482,11 @@ export class DistributionService {
     }
 
     // Guard: do not allow retries beyond maxRetries
-    const maxRetries = (record as any).maxRetries ?? this.config.maxRetries ?? 3;
+    const maxRetries = record.maxRetries ?? this.config.maxRetries ?? 3;
     if ((record.retryCount ?? 0) >= maxRetries) {
-      throw new Error(`Maximum retries (${maxRetries}) reached for this distribution record`);
+      throw new Error(
+        `Maximum retries (${maxRetries}) reached for this distribution record`,
+      );
     }
 
     const updated = await this.prisma.distributionRecord.update({
@@ -410,7 +498,9 @@ export class DistributionService {
       },
     });
 
-    await this.eventBus.emit(DistributionEvent.RETRIED, { recordId: input.recordId });
+    await this.eventBus.emit(DistributionEvent.RETRIED, {
+      recordId: input.recordId,
+    });
 
     // Re-execute the distribution
     // The record is set to PENDING. Attempt re-distribution inline by looking
@@ -418,28 +508,36 @@ export class DistributionService {
     // If this fails the record stays PENDING and will be picked up by
     // processScheduledDistributions on the next cron run.
     try {
-      const fresh = await this.prisma.distributionRecord.findUnique({
+      const fresh = (await this.prisma.distributionRecord.findUnique({
         where: { id: record.id },
         include: { channel: true },
-      } as any);
+      })) as
+        | (DistributionRecordData & {
+            channel?: DistributionChannelData | null;
+          })
+        | null;
       if (fresh) {
         const connector = getConnector(fresh.platform as SocialPlatform);
-        const channel = (fresh as any).channel;
+        const channel = fresh.channel;
         if (connector && channel) {
           await this.prisma.distributionRecord.update({
             where: { id: record.id },
             data: { status: DistributionStatus.PUBLISHING },
           });
 
-          const post = await this.prisma.post.findUnique({ where: { id: fresh.postId } });
-          const postUrl = post && (post as any).slug
-            ? `${this.config.siteBaseUrl ?? ""}/blog/${(post as any).slug}`
-            : "";
+          const post = (await this.prisma.post.findUnique({
+            where: { id: fresh.postId },
+          })) as PostData | null;
+          const postUrl =
+            post && post.slug
+              ? `${this.config.siteBaseUrl ?? ""}/blog/${post.slug}`
+              : "";
           const result = await this.withRetry(
-            () => connector.post(
-              { text: fresh.content, url: postUrl, title: post?.title ?? "" },
-              channel.credentials as any,
-            ),
+            () =>
+              connector.post(
+                { text: fresh.content, url: postUrl, title: post?.title ?? "" },
+                channel.credentials as PlatformCredentials,
+              ),
             this.config.maxRetries ?? 3,
             this.config.retryDelayMs ?? 5_000,
             this.config.retryBackoffMultiplier ?? 2,
@@ -458,10 +556,14 @@ export class DistributionService {
             });
             // Update channel's lastPublishedAt on retry success
             if (channel?.id) {
-              await this.prisma.distributionChannel.update({
-                where: { id: channel.id },
-                data: { lastPublishedAt: publishedAt },
-              }).catch(() => { /* non-critical */ });
+              await this.prisma.distributionChannel
+                .update({
+                  where: { id: channel.id },
+                  data: { lastPublishedAt: publishedAt },
+                })
+                .catch(() => {
+                  /* non-critical */
+                });
             }
             this.recordSuccess(fresh.platform);
           } else {
@@ -474,11 +576,16 @@ export class DistributionService {
         }
       }
     } catch (retryErr: any) {
-      console.warn("[DistributionService] Retry execution failed, will be picked up by scheduler", { id: record.id, error: retryErr?.message });
+      console.warn(
+        "[DistributionService] Retry execution failed, will be picked up by scheduler",
+        { id: record.id, error: retryErr?.message },
+      );
     }
 
     // Re-fetch the latest state after retry attempt
-    const finalRecord = await this.prisma.distributionRecord.findUnique({ where: { id: record.id } });
+    const finalRecord = await this.prisma.distributionRecord.findUnique({
+      where: { id: record.id },
+    });
     return finalRecord ?? updated;
   }
 
@@ -498,28 +605,44 @@ export class DistributionService {
       data: { status: DistributionStatus.CANCELLED },
     });
 
-    await this.eventBus.emit(DistributionEvent.CANCELLED, { recordId: input.recordId });
+    await this.eventBus.emit(DistributionEvent.CANCELLED, {
+      recordId: input.recordId,
+    });
     return updated;
   }
 
   // ── Stats & Config ───────────────────────────────────────────────────────
 
   async getStats(): Promise<Record<string, any>> {
-    const [total, published, failed, pending, scheduled, rateLimited] = await Promise.all([
-      this.prisma.distributionRecord.count(),
-      this.prisma.distributionRecord.count({ where: { status: DistributionStatus.PUBLISHED } }),
-      this.prisma.distributionRecord.count({ where: { status: DistributionStatus.FAILED } }),
-      this.prisma.distributionRecord.count({ where: { status: DistributionStatus.PENDING } }),
-      this.prisma.distributionRecord.count({ where: { status: DistributionStatus.SCHEDULED } }),
-      this.prisma.distributionRecord.count({ where: { status: DistributionStatus.RATE_LIMITED } }),
-    ]);
+    const [total, published, failed, pending, scheduled, rateLimited] =
+      await Promise.all([
+        this.prisma.distributionRecord.count(),
+        this.prisma.distributionRecord.count({
+          where: { status: DistributionStatus.PUBLISHED },
+        }),
+        this.prisma.distributionRecord.count({
+          where: { status: DistributionStatus.FAILED },
+        }),
+        this.prisma.distributionRecord.count({
+          where: { status: DistributionStatus.PENDING },
+        }),
+        this.prisma.distributionRecord.count({
+          where: { status: DistributionStatus.SCHEDULED },
+        }),
+        this.prisma.distributionRecord.count({
+          where: { status: DistributionStatus.RATE_LIMITED },
+        }),
+      ]);
 
     const channels = await this.prisma.distributionChannel.count();
-    const activeChannels = await this.prisma.distributionChannel.count({ where: { enabled: true } });
+    const activeChannels = await this.prisma.distributionChannel.count({
+      where: { enabled: true },
+    });
 
     // Success rate
     const completedTotal = published + failed;
-    const successRate = completedTotal > 0 ? Math.round((published / completedTotal) * 100) : 0;
+    const successRate =
+      completedTotal > 0 ? Math.round((published / completedTotal) * 100) : 0;
 
     // Platform health
     const platformHealth = await this.healthCheck();
@@ -533,34 +656,43 @@ export class DistributionService {
     };
   }
 
-  async updateConfig(input: Partial<DistributionConfig>): Promise<DistributionConfig> {
+  async updateConfig(
+    input: Partial<DistributionConfig>,
+  ): Promise<DistributionConfig> {
     this.config = { ...this.config, ...input };
 
     // DIST-001: Persist to DB via SiteSettings.distributionConfig JSON column
     try {
-      const existing = await (this.prisma as any).siteSettings.findFirst();
+      const existing = await this.prisma.siteSettings.findFirst();
       if (existing) {
-        await (this.prisma as any).siteSettings.update({
+        await this.prisma.siteSettings.update({
           where: { id: existing.id },
           data: { distributionConfig: this.config },
         });
       }
     } catch {
       // Non-critical: in-memory config still updated
-      console.warn("[DistributionService] Failed to persist config to DB — distributionConfig column may not exist yet");
+      console.warn(
+        "[DistributionService] Failed to persist config to DB — distributionConfig column may not exist yet",
+      );
     }
 
-    await this.eventBus.emit(DistributionEvent.SETTINGS_UPDATED, { config: this.config });
+    await this.eventBus.emit(DistributionEvent.SETTINGS_UPDATED, {
+      config: this.config,
+    });
     return this.config;
   }
 
   /** Load config from DB on first use (lazy initialization). */
   async loadConfigFromDb(): Promise<void> {
     try {
-      const settings = await (this.prisma as any).siteSettings.findFirst({
+      const settings = await this.prisma.siteSettings.findFirst({
         select: { distributionConfig: true },
       });
-      if (settings?.distributionConfig && typeof settings.distributionConfig === "object") {
+      if (
+        settings?.distributionConfig &&
+        typeof settings.distributionConfig === "object"
+      ) {
         this.config = { ...DEFAULT_CONFIG, ...settings.distributionConfig };
       }
     } catch {
@@ -570,13 +702,22 @@ export class DistributionService {
 
   // ── Scheduled Processing ─────────────────────────────────────────────────
 
-  async processScheduledDistributions(): Promise<{ processed: number; sent: number; errors: string[] }> {
+  async processScheduledDistributions(): Promise<{
+    processed: number;
+    sent: number;
+    errors: string[];
+  }> {
     const now = new Date();
-    const scheduled = await this.prisma.distributionRecord.findMany({
-      where: { status: DistributionStatus.SCHEDULED, scheduledFor: { lte: now } },
+    const scheduled = (await this.prisma.distributionRecord.findMany({
+      where: {
+        status: DistributionStatus.SCHEDULED,
+        scheduledFor: { lte: now },
+      },
       take: this.config.scheduledBatchSize ?? 50,
       include: { channel: true },
-    } as any);
+    })) as (DistributionRecordData & {
+      channel?: DistributionChannelData | null;
+    })[];
 
     let processed = 0;
     let sent = 0;
@@ -586,7 +727,9 @@ export class DistributionService {
       try {
         // Skip if circuit breaker is open for this platform
         if (this.isCircuitOpen(record.platform)) {
-          errors.push(`Record ${record.id}: Circuit open for ${record.platform}`);
+          errors.push(
+            `Record ${record.id}: Circuit open for ${record.platform}`,
+          );
           continue;
         }
 
@@ -594,7 +737,10 @@ export class DistributionService {
         if (this.isRateLimited(record.platform)) {
           await this.prisma.distributionRecord.update({
             where: { id: record.id },
-            data: { status: DistributionStatus.RATE_LIMITED, error: "Rate limited during batch processing" },
+            data: {
+              status: DistributionStatus.RATE_LIMITED,
+              error: "Rate limited during batch processing",
+            },
           });
           continue;
         }
@@ -609,12 +755,15 @@ export class DistributionService {
 
         if (connector && channel) {
           try {
-            const post = await this.prisma.post.findUnique({ where: { id: record.postId } });
+            const post = (await this.prisma.post.findUnique({
+              where: { id: record.postId },
+            })) as PostData | null;
             const result = await this.withRetry(
-              () => connector.post(
-                { text: record.content, url: "", title: post?.title ?? "" },
-                channel.credentials as any,
-              ),
+              () =>
+                connector.post(
+                  { text: record.content, url: "", title: post?.title ?? "" },
+                  channel.credentials as PlatformCredentials,
+                ),
               2, // fewer retries for batch processing
               this.config.retryDelayMs ?? 5_000,
               this.config.retryBackoffMultiplier ?? 2,
@@ -635,17 +784,25 @@ export class DistributionService {
             } else {
               await this.prisma.distributionRecord.update({
                 where: { id: record.id },
-                data: { status: DistributionStatus.FAILED, error: result.error },
+                data: {
+                  status: DistributionStatus.FAILED,
+                  error: result.error,
+                },
               });
               this.recordFailure(record.platform);
             }
           } catch (err: any) {
-            const isRateLimit = err.message?.includes("rate limit") || err.message?.includes("429");
+            const isRateLimit =
+              err.message?.includes("rate limit") ||
+              err.message?.includes("429");
             if (isRateLimit) {
               this.setRateLimitCooldown(record.platform);
               await this.prisma.distributionRecord.update({
                 where: { id: record.id },
-                data: { status: DistributionStatus.RATE_LIMITED, error: err.message },
+                data: {
+                  status: DistributionStatus.RATE_LIMITED,
+                  error: err.message,
+                },
               });
             } else {
               await this.prisma.distributionRecord.update({
@@ -660,7 +817,10 @@ export class DistributionService {
           // No connector or channel available — mark as failed
           await this.prisma.distributionRecord.update({
             where: { id: record.id },
-            data: { status: DistributionStatus.FAILED, error: `No connector or channel available for platform ${record.platform}` },
+            data: {
+              status: DistributionStatus.FAILED,
+              error: `No connector or channel available for platform ${record.platform}`,
+            },
           });
         }
 
@@ -674,9 +834,16 @@ export class DistributionService {
   }
 
   async cleanupOldRecords(): Promise<number> {
-    const cutoff = new Date(Date.now() - (this.config.retentionDays ?? 90) * 86_400_000);
+    const cutoff = new Date(
+      Date.now() - (this.config.retentionDays ?? 90) * 86_400_000,
+    );
     const result = await this.prisma.distributionRecord.deleteMany({
-      where: { createdAt: { lt: cutoff }, status: { in: [DistributionStatus.PUBLISHED, DistributionStatus.CANCELLED] } },
+      where: {
+        createdAt: { lt: cutoff },
+        status: {
+          in: [DistributionStatus.PUBLISHED, DistributionStatus.CANCELLED],
+        },
+      },
     });
     return result.count ?? 0;
   }

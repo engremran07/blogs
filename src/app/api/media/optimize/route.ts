@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { mediaService } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
 
@@ -19,21 +19,8 @@ const logger = createLogger("api/media/optimize");
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
-    const role = (session.user as { role?: string })?.role;
-    if (!["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(role || "")) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 },
-      );
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const parsed = optimizeMediaSchema.safeParse(body);

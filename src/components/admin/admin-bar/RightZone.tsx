@@ -1,11 +1,19 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import Link from "next/link";
-import { Globe, Monitor, Save, Rocket, Eye } from "lucide-react";
+import {
+  Globe,
+  Monitor as MonitorIcon,
+  Save,
+  Rocket,
+  Eye,
+  Keyboard,
+} from "lucide-react";
 import { useAdminBar } from "./AdminBarProvider";
 import { NewDropdown } from "./NewDropdown";
 import { UserDropdown } from "./UserDropdown";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import type { RouteIntelligence } from "./useRouteIntelligence";
 import type { EditorStatus } from "../EditorContext";
 import { toast } from "@/components/ui/Toast";
@@ -59,8 +67,37 @@ export function RightZone({
   const canSave =
     settings.adminBarShowSaveButton && route.isEditor && editor?.handleSave;
 
+  // ── Keyboard shortcuts: Ctrl+S to save, Ctrl+Shift+P to publish ──
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Ctrl+S / Cmd+S — Save
+      if ((e.ctrlKey || e.metaKey) && e.key === "s" && !e.shiftKey) {
+        if (route.isEditor && editor?.handleSave) {
+          e.preventDefault();
+          handleSave();
+        }
+      }
+      // Ctrl+Shift+P / Cmd+Shift+P — Publish
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "P") {
+        if (
+          route.isEditor &&
+          editor?.status === "DRAFT" &&
+          editor?.handleSave
+        ) {
+          e.preventDefault();
+          handlePublish();
+        }
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [route.isEditor, editor, handleSave, handlePublish]);
+
   return (
     <div className="flex shrink-0 items-center gap-1">
+      {/* Theme toggle */}
+      <ThemeToggle variant="adminbar" />
+
       {/* + New dropdown */}
       <NewDropdown />
 
@@ -83,7 +120,7 @@ export function RightZone({
               onClick={closeDropdown}
               className="flex items-center gap-1 rounded px-2 py-1 text-sm text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
             >
-              <Monitor className="h-3.5 w-3.5" />
+              <MonitorIcon className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
@@ -108,9 +145,13 @@ export function RightZone({
           onClick={handleSave}
           className="flex items-center gap-1 rounded px-3 py-1 text-sm font-medium text-white transition-colors hover:opacity-90"
           style={{ backgroundColor: settings.adminBarAccentColor }}
+          title="Save (Ctrl+S)"
         >
           <Save className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Save</span>
+          <kbd className="ml-1 hidden rounded bg-white/20 px-1 py-0.5 text-[10px] font-normal lg:inline">
+            ⌘S
+          </kbd>
         </button>
       )}
 
@@ -119,10 +160,24 @@ export function RightZone({
         <button
           onClick={handlePublish}
           className="flex items-center gap-1 rounded bg-green-600 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-green-500"
+          title="Publish (Ctrl+Shift+P)"
         >
           <Rocket className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Publish</span>
+          <kbd className="ml-1 hidden rounded bg-white/20 px-1 py-0.5 text-[10px] font-normal lg:inline">
+            ⌘⇧P
+          </kbd>
         </button>
+      )}
+
+      {/* Keyboard shortcuts hint — editor pages only */}
+      {route.isEditor && (
+        <span
+          className="hidden items-center text-gray-600 xl:flex"
+          title="Ctrl+S to save, Ctrl+Shift+P to publish"
+        >
+          <Keyboard className="h-3.5 w-3.5" />
+        </span>
       )}
 
       {/* User dropdown */}

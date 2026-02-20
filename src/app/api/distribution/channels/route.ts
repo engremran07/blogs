@@ -4,7 +4,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { distributionService, siteSettingsService } from "@/server/wiring";
 import { createChannelSchema } from "@/features/distribution/server/schemas";
 
@@ -21,10 +21,8 @@ async function checkDistributionEnabled() {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const killSwitch = await checkDistributionEnabled();
     if (killSwitch) return killSwitch;
@@ -42,10 +40,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const killSwitch = await checkDistributionEnabled();
     if (killSwitch) return killSwitch;

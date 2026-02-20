@@ -10,10 +10,10 @@ import type {
   PaginatedResult,
   QueryCommentsInput,
   CommentConfigConsumer,
-} from '../types';
-import { CommentStatus, CommentEvent, CommentSortField } from '../types';
-import { DEFAULT_CONFIG } from './constants';
-import { CommentEventBus } from './events';
+} from "../types";
+import { CommentStatus, CommentEvent, CommentSortField } from "../types";
+import { DEFAULT_CONFIG } from "./constants";
+import { CommentEventBus } from "./events";
 
 export class ModerationService implements CommentConfigConsumer {
   private cfg: Required<CommentsConfig>;
@@ -33,7 +33,9 @@ export class ModerationService implements CommentConfigConsumer {
 
   // ─── Query (admin panel) ─────────────────────────────────────────────────
 
-  async findAll(query: QueryCommentsInput): Promise<PaginatedResult<CommentData>> {
+  async findAll(
+    query: QueryCommentsInput,
+  ): Promise<PaginatedResult<CommentData>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -46,13 +48,13 @@ export class ModerationService implements CommentConfigConsumer {
     if (query.isResolved !== undefined) where.isResolved = query.isResolved;
     if (query.search) {
       where.OR = [
-        { content: { contains: query.search, mode: 'insensitive' } },
-        { authorName: { contains: query.search, mode: 'insensitive' } },
+        { content: { contains: query.search, mode: "insensitive" } },
+        { authorName: { contains: query.search, mode: "insensitive" } },
       ];
     }
 
     const sortField = query.sortBy ?? CommentSortField.CREATED_AT;
-    const sortOrder = query.sortOrder ?? 'desc';
+    const sortOrder = query.sortOrder ?? "desc";
     const orderBy = { [sortField]: sortOrder };
 
     const [data, total] = await Promise.all([
@@ -75,19 +77,29 @@ export class ModerationService implements CommentConfigConsumer {
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    const [total, approved, pending, spam, flagged, deleted, pinned, resolved, todayCount, avgSpamScore] =
-      await Promise.all([
-        this.prisma.comment.count(),
-        this.prisma.comment.count({ where: { status: CommentStatus.APPROVED } }),
-        this.prisma.comment.count({ where: { status: CommentStatus.PENDING } }),
-        this.prisma.comment.count({ where: { status: CommentStatus.SPAM } }),
-        this.prisma.comment.count({ where: { status: CommentStatus.FLAGGED } }),
-        this.prisma.comment.count({ where: { deletedAt: { not: null } } }),
-        this.prisma.comment.count({ where: { isPinned: true } }),
-        this.prisma.comment.count({ where: { isResolved: true } }),
-        this.prisma.comment.count({ where: { createdAt: { gte: oneDayAgo } } }),
-        this.prisma.comment.aggregate({ _avg: { spamScore: true } }),
-      ]);
+    const [
+      total,
+      approved,
+      pending,
+      spam,
+      flagged,
+      deleted,
+      pinned,
+      resolved,
+      todayCount,
+      avgSpamScore,
+    ] = await Promise.all([
+      this.prisma.comment.count(),
+      this.prisma.comment.count({ where: { status: CommentStatus.APPROVED } }),
+      this.prisma.comment.count({ where: { status: CommentStatus.PENDING } }),
+      this.prisma.comment.count({ where: { status: CommentStatus.SPAM } }),
+      this.prisma.comment.count({ where: { status: CommentStatus.FLAGGED } }),
+      this.prisma.comment.count({ where: { deletedAt: { not: null } } }),
+      this.prisma.comment.count({ where: { isPinned: true } }),
+      this.prisma.comment.count({ where: { isResolved: true } }),
+      this.prisma.comment.count({ where: { createdAt: { gte: oneDayAgo } } }),
+      this.prisma.comment.aggregate({ _avg: { spamScore: true } }),
+    ]);
 
     return {
       total,
@@ -99,18 +111,30 @@ export class ModerationService implements CommentConfigConsumer {
       pinned,
       resolved,
       todayCount,
-      averageSpamScore: avgSpamScore._avg.spamScore ?? 0,
+      averageSpamScore:
+        (avgSpamScore as { _avg: { spamScore: number | null } })._avg
+          .spamScore ?? 0,
     };
   }
 
   // ─── Single-item actions ─────────────────────────────────────────────────
 
   async approve(id: string, moderatorId: string): Promise<CommentData> {
-    return this.setStatus(id, CommentStatus.APPROVED, moderatorId, CommentEvent.APPROVED);
+    return this.setStatus(
+      id,
+      CommentStatus.APPROVED,
+      moderatorId,
+      CommentEvent.APPROVED,
+    );
   }
 
   async reject(id: string, moderatorId: string): Promise<CommentData> {
-    return this.setStatus(id, CommentStatus.REJECTED, moderatorId, CommentEvent.REJECTED);
+    return this.setStatus(
+      id,
+      CommentStatus.REJECTED,
+      moderatorId,
+      CommentEvent.REJECTED,
+    );
   }
 
   async markAsSpam(id: string, moderatorId: string): Promise<CommentData> {
@@ -119,9 +143,15 @@ export class ModerationService implements CommentConfigConsumer {
       data: { status: CommentStatus.SPAM, spamScore: 1.0 },
     });
     if (this.cfg.enableLearningSignals) {
-      await this.prisma.learningSignal.create({
-        data: { commentId: id, action: 'MANUAL_SPAM', metadata: { moderatorId } },
-      }).catch(() => {});
+      await this.prisma.learningSignal
+        .create({
+          data: {
+            commentId: id,
+            action: "MANUAL_SPAM",
+            metadata: { moderatorId },
+          },
+        })
+        .catch(() => {});
     }
     await this.emitEvent(CommentEvent.SPAM_DETECTED, comment, moderatorId);
     return comment as CommentData;
@@ -134,9 +164,15 @@ export class ModerationService implements CommentConfigConsumer {
     });
     if (this.cfg.enableLearningSignals) {
       for (const id of ids) {
-        await this.prisma.learningSignal.create({
-          data: { commentId: id, action: 'MANUAL_SPAM_BULK', metadata: { moderatorId } },
-        }).catch(() => {});
+        await this.prisma.learningSignal
+          .create({
+            data: {
+              commentId: id,
+              action: "MANUAL_SPAM_BULK",
+              metadata: { moderatorId },
+            },
+          })
+          .catch(() => {});
       }
     }
     return result.count;
@@ -178,10 +214,17 @@ export class ModerationService implements CommentConfigConsumer {
     return comment as CommentData;
   }
 
-  async pin(id: string, pinned: boolean, moderatorId: string): Promise<CommentData> {
+  async pin(
+    id: string,
+    pinned: boolean,
+    moderatorId: string,
+  ): Promise<CommentData> {
     // Enforce pinned limit when pinning
     if (pinned && this.cfg.pinnedCommentLimit > 0) {
-      const target = await this.prisma.comment.findUnique({ where: { id }, select: { postId: true } });
+      const target = await this.prisma.comment.findUnique({
+        where: { id },
+        select: { postId: true },
+      });
       if (target) {
         const pinnedCount = await this.prisma.comment.count({
           where: { postId: target.postId, isPinned: true },
@@ -204,7 +247,11 @@ export class ModerationService implements CommentConfigConsumer {
     return comment as CommentData;
   }
 
-  async resolve(id: string, resolved: boolean, moderatorId: string): Promise<CommentData> {
+  async resolve(
+    id: string,
+    resolved: boolean,
+    moderatorId: string,
+  ): Promise<CommentData> {
     const comment = await this.prisma.comment.update({
       where: { id },
       data: { isResolved: resolved },
@@ -235,11 +282,21 @@ export class ModerationService implements CommentConfigConsumer {
   // ─── Bulk ops ────────────────────────────────────────────────────────────
 
   async bulkApprove(ids: string[], moderatorId: string): Promise<number> {
-    return this.bulkStatus(ids, CommentStatus.APPROVED, moderatorId, CommentEvent.APPROVED);
+    return this.bulkStatus(
+      ids,
+      CommentStatus.APPROVED,
+      moderatorId,
+      CommentEvent.APPROVED,
+    );
   }
 
   async bulkReject(ids: string[], moderatorId: string): Promise<number> {
-    return this.bulkStatus(ids, CommentStatus.REJECTED, moderatorId, CommentEvent.REJECTED);
+    return this.bulkStatus(
+      ids,
+      CommentStatus.REJECTED,
+      moderatorId,
+      CommentEvent.REJECTED,
+    );
   }
 
   async bulkDelete(ids: string[]): Promise<number> {
@@ -250,7 +307,11 @@ export class ModerationService implements CommentConfigConsumer {
     return result.count;
   }
 
-  async bulkPin(ids: string[], pinned: boolean, moderatorId: string): Promise<number> {
+  async bulkPin(
+    ids: string[],
+    pinned: boolean,
+    moderatorId: string,
+  ): Promise<number> {
     const result = await this.prisma.comment.updateMany({
       where: { id: { in: ids } },
       data: { isPinned: pinned },
@@ -259,14 +320,21 @@ export class ModerationService implements CommentConfigConsumer {
     const event = pinned ? CommentEvent.PINNED : CommentEvent.UNPINNED;
     for (const id of ids) {
       await this.events.emit(event, {
-        commentId: id, postId: '', userId: moderatorId,
-        action: event, timestamp: new Date(),
+        commentId: id,
+        postId: "",
+        userId: moderatorId,
+        action: event,
+        timestamp: new Date(),
       });
     }
     return result.count;
   }
 
-  async bulkResolve(ids: string[], resolved: boolean, moderatorId: string): Promise<number> {
+  async bulkResolve(
+    ids: string[],
+    resolved: boolean,
+    moderatorId: string,
+  ): Promise<number> {
     const result = await this.prisma.comment.updateMany({
       where: { id: { in: ids } },
       data: { isResolved: resolved },
@@ -275,8 +343,11 @@ export class ModerationService implements CommentConfigConsumer {
     const event = resolved ? CommentEvent.RESOLVED : CommentEvent.UNRESOLVED;
     for (const id of ids) {
       await this.events.emit(event, {
-        commentId: id, postId: '', userId: moderatorId,
-        action: event, timestamp: new Date(),
+        commentId: id,
+        postId: "",
+        userId: moderatorId,
+        action: event,
+        timestamp: new Date(),
       });
     }
     return result.count;
@@ -296,8 +367,12 @@ export class ModerationService implements CommentConfigConsumer {
     const ids = spamIds.map((c: { id: string }) => c.id);
     if (ids.length === 0) return 0;
 
-    await this.prisma.commentVote.deleteMany({ where: { commentId: { in: ids } } });
-    await this.prisma.learningSignal.deleteMany({ where: { commentId: { in: ids } } });
+    await this.prisma.commentVote.deleteMany({
+      where: { commentId: { in: ids } },
+    });
+    await this.prisma.learningSignal.deleteMany({
+      where: { commentId: { in: ids } },
+    });
     const result = await this.prisma.comment.deleteMany({
       where: { id: { in: ids } },
     });
@@ -315,8 +390,12 @@ export class ModerationService implements CommentConfigConsumer {
     const ids = deletedIds.map((c: { id: string }) => c.id);
     if (ids.length === 0) return 0;
 
-    await this.prisma.commentVote.deleteMany({ where: { commentId: { in: ids } } });
-    await this.prisma.learningSignal.deleteMany({ where: { commentId: { in: ids } } });
+    await this.prisma.commentVote.deleteMany({
+      where: { commentId: { in: ids } },
+    });
+    await this.prisma.learningSignal.deleteMany({
+      where: { commentId: { in: ids } },
+    });
     const result = await this.prisma.comment.deleteMany({
       where: { id: { in: ids } },
     });
@@ -337,9 +416,11 @@ export class ModerationService implements CommentConfigConsumer {
     });
 
     if (this.cfg.enableLearningSignals) {
-      await this.prisma.learningSignal.create({
-        data: { commentId: id, action: status, metadata: { moderatorId } },
-      }).catch(() => {});
+      await this.prisma.learningSignal
+        .create({
+          data: { commentId: id, action: status, metadata: { moderatorId } },
+        })
+        .catch(() => {});
     }
 
     await this.emitEvent(event, comment, moderatorId);
@@ -359,8 +440,11 @@ export class ModerationService implements CommentConfigConsumer {
 
     for (const id of ids) {
       await this.events.emit(event, {
-        commentId: id, postId: '', userId: moderatorId,
-        action: event, timestamp: new Date(),
+        commentId: id,
+        postId: "",
+        userId: moderatorId,
+        action: event,
+        timestamp: new Date(),
       });
     }
     return result.count;
@@ -368,7 +452,7 @@ export class ModerationService implements CommentConfigConsumer {
 
   private async emitEvent(
     event: CommentEvent,
-    comment: Record<string, unknown>,
+    comment: CommentData | Record<string, unknown>,
     userId: string,
     data?: Record<string, unknown>,
   ): Promise<void> {

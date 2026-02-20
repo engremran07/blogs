@@ -9,8 +9,8 @@ import type {
   PagesSystemSettings,
   PagesConfig,
   PagesConfigConsumer,
-} from '../types';
-import { PAGES_DEFAULTS } from './constants';
+} from "../types";
+import { PAGES_DEFAULTS } from "./constants";
 
 /* ========================================================================== */
 /*  SERVICE                                                                   */
@@ -23,9 +23,7 @@ export class PagesAdminSettingsService {
   /** Registered services that need config propagation. */
   private consumers: PagesConfigConsumer[] = [];
 
-  constructor(
-    private readonly prisma: PagesPrismaClient,
-  ) {}
+  constructor(private readonly prisma: PagesPrismaClient) {}
 
   /* ======================================================================== */
   /*  CONSUMER REGISTRATION                                                   */
@@ -100,31 +98,48 @@ export class PagesAdminSettingsService {
     };
 
     // Merge each configurable field
-    if (payload.pagesPerPage !== undefined) data.pagesPerPage = payload.pagesPerPage;
-    if (payload.minWordCount !== undefined) data.minWordCount = payload.minWordCount;
-    if (payload.readingSpeedWpm !== undefined) data.readingSpeedWpm = payload.readingSpeedWpm;
-    if (payload.pagesBaseUrl !== undefined) data.pagesBaseUrl = payload.pagesBaseUrl;
-    if (payload.excerptLength !== undefined) data.excerptLength = payload.excerptLength;
-    if (payload.lockTimeoutMinutes !== undefined) data.lockTimeoutMinutes = payload.lockTimeoutMinutes;
-    if (payload.maxRevisionsPerPage !== undefined) data.maxRevisionsPerPage = payload.maxRevisionsPerPage;
+    if (payload.pagesPerPage !== undefined)
+      data.pagesPerPage = payload.pagesPerPage;
+    if (payload.minWordCount !== undefined)
+      data.minWordCount = payload.minWordCount;
+    if (payload.readingSpeedWpm !== undefined)
+      data.readingSpeedWpm = payload.readingSpeedWpm;
+    if (payload.pagesBaseUrl !== undefined)
+      data.pagesBaseUrl = payload.pagesBaseUrl;
+    if (payload.excerptLength !== undefined)
+      data.excerptLength = payload.excerptLength;
+    if (payload.lockTimeoutMinutes !== undefined)
+      data.lockTimeoutMinutes = payload.lockTimeoutMinutes;
+    if (payload.maxRevisionsPerPage !== undefined)
+      data.maxRevisionsPerPage = payload.maxRevisionsPerPage;
     if (payload.maxDepth !== undefined) data.maxDepth = payload.maxDepth;
-    if (payload.allowCodeInjection !== undefined) data.allowCodeInjection = payload.allowCodeInjection;
-    if (payload.enableRevisions !== undefined) data.enableRevisions = payload.enableRevisions;
-    if (payload.enableLocking !== undefined) data.enableLocking = payload.enableLocking;
-    if (payload.enableScheduling !== undefined) data.enableScheduling = payload.enableScheduling;
-    if (payload.enableHierarchy !== undefined) data.enableHierarchy = payload.enableHierarchy;
-    if (payload.enablePasswordProtection !== undefined) data.enablePasswordProtection = payload.enablePasswordProtection;
-    if (payload.autoRegisterSystemPages !== undefined) data.autoRegisterSystemPages = payload.autoRegisterSystemPages;
-    if (payload.defaultTemplate !== undefined) data.defaultTemplate = payload.defaultTemplate;
-    if (payload.defaultVisibility !== undefined) data.defaultVisibility = payload.defaultVisibility;
-    if (payload.defaultStatus !== undefined) data.defaultStatus = payload.defaultStatus;
+    if (payload.allowCodeInjection !== undefined)
+      data.allowCodeInjection = payload.allowCodeInjection;
+    if (payload.enableRevisions !== undefined)
+      data.enableRevisions = payload.enableRevisions;
+    if (payload.enableLocking !== undefined)
+      data.enableLocking = payload.enableLocking;
+    if (payload.enableScheduling !== undefined)
+      data.enableScheduling = payload.enableScheduling;
+    if (payload.enableHierarchy !== undefined)
+      data.enableHierarchy = payload.enableHierarchy;
+    if (payload.enablePasswordProtection !== undefined)
+      data.enablePasswordProtection = payload.enablePasswordProtection;
+    if (payload.autoRegisterSystemPages !== undefined)
+      data.autoRegisterSystemPages = payload.autoRegisterSystemPages;
+    if (payload.defaultTemplate !== undefined)
+      data.defaultTemplate = payload.defaultTemplate;
+    if (payload.defaultVisibility !== undefined)
+      data.defaultVisibility = payload.defaultVisibility;
+    if (payload.defaultStatus !== undefined)
+      data.defaultStatus = payload.defaultStatus;
 
     const updated = await this.prisma.pageSettings.update({
       where: { id: current.id },
       data,
     });
 
-    this.cached = updated as PagesSystemSettings;
+    this.cached = updated as unknown as PagesSystemSettings;
 
     // Propagate to all registered consumers
     await this.propagateConfig();
@@ -149,7 +164,7 @@ export class PagesAdminSettingsService {
       data,
     });
 
-    this.cached = updated as PagesSystemSettings;
+    this.cached = updated as unknown as PagesSystemSettings;
     await this.propagateConfig();
     return this.cached;
   }
@@ -163,7 +178,7 @@ export class PagesAdminSettingsService {
     const existing = await this.prisma.pageSettings.findFirst();
 
     if (existing) {
-      this.cached = existing as PagesSystemSettings;
+      this.cached = existing as unknown as PagesSystemSettings;
       return this.cached;
     }
 
@@ -192,7 +207,7 @@ export class PagesAdminSettingsService {
       },
     });
 
-    this.cached = created as PagesSystemSettings;
+    this.cached = created as unknown as PagesSystemSettings;
     return this.cached;
   }
 
@@ -214,9 +229,11 @@ export class PagesAdminSettingsService {
       enableHierarchy: s.enableHierarchy,
       enablePasswordProtection: s.enablePasswordProtection,
       autoRegisterSystemPages: s.autoRegisterSystemPages,
-      defaultTemplate: s.defaultTemplate as Required<PagesConfig>['defaultTemplate'],
-      defaultVisibility: s.defaultVisibility as Required<PagesConfig>['defaultVisibility'],
-      defaultStatus: s.defaultStatus as Required<PagesConfig>['defaultStatus'],
+      defaultTemplate:
+        s.defaultTemplate as Required<PagesConfig>["defaultTemplate"],
+      defaultVisibility:
+        s.defaultVisibility as Required<PagesConfig>["defaultVisibility"],
+      defaultStatus: s.defaultStatus as Required<PagesConfig>["defaultStatus"],
     };
   }
 

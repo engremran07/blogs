@@ -39,12 +39,17 @@ import { syncAdSlotPageTypes } from "@/features/ads/server/scan-pages";
 import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 import { InterlinkService } from "@/features/seo/server/interlink.service";
 import type { InterlinkPrisma } from "@/features/seo/server/interlink.service";
+import { processJobBatch } from "@/features/jobs/server/runner";
 
 const logger = createLogger("cron");
 
 // ─── HTML escape for digest emails ──────────────────────────────────────────
 function escapeHtmlForDigest(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -159,7 +164,14 @@ async function persistLog(
     const status =
       summary.errors === 0 ? "ok" : summary.ok > 0 ? "partial" : "error";
     await prisma.cronLog.create({
-      data: { status, summary, results: results as unknown as import('@prisma/client').Prisma.InputJsonValue, durationMs, triggeredBy },
+      data: {
+        status,
+        summary,
+        results:
+          results as unknown as import("@prisma/client").Prisma.InputJsonValue,
+        durationMs,
+        triggeredBy,
+      },
     });
   } catch (err) {
     logger.error("Failed to persist cron log", {
@@ -210,7 +222,10 @@ export async function GET(request: NextRequest) {
     const settings = (await getSiteSettings()) as Record<string, unknown>;
     if (settings.maintenanceMode) {
       return NextResponse.json(
-        { message: "Maintenance mode active — all cron tasks skipped", results: [] },
+        {
+          message: "Maintenance mode active — all cron tasks skipped",
+          results: [],
+        },
         { status: 200 },
       );
     }
@@ -308,28 +323,41 @@ export async function GET(request: NextRequest) {
 
     // 5m. Ads: deactivate expired placements
     results.push(
-      await runTask("deactivate-expired-ad-placements", adsEnabled, async () => {
-        const now = new Date();
-        await prisma.adPlacement.updateMany({
-          where: { endDate: { lt: now }, isActive: true },
-          data: { isActive: false },
-        });
-      }),
+      await runTask(
+        "deactivate-expired-ad-placements",
+        adsEnabled,
+        async () => {
+          const now = new Date();
+          await prisma.adPlacement.updateMany({
+            where: { endDate: { lt: now }, isActive: true },
+            data: { isActive: false },
+          });
+        },
+      ),
     );
 
     // 5n. Distribution: process scheduled distributions
-    const distributionEnabled = (settings.distributionEnabled as boolean) ?? false;
+    const distributionEnabled =
+      (settings.distributionEnabled as boolean) ?? false;
     results.push(
-      await runTask("process-scheduled-distributions", distributionEnabled, async () => {
-        await distributionService.processScheduledDistributions();
-      }),
+      await runTask(
+        "process-scheduled-distributions",
+        distributionEnabled,
+        async () => {
+          await distributionService.processScheduledDistributions();
+        },
+      ),
     );
 
     // 5o. Distribution: cleanup old records
     results.push(
-      await runTask("cleanup-old-distribution-records", distributionEnabled, async () => {
-        await distributionService.cleanupOldRecords();
-      }),
+      await runTask(
+        "cleanup-old-distribution-records",
+        distributionEnabled,
+        async () => {
+          await distributionService.cleanupOldRecords();
+        },
+      ),
     );
 
     // 5p. Ads: sync ad slot page types
@@ -351,7 +379,9 @@ export async function GET(request: NextRequest) {
     // 5r-seo. Auto-interlink content (scan & inject internal links)
     results.push(
       await runTask("seo-auto-interlink", true, async () => {
-        const interlinkSvc = new InterlinkService(prisma as unknown as InterlinkPrisma);
+        const interlinkSvc = new InterlinkService(
+          prisma as unknown as InterlinkPrisma,
+        );
         await interlinkSvc.autoLinkAll(50);
       }),
     );
@@ -359,7 +389,7 @@ export async function GET(request: NextRequest) {
     // 5s-seo. Generate SEO suggestions from audit
     results.push(
       await runTask("seo-generate-suggestions", true, async () => {
-        await seoService.generateSuggestions('site');
+        await seoService.generateSuggestions("site");
       }),
     );
 
@@ -406,9 +436,11 @@ export async function GET(request: NextRequest) {
         // Determine the lookback window based on frequency
         const freq = digestConfig.emailDigestFrequency || "weekly";
         const lookbackMs =
-          freq === "daily" ? 24 * 60 * 60 * 1000
-          : freq === "monthly" ? 30 * 24 * 60 * 60 * 1000
-          : /* weekly */ 7 * 24 * 60 * 60 * 1000;
+          freq === "daily"
+            ? 24 * 60 * 60 * 1000
+            : freq === "monthly"
+              ? 30 * 24 * 60 * 60 * 1000
+              : /* weekly */ 7 * 24 * 60 * 60 * 1000;
 
         const since = new Date(Date.now() - lookbackMs);
 
@@ -437,14 +469,20 @@ export async function GET(request: NextRequest) {
         }
 
         // Build digest HTML
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || "https://example.com";
+        const siteUrl =
+          process.env.NEXT_PUBLIC_SITE_URL ||
+          process.env.NEXTAUTH_URL ||
+          "https://example.com";
         const siteName = (settings.siteName as string) || "MyBlog";
-        const postsHtml = recentPosts.map((p) =>
-          `<li style="margin-bottom:12px">
+        const postsHtml = recentPosts
+          .map(
+            (p) =>
+              `<li style="margin-bottom:12px">
             <a href="${siteUrl}/blog/${p.slug}" style="color:#3b82f6;text-decoration:none;font-weight:600">${escapeHtmlForDigest(p.title)}</a>
             ${p.excerpt ? `<br/><span style="color:#6b7280;font-size:14px">${escapeHtmlForDigest(p.excerpt)}</span>` : ""}
-          </li>`
-        ).join("\n");
+          </li>`,
+          )
+          .join("\n");
 
         const getSmtpConfig = () => siteSettingsService.getSmtpConfig();
 
@@ -464,13 +502,34 @@ export async function GET(request: NextRequest) {
             </div>
           `;
           try {
-            await sendTransactionalEmail(getSmtpConfig, sub.email, `${siteName} — ${freq} digest`, html);
+            await sendTransactionalEmail(
+              getSmtpConfig,
+              sub.email,
+              `${siteName} — ${freq} digest`,
+              html,
+            );
             sent++;
           } catch (err) {
-            logger.warn(`Failed to send digest to ${sub.email}: ${err instanceof Error ? err.message : err}`);
+            logger.warn(
+              `Failed to send digest to ${sub.email}: ${err instanceof Error ? err.message : err}`,
+            );
           }
         }
-        logger.info(`Newsletter digest sent to ${sent}/${subscribers.length} subscribers`);
+        logger.info(
+          `Newsletter digest sent to ${sent}/${subscribers.length} subscribers`,
+        );
+      }),
+    );
+
+    // ── 5u. Process pending background jobs ────────────────────────────────
+    results.push(
+      await runTask("process-job-queue", true, async () => {
+        const batch = await processJobBatch(5);
+        logger.info("Job queue batch processed", {
+          processed: batch.processed,
+          succeeded: batch.succeeded,
+          failed: batch.failed,
+        });
       }),
     );
 
@@ -486,7 +545,12 @@ export async function GET(request: NextRequest) {
     logger.info("Cron run completed", { ...summary, durationMs, triggeredBy });
 
     // 7. Persist to CronLog for admin history
-    await persistLog(results, summary, durationMs, triggeredBy as "scheduler" | "manual");
+    await persistLog(
+      results,
+      summary,
+      durationMs,
+      triggeredBy as "scheduler" | "manual",
+    );
 
     return NextResponse.json({ summary, results }, { status: 200 });
   } finally {

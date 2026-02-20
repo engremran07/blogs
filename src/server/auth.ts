@@ -16,6 +16,7 @@ declare module "next-auth" {
   interface User {
     role: UserRole;
     username: string;
+    customCapabilities: string[];
   }
   interface Session {
     user: {
@@ -25,6 +26,10 @@ declare module "next-auth" {
       image?: string | null;
       role: UserRole;
       username: string;
+      customCapabilities: string[];
+      displayName?: string | null;
+      bio?: string | null;
+      website?: string | null;
     };
   }
 }
@@ -34,11 +39,12 @@ declare module "next-auth" {
     id: string;
     role: UserRole;
     username: string;
+    customCapabilities: string[];
   }
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma) as unknown as NextAuthConfig['adapter'],
+  adapter: PrismaAdapter(prisma) as unknown as NextAuthConfig["adapter"],
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
@@ -70,7 +76,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         try {
           const captchaSettings = await prisma.captchaSettings.findFirst();
           if (captchaSettings) {
-            if (captchaSettings.captchaEnabled && captchaSettings.requireCaptchaForLogin) {
+            if (
+              captchaSettings.captchaEnabled &&
+              captchaSettings.requireCaptchaForLogin
+            ) {
               captchaRequired = true;
             }
           }
@@ -113,6 +122,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: user.displayName || user.username,
           role: user.role as UserRole,
           username: user.username,
+          customCapabilities: (user.customCapabilities ?? []) as string[],
         };
       },
     }),
@@ -121,8 +131,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id as string;
-        token.role = (user as { role: UserRole }).role;
-        token.username = (user as { username: string }).username;
+        token.role = user.role;
+        token.username = user.username;
+        token.customCapabilities = user.customCapabilities ?? [];
       }
       return token;
     },
@@ -131,6 +142,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
         session.user.username = token.username as string;
+        session.user.customCapabilities = (token.customCapabilities ??
+          []) as string[];
       }
       return session;
     },
@@ -138,9 +151,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const isAdmin = request.nextUrl.pathname.startsWith("/admin");
       if (isAdmin) {
         if (!auth?.user) return false;
-        const role = (auth.user as { role?: string }).role;
+        const role = auth.user.role;
         // ADM-001: Allow EDITOR role to access admin panel
-        return role === "EDITOR" || role === "ADMINISTRATOR" || role === "SUPER_ADMIN";
+        return (
+          role === "EDITOR" ||
+          role === "ADMINISTRATOR" ||
+          role === "SUPER_ADMIN"
+        );
       }
       return true;
     },

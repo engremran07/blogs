@@ -30,7 +30,7 @@ type GrecaptchaV2 = {
 
 function getGrecaptcha(): GrecaptchaV2 | undefined {
   if (typeof window === 'undefined') return undefined;
-  const g = (window as unknown as Record<string, unknown>).grecaptcha as GrecaptchaV2 | undefined;
+  const g = window.grecaptcha as GrecaptchaV2 | undefined;
   return (g && typeof g.ready === 'function' && typeof g.render === 'function') ? g : undefined;
 }
 

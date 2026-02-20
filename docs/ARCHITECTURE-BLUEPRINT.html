@@ -1,0 +1,2264 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyBlog — Architecture Blueprint &amp; Restructure Plan</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --surface: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --accent: #58a6ff;
+        --green: #3fb950;
+        --red: #f85149;
+        --orange: #d29922;
+        --purple: #bc8cff;
+        --cyan: #39d353;
+        --pink: #f778ba;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+      h1 {
+        font-size: 2.5rem;
+        background: linear-gradient(135deg, var(--accent), var(--purple));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+      }
+      h2 {
+        font-size: 1.8rem;
+        color: var(--accent);
+        margin: 2.5rem 0 1rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.5rem;
+      }
+      h3 {
+        font-size: 1.3rem;
+        color: var(--purple);
+        margin: 1.5rem 0 0.75rem;
+      }
+      h4 {
+        font-size: 1.1rem;
+        color: var(--cyan);
+        margin: 1rem 0 0.5rem;
+      }
+      p,
+      li {
+        color: var(--text);
+      }
+      .subtitle {
+        color: var(--muted);
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-right: 6px;
+      }
+      .badge-green {
+        background: rgba(63, 185, 80, 0.15);
+        color: var(--green);
+        border: 1px solid rgba(63, 185, 80, 0.3);
+      }
+      .badge-red {
+        background: rgba(248, 81, 73, 0.15);
+        color: var(--red);
+        border: 1px solid rgba(248, 81, 73, 0.3);
+      }
+      .badge-orange {
+        background: rgba(210, 153, 34, 0.15);
+        color: var(--orange);
+        border: 1px solid rgba(210, 153, 34, 0.3);
+      }
+      .badge-blue {
+        background: rgba(88, 166, 255, 0.15);
+        color: var(--accent);
+        border: 1px solid rgba(88, 166, 255, 0.3);
+      }
+      .badge-purple {
+        background: rgba(188, 140, 255, 0.15);
+        color: var(--purple);
+        border: 1px solid rgba(188, 140, 255, 0.3);
+      }
+
+      .grid {
+        display: grid;
+        gap: 1.5rem;
+      }
+      .grid-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+      .grid-3 {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+      .grid-4 {
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+      }
+      @media (max-width: 900px) {
+        .grid-2,
+        .grid-3,
+        .grid-4 {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.25rem;
+      }
+      .card-header {
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .card-stat {
+        font-size: 2rem;
+        font-weight: 700;
+      }
+      .card-label {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .tree {
+        font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+        font-size: 0.8rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.25rem;
+        overflow-x: auto;
+        white-space: pre;
+        line-height: 1.5;
+      }
+      .tree .new {
+        color: var(--green);
+        font-weight: 600;
+      }
+      .tree .move {
+        color: var(--orange);
+      }
+      .tree .del {
+        color: var(--red);
+        text-decoration: line-through;
+      }
+      .tree .keep {
+        color: var(--muted);
+      }
+      .tree .folder {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .tree .group {
+        color: var(--purple);
+        font-weight: 600;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+      }
+      th {
+        background: var(--surface);
+        color: var(--accent);
+        text-align: left;
+        padding: 10px 14px;
+        border-bottom: 2px solid var(--border);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      td {
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.9rem;
+      }
+      tr:hover td {
+        background: rgba(88, 166, 255, 0.05);
+      }
+      code {
+        font-family: "JetBrains Mono", "Fira Code", monospace;
+        background: rgba(88, 166, 255, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        color: var(--cyan);
+      }
+      .severity-critical {
+        color: var(--red);
+        font-weight: 700;
+      }
+      .severity-high {
+        color: var(--orange);
+        font-weight: 600;
+      }
+      .severity-medium {
+        color: var(--orange);
+      }
+      .severity-low {
+        color: var(--muted);
+      }
+
+      .phase {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        position: relative;
+      }
+      .phase::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        border-radius: 8px 0 0 8px;
+      }
+      .phase-1::before {
+        background: var(--accent);
+      }
+      .phase-2::before {
+        background: var(--green);
+      }
+      .phase-3::before {
+        background: var(--purple);
+      }
+      .phase-4::before {
+        background: var(--red);
+      }
+      .phase-5::before {
+        background: var(--orange);
+      }
+      .phase-6::before {
+        background: var(--cyan);
+      }
+      .phase-7::before {
+        background: var(--pink);
+      }
+      .phase-8::before {
+        background: var(--accent);
+      }
+      .phase-9::before {
+        background: var(--green);
+      }
+      .phase-10::before {
+        background: var(--purple);
+      }
+      .phase-11::before {
+        background: var(--orange);
+      }
+      .phase-12::before {
+        background: var(--cyan);
+      }
+
+      .toc {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+      }
+      .toc a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .toc a:hover {
+        text-decoration: underline;
+      }
+      .toc ol {
+        padding-left: 1.5rem;
+      }
+      .toc li {
+        margin: 4px 0;
+      }
+
+      .comparison {
+        display: grid;
+        grid-template-columns: 1fr 40px 1fr;
+        gap: 0;
+        align-items: start;
+        margin: 1.5rem 0;
+      }
+      .comparison-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--green);
+        padding-top: 2.5rem;
+      }
+
+      .cost-bar {
+        height: 8px;
+        border-radius: 4px;
+        margin-top: 4px;
+      }
+      .cost-low {
+        background: var(--green);
+      }
+      .cost-med {
+        background: var(--orange);
+      }
+      .cost-high {
+        background: var(--red);
+      }
+
+      .check {
+        color: var(--green);
+      }
+      .cross {
+        color: var(--red);
+      }
+      .warn {
+        color: var(--orange);
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 0.7rem;
+        font-weight: 600;
+      }
+      .tag-next {
+        background: #000;
+        color: #fff;
+        border: 1px solid #333;
+      }
+      .tag-prisma {
+        background: #1a202c;
+        color: #5a67d8;
+        border: 1px solid #2d3748;
+      }
+      .tag-react {
+        background: #1a2332;
+        color: #61dafb;
+        border: 1px solid #2a3a4e;
+      }
+      .tag-ts {
+        background: #1a2332;
+        color: #3178c6;
+        border: 1px solid #2a3a4e;
+      }
+
+      details {
+        margin: 0.5rem 0;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--accent);
+        font-weight: 500;
+        padding: 4px 0;
+      }
+      summary:hover {
+        color: var(--purple);
+      }
+
+      .hero-stats {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        margin: 1.5rem 0;
+      }
+      .hero-stat {
+        text-align: center;
+      }
+      .hero-stat .num {
+        font-size: 2.5rem;
+        font-weight: 800;
+      }
+      .hero-stat .label {
+        font-size: 0.8rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .timeline {
+        position: relative;
+        padding-left: 30px;
+      }
+      .timeline::before {
+        content: "";
+        position: absolute;
+        left: 12px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--border);
+      }
+      .timeline-item {
+        position: relative;
+        margin-bottom: 1.5rem;
+      }
+      .timeline-item::before {
+        content: "";
+        position: absolute;
+        left: -22px;
+        top: 6px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid var(--accent);
+        background: var(--bg);
+      }
+      .timeline-item.done::before {
+        background: var(--green);
+        border-color: var(--green);
+      }
+
+      .alert {
+        padding: 1rem 1.25rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        border-left: 4px solid;
+      }
+      .alert-danger {
+        background: rgba(248, 81, 73, 0.08);
+        border-color: var(--red);
+      }
+      .alert-warn {
+        background: rgba(210, 153, 34, 0.08);
+        border-color: var(--orange);
+      }
+      .alert-info {
+        background: rgba(88, 166, 255, 0.08);
+        border-color: var(--accent);
+      }
+      .alert-success {
+        background: rgba(63, 185, 80, 0.08);
+        border-color: var(--green);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- HERO                                                               -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h1>MyBlog — Architecture Blueprint</h1>
+      <p class="subtitle">
+        Comprehensive restructuring plan: Feature-First enhanced with Route
+        Groups, Server Actions, Job Runner, and full type-safety audit —
+        targeting zero <code>any</code>, zero double-casts, zero ESLint/TS/build
+        errors.
+      </p>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="num" style="color: var(--accent)">12</div>
+          <div class="label">Phases</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num" style="color: var(--green)">48</div>
+          <div class="label">Prisma Models</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num" style="color: var(--purple)">79</div>
+          <div class="label">API Routes</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num" style="color: var(--orange)">12</div>
+          <div class="label">Feature Modules</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num" style="color: var(--red)">156</div>
+          <div class="label">Double Casts to Fix</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num" style="color: var(--pink)">90+</div>
+          <div class="label">Loose <code>any</code> to Fix</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num" style="color: var(--cyan)">42</div>
+          <div class="label">File Moves</div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- TABLE OF CONTENTS                                                  -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <div class="toc">
+        <h3 style="margin-top: 0">Table of Contents</h3>
+        <ol>
+          <li><a href="#tech-stack">Tech Stack &amp; Current State</a></li>
+          <li><a href="#current-structure">Current Directory Structure</a></li>
+          <li>
+            <a href="#target-structure"
+              >Target Directory Structure (After Restructure)</a
+            >
+          </li>
+          <li><a href="#structure-comparison">Before → After Comparison</a></li>
+          <li><a href="#cost-analysis">Cost-Effectiveness Analysis</a></li>
+          <li><a href="#rendering">Rendering Strategy Per Route</a></li>
+          <li><a href="#redis-keys">Redis Key Map &amp; TTL Strategy</a></li>
+          <li>
+            <a href="#audit-findings">Full Audit Findings</a>
+            <ol>
+              <li><a href="#audit-casts">Double Casts (as unknown as)</a></li>
+              <li>
+                <a href="#audit-any">Loose <code>any</code> Annotations</a>
+              </li>
+              <li>
+                <a href="#audit-json">JSON.parse &amp; Non-null Assertions</a>
+              </li>
+              <li><a href="#audit-zod">Zod / Prisma / API Misalignment</a></li>
+              <li><a href="#audit-frontend">Frontend Data Flow Issues</a></li>
+              <li><a href="#audit-security">Security Audit</a></li>
+              <li>
+                <a href="#audit-dead">Dead Code &amp; Unused Dependencies</a>
+              </li>
+            </ol>
+          </li>
+          <li><a href="#phases">Implementation Phases (1–12)</a></li>
+          <li><a href="#job-runner">Job Runner Architecture</a></li>
+          <li><a href="#server-actions">Server Actions Migration Plan</a></li>
+          <li><a href="#verification">Verification Checklist</a></li>
+          <li><a href="#decisions">Key Architectural Decisions</a></li>
+        </ol>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 1. TECH STACK                                                      -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="tech-stack">1. Tech Stack &amp; Current State</h2>
+
+      <div class="grid grid-4">
+        <div class="card">
+          <div class="card-header">
+            <span class="tag tag-next">Next.js</span> Framework
+          </div>
+          <div class="card-stat">16.1.6</div>
+          <div class="card-label">
+            App Router + proxy.ts (NOT middleware.ts)
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="tag tag-react">React</span> UI
+          </div>
+          <div class="card-stat">19.2.3</div>
+          <div class="card-label">React Compiler enabled</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="tag tag-prisma">Prisma</span> ORM
+          </div>
+          <div class="card-stat">7.4.0</div>
+          <div class="card-label">PostgreSQL 16 + 48 models</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="tag tag-ts">TypeScript</span> Lang
+          </div>
+          <div class="card-stat">5.x</div>
+          <div class="card-label">Strict mode + Zod 4.3.6</div>
+        </div>
+      </div>
+
+      <div class="grid grid-3" style="margin-top: 1rem">
+        <div class="card">
+          <div class="card-header">🎨 Styling</div>
+          <p>Tailwind CSS v4 + Headless UI + Custom components</p>
+          <p class="card-label" style="margin-top: 0.5rem">
+            No MUI — leaner bundle, lower cost
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-header">🔐 Auth</div>
+          <p>NextAuth v5 (beta-30) + JWT strategy</p>
+          <p class="card-label" style="margin-top: 0.5rem">
+            6-level role system + capability-based RBAC
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-header">⚡ Cache</div>
+          <p>Upstash Redis (HTTP mode) + ISR</p>
+          <p class="card-label" style="margin-top: 0.5rem">
+            Rate limiting via @upstash/ratelimit
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-2" style="margin-top: 1rem">
+        <div class="card">
+          <div class="card-header">📦 Infrastructure</div>
+          <ul style="padding-left: 1.2rem; margin-top: 0.5rem">
+            <li>Docker Compose: PostgreSQL 16 + Redis 7 (local dev)</li>
+            <li>Vercel deployment (serverless functions)</li>
+            <li>Standalone output mode (Linux only)</li>
+            <li>Nodemailer for email (SMTP from SiteSettings)</li>
+            <li>OpenAI SDK for SEO auto-enhancement</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-header">🧪 Testing</div>
+          <ul style="padding-left: 1.2rem; margin-top: 0.5rem">
+            <li>Vitest 4 + Testing Library (component tests)</li>
+            <li>Jest 30 (server-side service tests)</li>
+            <li>Playwright 1.58 (E2E browser tests)</li>
+            <li>MSW for API mocking</li>
+            <li>jest-axe for accessibility</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 2. CURRENT STRUCTURE                                               -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="current-structure">2. Current Directory Structure</h2>
+      <p style="margin-bottom: 1rem">
+        The project currently follows
+        <strong>Feature-First (Option B)</strong> — 12 feature modules with
+        server/ui split. No route groups, no private folders, no boundary files.
+      </p>
+
+      <div class="tree">
+        src/ ├── <span class="keep">proxy.ts</span> ← Next.js 16 entry (NOT
+        middleware.ts) ├── <span class="folder">app/</span> ← Routing surface
+        (FLAT — no groups) │ ├── layout.tsx ← Root layout (wraps ALL in
+        PublicShell — ⚠️ leaks to admin) │ ├── page.tsx ← Homepage (ISR 15min) │
+        ├── globals.css / favicon.ico │ ├── robots.ts / sitemap.ts │ ├──
+        about/page.tsx ← ISR 1 day │ ├── blog/ │ │ ├── page.tsx ← ISR 10min │ │
+        └── [slug]/ │ │ ├── page.tsx ← ISR 1hr + generateStaticParams │ │ └──
+        CommentSection.tsx ← ⚠️ colocated (should be _ui/) │ ├── tags/ │ │ ├──
+        page.tsx ← ISR 1hr │ │ └── [slug]/page.tsx ← ISR 1hr +
+        generateStaticParams │ ├── contact/ │ │ ├── page.tsx │ │ └──
+        ContactForm.tsx ← ⚠️ colocated │ ├── search/ │ │ ├── page.tsx │ │ └──
+        SearchContent.tsx ← ⚠️ colocated │ ├── [slug]/page.tsx ← CMS pages (ISR
+        1 day) │ ├── login/ (page + layout) │ ├── register/ (page + layout) ← 3
+        identical metadata-only layouts │ ├── profile/ (page + layout) │ ├──
+        <span class="folder">admin/</span> ← ⚠️ No route group, gets PublicShell
+        HTML │ │ ├── layout.tsx ← Auth guard + AdminShell │ │ ├── AdminShell.tsx
+        ← ⚠️ colocated │ │ ├── page.tsx ← force-dynamic │ │ ├── posts/ (page,
+        PostEditor, new/, [id]/edit/) │ │ ├── pages/ (page, PageEditor, new/,
+        [id]/edit/) │ │ ├── tags/page.tsx │ │ ├── categories/page.tsx │ │ ├──
+        comments/page.tsx │ │ ├── users/page.tsx │ │ ├── settings/ (page,
+        admin-bar/) │ │ ├── media/page.tsx │ │ ├── seo/ (page, fix/[id]/) │ │
+        ├── menus/page.tsx │ │ ├── ads/page.tsx │ │ ├── distribution/page.tsx │
+        │ └── cron/page.tsx │ └── <span class="folder">api/</span> ← 79 route
+        handlers │ ├── auth/ (register, [...nextauth]) │ ├── posts/ (route,
+        [id], bulk) │ ├── pages/ (route, [id], [identifier], bulk) │ ├──
+        comments/ (route, [id], [id]/flag, [id]/vote, bulk) │ ├── categories/
+        (route, [id], bulk) │ ├── tags/ (route, [id], bulk) │ ├── media/ (route,
+        [id], bulk, cleanup, folders, optimize, stats, upload-url) │ ├── seo/
+        (route, redirects) │ ├── settings/ (route, [group], public,
+        module-status, test-email) │ ├── ads/ (16 sub-routes) │ ├──
+        distribution/ (12 sub-routes) │ ├── captcha/ (challenge, settings,
+        verify) │ ├── newsletter/ (subscribe, confirm, unsubscribe) │ ├── cron/
+        (route, history) │ ├── users/ (route, bulk) │ ├── profile/route.ts │ ├──
+        contact/route.ts │ ├── upload/route.ts │ ├── health/route.ts │ ├──
+        revalidate/route.ts │ ├── og/route.tsx │ └── admin-bar/meta/route.ts │
+        ├── <span class="folder">features/</span> ← 12 domain modules
+        (Feature-First ✅) │ ├── ads/ (index, types, server/6 files, ui/14
+        components) │ ├── auth/ (index, types, server/9 files) │ ├── blog/
+        (index, types, server/4 files) │ ├── captcha/ (index, types, server/3,
+        ui/2+providers/6, utils/5) │ ├── comments/ (index, types, server/8
+        files) │ ├── distribution/ (index, types, server/8 files) │ ├── editor/
+        (index, types, extensions/7, ui/3) │ ├── media/ (index, types,
+        server/8+storage/4, ui/2) │ ├── pages/ (index, types, server/5 files) │
+        ├── seo/ (index, types, server/11 files) │ ├── settings/ (index, types,
+        server/3, menu-builder/*, theme/*) │ └── tags/ (index, types, server/6
+        files) │ ├── <span class="folder">server/</span> ← Platform
+        infrastructure │ ├── api-auth.ts ← requireAuth + capability checks │ ├──
+        auth.ts ← NextAuth v5 config │ ├── db/prisma.ts ← Prisma singleton │ ├──
+        cache/redis.ts ← Upstash Redis singleton │ ├── env/index.ts ←
+        Zod-validated env vars │ ├── mail/index.ts ← Nodemailer (lazy SMTP) │
+        ├── observability/logger.ts ← JSON structured logger │ └──
+        wiring/index.ts ← DI container (388 lines, 17 exports) │ ├──
+        <span class="folder">components/</span> ← Shared UI │ ├── admin/
+        (admin-bar/13 files, EditorContext, useSeoScore) │ ├── blog/ (7
+        components) │ ├── layout/ (7 components: Header, Footer, PublicShell,
+        Providers, etc.) │ ├── providers/ (CsrfFetchInterceptor) │ └── ui/ (13
+        components: Button, Modal, DataTable, FormFields, etc.) │ ├──
+        <span class="folder">shared/</span> ← Shared utilities │ ├──
+        sanitize.util.ts │ └── text.util.ts │ └──
+        <span class="folder">types/</span> ← Global TypeScript types ├──
+        global.d.ts ← Window augmentation (captcha SDKs) └── prisma-helpers.ts ←
+        PostListItem, AdminPostItem, etc.
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 3. TARGET STRUCTURE                                                -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="target-structure">
+        3. Target Directory Structure (After Restructure)
+      </h2>
+      <p style="margin-bottom: 1rem">
+        Enhanced Feature-First with Route Groups <code>(public)</code>,
+        <code>(auth)</code>, <code>(admin)</code>, Private Folders
+        <code>_ui/</code>, Boundary Files, Server Actions, Job Runner, and
+        <code>instrumentation.ts</code>.
+      </p>
+
+      <div class="tree">
+        src/ ├── <span class="keep">proxy.ts</span> ← Unchanged (Next.js 16 —
+        CSP nonce, CSRF, rate limit) │ ├── <span class="folder">app/</span> │
+        ├── layout.tsx ←
+        <span class="new">SLIMMED: HTML shell + Providers + AdminBar ONLY</span>
+        │ ├── <span class="new">not-found.tsx</span> ← NEW: Custom 404 page │
+        ├── <span class="new">instrumentation.ts</span> ← NEW: OpenTelemetry /
+        Vercel tracing │ ├── globals.css / favicon.ico │ ├── robots.ts /
+        sitemap.ts │ │ │ ├── <span class="group">(public)/</span> ← NEW Route
+        Group (invisible to URLs) │ │ ├── <span class="new">layout.tsx</span> ←
+        NEW: wraps in PublicShell (header/footer/ads) │ │ ├──
+        <span class="new">error.tsx</span> ← NEW: Public error boundary │ │ ├──
+        page.tsx ← MOVED from app/page.tsx │ │ ├── about/page.tsx ← MOVED │ │
+        ├── blog/ │ │ │ ├── page.tsx ← MOVED │ │ │ ├──
+        <span class="new">loading.tsx</span> ← NEW: Blog list skeleton │ │ │ └──
+        [slug]/ │ │ │ ├── page.tsx ← MOVED │ │ │ ├──
+        <span class="new">loading.tsx</span> ← NEW: Post skeleton │ │ │ ├──
+        <span class="new">error.tsx</span> ← NEW: Post error boundary │ │ │ └──
+        <span class="new">_ui/</span> │ │ │ └── CommentSection.tsx ← MOVED to
+        private folder │ │ ├── tags/ │ │ │ ├── page.tsx │ │ │ ├──
+        <span class="new">loading.tsx</span> ← NEW: Tags skeleton │ │ │ └──
+        [slug]/page.tsx │ │ ├── contact/ │ │ │ ├── page.tsx │ │ │ └──
+        <span class="new">_ui/</span>ContactForm.tsx ← MOVED to private folder │
+        │ ├── search/ │ │ │ ├── page.tsx │ │ │ └──
+        <span class="new">_ui/</span>SearchContent.tsx ← MOVED to private folder
+        │ │ └── [slug]/page.tsx ← CMS pages │ │ │ ├──
+        <span class="group">(auth)/</span> ← NEW Route Group │ │ ├──
+        <span class="new">layout.tsx</span> ← NEW: Merged from 3 layouts +
+        robots:noindex │ │ ├── login/page.tsx │ │ ├── register/page.tsx │ │ └──
+        profile/page.tsx │ │ │ ├── <span class="group">(admin)/</span> ← NEW
+        Route Group │ │ └── admin/ │ │ ├── layout.tsx ← MOVED (auth guard +
+        AdminShell) │ │ ├── <span class="new">loading.tsx</span> ← NEW: Admin
+        skeleton │ │ ├── <span class="new">error.tsx</span> ← NEW: Admin error
+        boundary │ │ ├── <span class="new">_ui/</span>AdminShell.tsx ← MOVED to
+        private folder │ │ ├── page.tsx │ │ ├── posts/ │ │ │ ├── page.tsx │ │ │
+        ├── <span class="new">_ui/</span>PostEditor.tsx │ │ │ ├── new/page.tsx │
+        │ │ └── [id]/edit/page.tsx │ │ ├── pages/ │ │ │ ├── page.tsx │ │ │ ├──
+        <span class="new">_ui/</span>PageEditor.tsx │ │ │ ├── new/page.tsx │ │ │
+        └── [id]/edit/page.tsx │ │ ├── tags/page.tsx │ │ ├── categories/page.tsx
+        │ │ ├── comments/page.tsx │ │ ├── users/page.tsx │ │ ├── settings/
+        (page, admin-bar/) │ │ ├── media/page.tsx │ │ ├── seo/ (page, fix/[id]/)
+        │ │ ├── menus/page.tsx │ │ ├── ads/page.tsx │ │ ├──
+        distribution/page.tsx │ │ └── cron/page.tsx │ │ │ └──
+        <span class="folder">api/</span> ← Stays flat, add job endpoints │ ├──
+        <span class="new">jobs/</span> │ │ ├──
+        <span class="new">enqueue/route.ts</span> ← NEW: Insert job into queue │
+        │ └── <span class="new">run/route.ts</span> ← NEW: Process one job step
+        │ ├── <span class="new">profile/password/route.ts</span> ← NEW: Fix
+        broken self-service password │ └── ... (existing 79 routes unchanged) │
+        ├── <span class="folder">features/</span> ← Enhanced with Server Actions
+        + Jobs │ ├── <span class="new">jobs/</span> ← NEW: Autonomous workflow
+        engine │ │ ├── server/ │ │ │ ├── queue.ts ← enqueueJob(type, step,
+        payload) │ │ │ ├── runner.ts ← processNextJob() — picks PENDING, runs 1
+        step │ │ │ ├── dispatcher.ts ← Maps job type+step → handler │ │ │ ├──
+        idempotency.ts ← Redis dedup per job ID │ │ │ ├── definitions.ts ←
+        JobType enum + payload Zod schemas │ │ │ └── workflows/ │ │ │ ├──
+        seo-planner.workflow.ts │ │ │ ├── image-gen.workflow.ts │ │ │ ├──
+        distribution.workflow.ts │ │ │ └── blog-autopublish.workflow.ts │ │ └──
+        types.ts │ │ │ ├── tags/server/<span class="new">actions.ts</span> ←
+        NEW: Server Actions (createTag, updateTag, deleteTag) │ ├──
+        blog/server/<span class="new">category-actions.ts</span> ← NEW: Server
+        Actions │ ├── media/server/<span class="new">folder-actions.ts</span> ←
+        NEW: Server Actions │ ├── settings/server/<span class="new"
+          >actions.ts</span
+        >
+        ← NEW: Server Actions │ ├── ads/server/<span class="new"
+          >actions.ts</span
+        >
+        ← NEW: Server Actions │ ├── distribution/server/<span class="new"
+          >actions.ts</span
+        >
+        ← NEW: Server Actions │ ├── auth/server/<span class="new"
+          >actions.ts</span
+        >
+        ← NEW: Server Actions │ ├── media/server/<span class="new"
+          >actions.ts</span
+        >
+        ← NEW: Server Actions │ └── ... (12 existing modules — types/services
+        ENHANCED with proper typing) │ ├── <span class="folder">server/</span> ←
+        Enhanced │ ├── db/ │ │ ├── prisma.ts ← FIXED: declare global
+        augmentation (no double cast) │ │ └──
+        <span class="new">prisma-delegates.ts</span> ← NEW: AppPrismaClient
+        intersection type │ └── ... (rest unchanged) │ ├──
+        <span class="folder">shared/</span> ← Enhanced │ ├── sanitize.util.ts │
+        ├── text.util.ts │ ├── <span class="new">api-response.types.ts</span> ←
+        NEW: ApiResponse&lt;T&gt; generic type │ └──
+        <span class="new">prisma-delegate.types.ts</span> ← NEW: Generic
+        PrismaDelegate&lt;T&gt; │ ├── <span class="folder">components/</span> ←
+        Cleaned │ ├── admin/ (admin-bar/13, EditorContext —
+        <span class="del">useSeoScore.ts DELETED</span>) │ └── ... │ └──
+        <span class="folder">types/</span>
+        ├── global.d.ts └── prisma-helpers.ts ← CLEANED: removed dead TagItem,
+        CommentItem
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 4. COMPARISON                                                      -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="structure-comparison">4. Before → After Comparison</h2>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header">❌ Before (Current Issues)</div>
+          <ul style="padding-left: 1.2rem">
+            <li>Flat <code>app/</code> — no route groups</li>
+            <li>PublicShell leaks into admin (header/footer HTML)</li>
+            <li>3 identical auth layouts (login, register, profile)</li>
+            <li>No <code>loading.tsx</code> — pages block until render</li>
+            <li>No <code>error.tsx</code> — errors bubble to root</li>
+            <li>No custom <code>not-found.tsx</code></li>
+            <li>6 colocated components without <code>_ui/</code></li>
+            <li>156 double casts (<code>as unknown as</code>)</li>
+            <li>90+ loose <code>any</code> type annotations</li>
+            <li>5 unvalidated <code>JSON.parse</code> calls</li>
+            <li>8 API routes with missing Zod validation</li>
+            <li>Broken self-service password change</li>
+            <li>14 admin pages missing <code>res.ok</code> checks</li>
+            <li>Job model scaffolded but unused</li>
+            <li>Zero Server Actions (all 79 routes are API)</li>
+            <li>3 dead npm packages</li>
+            <li>No OpenTelemetry instrumentation</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-header">✅ After (Target State)</div>
+          <ul style="padding-left: 1.2rem">
+            <li>
+              Route groups: <code>(public)</code>, <code>(auth)</code>,
+              <code>(admin)</code>
+            </li>
+            <li>PublicShell only in <code>(public)/layout.tsx</code></li>
+            <li>Single merged <code>(auth)/layout.tsx</code></li>
+            <li>Loading skeletons for blog, tags, admin</li>
+            <li>Error boundaries for public + admin + post</li>
+            <li>Custom branded 404 page</li>
+            <li>All colocated components in <code>_ui/</code> folders</li>
+            <li>Zero double casts (proper types + Prisma generics)</li>
+            <li>
+              Zero loose <code>any</code> (generic delegates + typed services)
+            </li>
+            <li>All <code>JSON.parse</code> validated through Zod</li>
+            <li>100% Zod validation on all mutation routes</li>
+            <li>Working password change via dedicated endpoint</li>
+            <li>All admin pages check <code>res.ok</code> + typed responses</li>
+            <li>Full job runner with step-based workflows</li>
+            <li>Server Actions for leaf CRUD (tags, categories, folders)</li>
+            <li>Dead packages removed, clean deps</li>
+            <li>OpenTelemetry instrumentation.ts</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 5. COST ANALYSIS                                                   -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="cost-analysis">5. Cost-Effectiveness Analysis</h2>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <h4>Vercel Compute Savings</h4>
+          <table>
+            <tr>
+              <th>Strategy</th>
+              <th>Impact</th>
+              <th>Savings</th>
+            </tr>
+            <tr>
+              <td>ISR on all public pages</td>
+              <td>DB hit once per revalidation window, not per visit</td>
+              <td style="color: var(--green)">~95% fewer DB queries</td>
+            </tr>
+            <tr>
+              <td>Redis settings cache (TTL)</td>
+              <td>Settings fetched from Redis, not Postgres</td>
+              <td style="color: var(--green)">~80% fewer settings queries</td>
+            </tr>
+            <tr>
+              <td>Server Actions (leaf CRUD)</td>
+              <td>No round-trip through API route layer</td>
+              <td style="color: var(--green)">
+                ~15% less function invocations
+              </td>
+            </tr>
+            <tr>
+              <td>Step-based job runner</td>
+              <td>Each step &lt;10s (no long-running functions)</td>
+              <td style="color: var(--green)">Predictable compute budget</td>
+            </tr>
+            <tr>
+              <td>Route Groups (code splitting)</td>
+              <td>Admin code never loaded for public visitors</td>
+              <td style="color: var(--green)">~40% smaller public JS bundle</td>
+            </tr>
+            <tr>
+              <td><code>loading.tsx</code> (streaming)</td>
+              <td>Faster TTFB via React Suspense streaming</td>
+              <td style="color: var(--green)">Better Core Web Vitals</td>
+            </tr>
+          </table>
+        </div>
+        <div class="card">
+          <h4>Monthly Cost Estimate (Vercel Hobby → Pro)</h4>
+          <table>
+            <tr>
+              <th>Component</th>
+              <th>Cost</th>
+              <th>Notes</th>
+            </tr>
+            <tr>
+              <td>Vercel Pro</td>
+              <td>$20/mo</td>
+              <td>100GB bandwidth, 1000 builds</td>
+            </tr>
+            <tr>
+              <td>Vercel Serverless</td>
+              <td>$0–5/mo</td>
+              <td>ISR keeps functions cold</td>
+            </tr>
+            <tr>
+              <td>Neon/Supabase Postgres</td>
+              <td>$0–25/mo</td>
+              <td>Free tier → Pro as traffic grows</td>
+            </tr>
+            <tr>
+              <td>Upstash Redis</td>
+              <td>$0–10/mo</td>
+              <td>Pay-per-request, free tier generous</td>
+            </tr>
+            <tr>
+              <td>Vercel Cron</td>
+              <td>$0</td>
+              <td>Included (1 job/hr), functions billed normally</td>
+            </tr>
+            <tr>
+              <td>OpenAI API (SEO)</td>
+              <td>$5–15/mo</td>
+              <td>Background jobs only, controlled volume</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700">Total</td>
+              <td style="font-weight: 700; color: var(--green)">$25–75/mo</td>
+              <td>Full-stack blog with autonomous AI</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <h3>Rendering Strategy Cost Map</h3>
+      <table>
+        <tr>
+          <th>Route</th>
+          <th>Method</th>
+          <th>Revalidate</th>
+          <th>Cost per 10K visits</th>
+          <th>Note</th>
+        </tr>
+        <tr>
+          <td><code>/</code> Homepage</td>
+          <td>ISR</td>
+          <td>900s (15min)</td>
+          <td style="color: var(--green)">~96 DB hits</td>
+          <td>Cache-first</td>
+        </tr>
+        <tr>
+          <td><code>/blog</code></td>
+          <td>ISR</td>
+          <td>600s (10min)</td>
+          <td style="color: var(--green)">~144 DB hits</td>
+          <td>List page</td>
+        </tr>
+        <tr>
+          <td><code>/blog/[slug]</code></td>
+          <td>ISR + SSG</td>
+          <td>3600s (1hr)</td>
+          <td style="color: var(--green)">~10 DB hits</td>
+          <td>generateStaticParams</td>
+        </tr>
+        <tr>
+          <td><code>/tags</code></td>
+          <td>ISR</td>
+          <td>3600s (1hr)</td>
+          <td style="color: var(--green)">~10 hits</td>
+          <td>Cached</td>
+        </tr>
+        <tr>
+          <td><code>/about</code></td>
+          <td>ISR</td>
+          <td>86400s (1d)</td>
+          <td style="color: var(--green)">~1 hit</td>
+          <td>Near-static</td>
+        </tr>
+        <tr>
+          <td><code>/admin/*</code></td>
+          <td>SSR</td>
+          <td>force-dynamic</td>
+          <td style="color: var(--orange)">1:1 (every visit)</td>
+          <td>Auth-gated, low traffic</td>
+        </tr>
+      </table>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 6. RENDERING                                                       -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="rendering">6. Rendering Strategy Per Route</h2>
+      <table>
+        <tr>
+          <th>Route</th>
+          <th>Strategy</th>
+          <th><code>revalidate</code></th>
+          <th><code>generateStaticParams</code></th>
+          <th><code>dynamic</code></th>
+        </tr>
+        <tr>
+          <td><code>/</code></td>
+          <td>ISR</td>
+          <td>900</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/about</code></td>
+          <td>ISR</td>
+          <td>86400</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/blog</code></td>
+          <td>ISR</td>
+          <td>600</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/blog/[slug]</code></td>
+          <td>ISR + SSG</td>
+          <td>3600</td>
+          <td>✅</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/tags</code></td>
+          <td>ISR</td>
+          <td>3600</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/tags/[slug]</code></td>
+          <td>ISR + SSG</td>
+          <td>3600</td>
+          <td>✅</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/[slug]</code> (CMS)</td>
+          <td>ISR + SSG</td>
+          <td>86400</td>
+          <td>✅</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/contact</code></td>
+          <td>Static</td>
+          <td>—</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/search</code></td>
+          <td>Static shell</td>
+          <td>—</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/login</code></td>
+          <td>Static</td>
+          <td>—</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/register</code></td>
+          <td>Static</td>
+          <td>—</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/profile</code></td>
+          <td>Client</td>
+          <td>—</td>
+          <td>—</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/admin</code></td>
+          <td>SSR</td>
+          <td>—</td>
+          <td>—</td>
+          <td>force-dynamic</td>
+        </tr>
+        <tr>
+          <td><code>/admin/*</code></td>
+          <td>SSR</td>
+          <td>—</td>
+          <td>—</td>
+          <td>via layout guard</td>
+        </tr>
+      </table>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 7. REDIS                                                           -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="redis-keys">7. Redis Key Map &amp; TTL Strategy</h2>
+      <table>
+        <tr>
+          <th>Module</th>
+          <th>Key Pattern</th>
+          <th>TTL</th>
+          <th>Purpose</th>
+        </tr>
+        <tr>
+          <td>Rate Limit</td>
+          <td><code>myblog:ratelimit:{ip}</code></td>
+          <td>60s sliding</td>
+          <td>30 req/60s per IP on mutations</td>
+        </tr>
+        <tr>
+          <td rowspan="6">Blog</td>
+          <td><code>blog:post:slug:{slug}</code></td>
+          <td>300s</td>
+          <td>Single post cache</td>
+        </tr>
+        <tr>
+          <td><code>blog:posts:{hash}</code></td>
+          <td>60s</td>
+          <td>Post list queries</td>
+        </tr>
+        <tr>
+          <td><code>blog:related:{postId}</code></td>
+          <td>1800s</td>
+          <td>Related posts</td>
+        </tr>
+        <tr>
+          <td><code>blog:popular:{limit}</code></td>
+          <td>300s</td>
+          <td>Popular posts</td>
+        </tr>
+        <tr>
+          <td><code>blog:rss</code></td>
+          <td>1800s</td>
+          <td>RSS feed cache</td>
+        </tr>
+        <tr>
+          <td><code>blog:sitemap</code></td>
+          <td>1800s</td>
+          <td>Sitemap XML</td>
+        </tr>
+        <tr>
+          <td rowspan="3">Pages</td>
+          <td><code>pages:page:slug:{slug}</code></td>
+          <td>120s</td>
+          <td>Single page</td>
+        </tr>
+        <tr>
+          <td><code>pages:tree</code></td>
+          <td>600s</td>
+          <td>Page hierarchy</td>
+        </tr>
+        <tr>
+          <td><code>pages:home</code></td>
+          <td>300s</td>
+          <td>Homepage page</td>
+        </tr>
+        <tr>
+          <td rowspan="2">SEO</td>
+          <td><code>seo:audit:{targetId}</code></td>
+          <td>1800s</td>
+          <td>SEO audit cache</td>
+        </tr>
+        <tr>
+          <td><code>seo:keywords</code></td>
+          <td>86400s</td>
+          <td>Keyword data</td>
+        </tr>
+        <tr>
+          <td rowspan="2">Media</td>
+          <td><code>media:item:id:{id}</code></td>
+          <td>300s</td>
+          <td>Media metadata</td>
+        </tr>
+        <tr>
+          <td><code>media:folders:all</code></td>
+          <td>600s</td>
+          <td>Folder list</td>
+        </tr>
+        <tr>
+          <td>Ads</td>
+          <td><code>ads:placements</code></td>
+          <td>config</td>
+          <td>Active placements</td>
+        </tr>
+        <tr>
+          <td>Jobs (NEW)</td>
+          <td><code>jobs:lock:{jobId}</code></td>
+          <td>30s</td>
+          <td>Job execution lock</td>
+        </tr>
+        <tr>
+          <td>Jobs (NEW)</td>
+          <td><code>jobs:dedup:{type}:{hash}</code></td>
+          <td>300s</td>
+          <td>Idempotency guard</td>
+        </tr>
+      </table>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 8. AUDIT FINDINGS                                                  -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="audit-findings">8. Full Audit Findings</h2>
+
+      <!-- 8.1 Double Casts -->
+      <h3 id="audit-casts">
+        8.1 Double Casts (<code>as unknown as</code>) — 156 occurrences
+      </h3>
+      <div class="alert alert-danger">
+        <strong>Impact:</strong> Every double cast bypasses TypeScript's type
+        system entirely. If the underlying data shape changes, you get silent
+        runtime errors instead of compile-time catches.
+      </div>
+      <table>
+        <tr>
+          <th>Category</th>
+          <th>Count</th>
+          <th>Files</th>
+          <th>Fix Approach</th>
+        </tr>
+        <tr>
+          <td>Prisma DI client narrowing</td>
+          <td>~40</td>
+          <td><code>wiring/index.ts</code></td>
+          <td>
+            Create <code>AppPrismaClient</code> intersection type +
+            <code>satisfies</code>
+          </td>
+        </tr>
+        <tr>
+          <td>Prisma query filters</td>
+          <td>~15</td>
+          <td><code>blog.service.ts</code>, <code>media.service.ts</code></td>
+          <td>
+            Use <code>Prisma.*WhereInput</code> /
+            <code>Prisma.StringFilter</code>
+          </td>
+        </tr>
+        <tr>
+          <td>JSON field → runtime type</td>
+          <td>~12</td>
+          <td>All <code>admin-settings.service.ts</code></td>
+          <td>Zod schema validation at DB boundary</td>
+        </tr>
+        <tr>
+          <td>SEO/Interlink subtypes</td>
+          <td>~15</td>
+          <td><code>seo/route.ts</code>, <code>seo.service.ts</code></td>
+          <td>Make <code>InterlinkPrisma</code> structural subtype</td>
+        </tr>
+        <tr>
+          <td>Ads UI Prisma</td>
+          <td>~8</td>
+          <td>
+            <code>InArticleAd</code>, <code>GlobalAdSlots</code>,
+            <code>AdContainer</code>
+          </td>
+          <td>Add to <code>AppPrismaClient</code> intersection</td>
+        </tr>
+        <tr>
+          <td>Settings return type</td>
+          <td>~10</td>
+          <td>
+            <code>sitemap.ts</code>, <code>robots.ts</code>,
+            <code>layout.tsx</code>
+          </td>
+          <td>Type <code>SiteSettings</code> return properly</td>
+        </tr>
+        <tr>
+          <td>Miscellaneous</td>
+          <td>~10</td>
+          <td>
+            <code>prisma.ts</code>, <code>auth.ts</code>,
+            <code>user.service.ts</code>
+          </td>
+          <td>Global augmentation, Omit&lt;&gt;, shape validation</td>
+        </tr>
+        <tr>
+          <td>Test files</td>
+          <td>~10</td>
+          <td>Various test files</td>
+          <td>
+            Use <code>jest.mocked()</code> / <code>Partial&lt;T&gt;</code>
+          </td>
+        </tr>
+        <tr>
+          <td style="font-weight: 700">Total</td>
+          <td style="font-weight: 700">~156</td>
+          <td></td>
+          <td></td>
+        </tr>
+      </table>
+
+      <!-- 8.2 Loose any -->
+      <h3 id="audit-any">
+        8.2 Loose <code>any</code> Annotations — 90+ occurrences
+      </h3>
+      <table>
+        <tr>
+          <th>Category</th>
+          <th>Count</th>
+          <th>Files</th>
+          <th>Fix</th>
+        </tr>
+        <tr>
+          <td>Prisma DI delegate methods</td>
+          <td>~80</td>
+          <td>10 <code>types.ts</code> files</td>
+          <td>Generic <code>PrismaDelegate&lt;T&gt;</code> interface</td>
+        </tr>
+        <tr>
+          <td>Distribution service</td>
+          <td>~15</td>
+          <td><code>distribution.service.ts</code></td>
+          <td>
+            Define proper input/output types + <code>catch (err: unknown)</code>
+          </td>
+        </tr>
+        <tr>
+          <td>Ads service</td>
+          <td>~12</td>
+          <td><code>ads.service.ts</code></td>
+          <td>Provider/Slot/Placement input types + return types</td>
+        </tr>
+        <tr>
+          <td>Auth service</td>
+          <td>1</td>
+          <td><code>auth.service.ts</code></td>
+          <td>Type <code>user</code> param as Prisma's <code>User</code></td>
+        </tr>
+        <tr>
+          <td>Blog page</td>
+          <td>1</td>
+          <td><code>blog/page.tsx</code></td>
+          <td><code>Prisma.PostWhereInput</code></td>
+        </tr>
+      </table>
+
+      <!-- 8.3 JSON.parse & ! -->
+      <h3 id="audit-json">8.3 JSON.parse &amp; Non-null Assertions</h3>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header">⚠️ Unvalidated JSON.parse (5 risky)</div>
+          <table>
+            <tr>
+              <th>File</th>
+              <th>Fix</th>
+            </tr>
+            <tr>
+              <td><code>wiring/index.ts</code> L120</td>
+              <td>Accept Zod schema param in cache get</td>
+            </tr>
+            <tr>
+              <td><code>auto-tagging.service.ts</code> L309</td>
+              <td>Zod validate LLM output</td>
+            </tr>
+            <tr>
+              <td><code>auto-tagging.service.ts</code> L372</td>
+              <td>Zod validate LLM output</td>
+            </tr>
+            <tr>
+              <td><code>CookieConsentBanner.tsx</code> L42</td>
+              <td>Zod validate localStorage</td>
+            </tr>
+            <tr>
+              <td><code>media/route.ts</code> L119</td>
+              <td>Wrap in try/catch</td>
+            </tr>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header">⚠️ Unsafe Non-null Assertions (4)</div>
+          <table>
+            <tr>
+              <th>File</th>
+              <th>Fix</th>
+            </tr>
+            <tr>
+              <td><code>seo.service.ts</code> L1459</td>
+              <td>Add null guard before <code>.match()</code></td>
+            </tr>
+            <tr>
+              <td><code>MediaManager.tsx</code> L2511</td>
+              <td>Add <code>if (!state.detailItem) return</code></td>
+            </tr>
+            <tr>
+              <td><code>ads/page.tsx</code> L1098</td>
+              <td>Add <code>?? []</code> fallback</td>
+            </tr>
+            <tr>
+              <td><code>AdminShell.tsx</code> L262</td>
+              <td>Use optional chaining <code>?.</code></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- 8.4 Zod/API/Prisma -->
+      <h3 id="audit-zod">8.4 Zod / Prisma / API Misalignment</h3>
+      <div class="alert alert-danger">
+        <strong>🔴 CRITICAL:</strong> Self-service password change is
+        <strong>completely broken</strong>. Profile page sends
+        <code>{currentPassword, newPassword}</code> to
+        <code>PATCH /api/users</code> which requires admin-level auth → regular
+        users get 403. The <code>changePasswordSchema</code> in auth/schemas.ts
+        exists but is never used by any route.
+      </div>
+
+      <table>
+        <tr>
+          <th>Severity</th>
+          <th>Issue</th>
+          <th>File(s)</th>
+        </tr>
+        <tr>
+          <td class="severity-critical">CRITICAL</td>
+          <td>Password change sends to admin-only endpoint</td>
+          <td><code>profile/page.tsx</code> → <code>/api/users</code></td>
+        </tr>
+        <tr>
+          <td class="severity-high">HIGH</td>
+          <td>Comment status moderation — no Zod validation for status enum</td>
+          <td><code>comments/[id]/route.ts</code></td>
+        </tr>
+        <tr>
+          <td class="severity-high">HIGH</td>
+          <td>Tags bulk threshold — no validation</td>
+          <td><code>tags/bulk/route.ts</code></td>
+        </tr>
+        <tr>
+          <td class="severity-high">HIGH</td>
+          <td><code>z.any()</code> on menuStructure — disables type safety</td>
+          <td><code>settings/schemas.ts</code></td>
+        </tr>
+        <tr>
+          <td class="severity-medium">MEDIUM</td>
+          <td>8 routes missing Zod GET param validation</td>
+          <td>posts, tags, admin-bar/meta, newsletter/*</td>
+        </tr>
+        <tr>
+          <td class="severity-medium">MEDIUM</td>
+          <td>Inline schemas diverged from shared schemas</td>
+          <td>users, profile, posts/bulk, media query</td>
+        </tr>
+        <tr>
+          <td class="severity-medium">MEDIUM</td>
+          <td><code>twitterCard</code> missing from UpdatePostSchema</td>
+          <td><code>blog/schemas.ts</code></td>
+        </tr>
+        <tr>
+          <td class="severity-medium">MEDIUM</td>
+          <td>
+            Settings type erased to <code>Record&lt;string, unknown&gt;</code>
+          </td>
+          <td><code>/api/settings PATCH</code></td>
+        </tr>
+        <tr>
+          <td class="severity-low">LOW</td>
+          <td>
+            Unused shared schemas: PostListSchema, adminCreateUserSchema,
+            changePasswordSchema
+          </td>
+          <td><code>blog/schemas.ts</code>, <code>auth/schemas.ts</code></td>
+        </tr>
+      </table>
+
+      <!-- 8.5 Frontend -->
+      <h3 id="audit-frontend">8.5 Frontend Data Flow Issues</h3>
+      <table>
+        <tr>
+          <th>Issue</th>
+          <th>Count</th>
+          <th>Impact</th>
+        </tr>
+        <tr>
+          <td>
+            Admin pages missing <code>res.ok</code> guard before
+            <code>res.json()</code>
+          </td>
+          <td>14 pages</td>
+          <td>502/503 → JSON parse crash</td>
+        </tr>
+        <tr>
+          <td>
+            All API responses typed as <code>any</code> (no response DTOs)
+          </td>
+          <td>All pages</td>
+          <td>No compile-time safety</td>
+        </tr>
+        <tr>
+          <td>PostEditor sends dead fields (wordCount, readingTime)</td>
+          <td>1 page</td>
+          <td>Silently stripped by Zod</td>
+        </tr>
+        <tr>
+          <td>Comments delete unchecked — toasts success without checking</td>
+          <td>1 page</td>
+          <td>False success on failure</td>
+        </tr>
+        <tr>
+          <td>SEO page silently swallows 10+ errors</td>
+          <td>1 page</td>
+          <td>No user feedback on failures</td>
+        </tr>
+        <tr>
+          <td>PostEditor tag/category fetch — no error handling</td>
+          <td>1 page</td>
+          <td>Silent empty state</td>
+        </tr>
+        <tr>
+          <td>Tags page does client-side pagination (fetches ALL)</td>
+          <td>1 page</td>
+          <td>Inconsistent + slow at scale</td>
+        </tr>
+        <tr>
+          <td>DataTable component exists but is unused by any admin page</td>
+          <td>All pages</td>
+          <td>7 custom tables duplicated</td>
+        </tr>
+        <tr>
+          <td>Bulk action pattern copy-pasted 7 times</td>
+          <td>7 pages</td>
+          <td>Maintenance burden</td>
+        </tr>
+        <tr>
+          <td>
+            Public pages use <code>Record&lt;string, unknown&gt;</code> casts
+            for settings
+          </td>
+          <td>3 pages</td>
+          <td>Type safety bypass</td>
+        </tr>
+      </table>
+
+      <!-- 8.6 Security -->
+      <h3 id="audit-security">8.6 Security Audit</h3>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header">✅ Strong Points</div>
+          <ul style="padding-left: 1.2rem">
+            <li>
+              <span class="check">✓</span> Nonce-based CSP (no
+              <code>unsafe-eval</code>)
+            </li>
+            <li>
+              <span class="check">✓</span> CSRF double-submit cookie pattern
+            </li>
+            <li>
+              <span class="check">✓</span> HSTS, X-Frame-Options: DENY, nosniff
+            </li>
+            <li>
+              <span class="check">✓</span> All DB access via Prisma
+              (parameterized)
+            </li>
+            <li>
+              <span class="check">✓</span> Comprehensive sanitization utilities
+            </li>
+            <li>
+              <span class="check">✓</span> Capability-based RBAC + privilege
+              escalation prevention
+            </li>
+            <li><span class="check">✓</span> CRON_SECRET header gate</li>
+            <li>
+              <span class="check">✓</span> Rate limiting on mutations (30/60s)
+            </li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-header">⚠️ Hardening Needed</div>
+          <ul style="padding-left: 1.2rem">
+            <li>
+              <span class="warn">△</span>
+              <code>style-src 'unsafe-inline'</code> — needed for
+              Tailwind/next-themes
+            </li>
+            <li>
+              <span class="warn">△</span> Rate limit uses
+              <code>x-forwarded-for</code> (spoofable) — should prefer
+              <code>x-real-ip</code>
+            </li>
+            <li>
+              <span class="warn">△</span> Newsletter subscribe skips CSRF + no
+              CAPTCHA
+            </li>
+            <li>
+              <span class="warn">△</span> <code>$queryRawUnsafe</code> used
+              (safely parameterized, but <code>$queryRaw</code> is
+              defense-in-depth)
+            </li>
+            <li>
+              <span class="warn">△</span> Permissions-Policy could deny more
+              browser features
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 8.7 Dead Code -->
+      <h3 id="audit-dead">8.7 Dead Code &amp; Unused Dependencies</h3>
+      <div class="grid grid-3">
+        <div class="card">
+          <div class="card-header">📦 Dead npm Packages (3)</div>
+          <ul style="padding-left: 1rem">
+            <li><code>openai</code> — never imported</li>
+            <li><code>slugify</code> — never imported</li>
+            <li><code>@tiptap/extension-floating-menu</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-header">🗑️ Dead Files (1)</div>
+          <ul style="padding-left: 1rem">
+            <li><code>components/admin/useSeoScore.ts</code></li>
+          </ul>
+          <div class="card-header" style="margin-top: 0.5rem">
+            🗑️ Dead Types (2)
+          </div>
+          <ul style="padding-left: 1rem">
+            <li><code>TagItem</code> in prisma-helpers.ts</li>
+            <li><code>CommentItem</code> in prisma-helpers.ts</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-header">🗑️ Dead UI Exports (9)</div>
+          <ul style="padding-left: 1rem; font-size: 0.85rem">
+            <li>Card, CardHeader, CardTitle</li>
+            <li>EmptyState, Skeleton, StatCard</li>
+            <li>DataTable, Pagination, Column</li>
+            <li>Tabs, useFormAction</li>
+          </ul>
+          <div class="card-header" style="margin-top: 0.5rem">
+            🗑️ Dead Prisma Models (2)
+          </div>
+          <ul style="padding-left: 1rem">
+            <li><code>Job</code> — scaffolded, unused (will activate)</li>
+            <li><code>MediaSetting</code> — never queried</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 9. PHASES                                                          -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="phases">9. Implementation Phases (1–12)</h2>
+
+      <div class="phase phase-1">
+        <h3>
+          Phase 1: Route Group Restructure
+          <span class="badge badge-blue">42 file moves</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li>
+            Create <code>(public)/</code>, <code>(auth)/</code>,
+            <code>(admin)/</code> route groups
+          </li>
+          <li>Move 12 public pages → <code>(public)/</code></li>
+          <li>Move 6 auth pages → <code>(auth)/</code></li>
+          <li>Move 24 admin pages → <code>(admin)/admin/</code></li>
+          <li>
+            Extract <code>PublicShell</code> from root layout →
+            <code>(public)/layout.tsx</code>
+          </li>
+          <li>
+            Merge 3 identical auth layouts → single
+            <code>(auth)/layout.tsx</code>
+          </li>
+          <li>Update all internal <code>@/app/</code> import paths</li>
+        </ul>
+      </div>
+
+      <div class="phase phase-2">
+        <h3>
+          Phase 2: Boundary Files
+          <span class="badge badge-green">8 new files</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li><code>not-found.tsx</code> — branded 404</li>
+          <li><code>error.tsx</code> × 3 — public, post-specific, admin</li>
+          <li>
+            <code>loading.tsx</code> × 4 — blog list, single post, tags, admin
+          </li>
+        </ul>
+      </div>
+
+      <div class="phase phase-3">
+        <h3>
+          Phase 3: Private Folders
+          <span class="badge badge-purple">6 file moves</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li>
+            CommentSection → <code>_ui/</code>, ContactForm → <code>_ui/</code>,
+            SearchContent → <code>_ui/</code>
+          </li>
+          <li>
+            AdminShell → <code>_ui/</code>, PostEditor → <code>_ui/</code>,
+            PageEditor → <code>_ui/</code>
+          </li>
+        </ul>
+      </div>
+
+      <div class="phase phase-4">
+        <h3>
+          Phase 4: Eliminate All Double Casts
+          <span class="badge badge-red">156 fixes</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li>
+            Create <code>AppPrismaClient</code> intersection type (eliminates
+            ~40 wiring casts)
+          </li>
+          <li>
+            Use <code>Prisma.*WhereInput</code>/<code>StringFilter</code>
+            (eliminates ~15 query casts)
+          </li>
+          <li>
+            Zod validate JSON columns at DB boundary (eliminates ~12
+            admin-settings casts)
+          </li>
+          <li>
+            Make <code>InterlinkPrisma</code>/<code>ScanPrisma</code> structural
+            subtypes (eliminates ~15)
+          </li>
+          <li>
+            Add Ads delegates to <code>AppPrismaClient</code> (eliminates ~8)
+          </li>
+          <li>
+            Fix misc: global augmentation, Omit&lt;&gt; return, shape validation
+            (~10)
+          </li>
+        </ul>
+      </div>
+
+      <div class="phase phase-5">
+        <h3>
+          Phase 5: Eliminate All Loose <code>any</code>
+          <span class="badge badge-orange">90+ fixes</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li>
+            Create generic <code>PrismaDelegate&lt;T&gt;</code> interface
+            (replaces ~80 <code>any</code> params across 10 types files)
+          </li>
+          <li>
+            Type Distribution service (15+ <code>any</code> → proper
+            input/output types)
+          </li>
+          <li>Type Ads service (12+ <code>any</code> → Prisma types)</li>
+          <li>
+            Fix all <code>catch (err: any)</code> →
+            <code>catch (err: unknown)</code>
+          </li>
+        </ul>
+      </div>
+
+      <div class="phase phase-6">
+        <h3>
+          Phase 6: JSON.parse &amp; Non-null Fixes
+          <span class="badge badge-green">12 fixes</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li>Add Zod validation to 5 risky <code>JSON.parse</code> calls</li>
+          <li>
+            Replace 5 <code>JSON.parse(JSON.stringify())</code> →
+            <code>structuredClone()</code>
+          </li>
+          <li>Fix 4 unsafe <code>!</code> assertions with proper guards</li>
+        </ul>
+      </div>
+
+      <div class="phase phase-7">
+        <h3>
+          Phase 7: Zod / API / Prisma Alignment
+          <span class="badge badge-red">CRITICAL</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li>
+            🔴 Fix broken password change — create
+            <code>/api/profile/password</code>
+          </li>
+          <li>Add Zod to 8 unvalidated routes</li>
+          <li>Replace 6 inline schemas with shared schemas</li>
+          <li>Fix 4 Prisma ↔ Zod field mismatches</li>
+          <li>Fix Settings type erasure at service boundary</li>
+        </ul>
+      </div>
+
+      <div class="phase phase-8">
+        <h3>
+          Phase 8: Frontend Data Flow
+          <span class="badge badge-orange">14 pages fixed</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li>Add <code>res.ok</code> guards to all 14 admin pages</li>
+          <li>
+            Create <code>ApiResponse&lt;T&gt;</code> generic response type
+          </li>
+          <li>Fix PostEditor dead data sends</li>
+          <li>Fix comments delete unchecked response</li>
+          <li>Fix SEO page silent error swallowing (10+ catch blocks)</li>
+          <li>
+            Fix public page <code>Record&lt;string, unknown&gt;</code> casts
+          </li>
+        </ul>
+      </div>
+
+      <div class="phase phase-9">
+        <h3>
+          Phase 9: Dead Code &amp; Security
+          <span class="badge badge-green">cleanup</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li>Remove 3 dead npm packages</li>
+          <li>Remove dead file, dead types, dead UI exports</li>
+          <li>Use <code>x-real-ip</code> as primary rate limit IP source</li>
+          <li>Extend Permissions-Policy header</li>
+          <li>Document <code>style-src unsafe-inline</code> necessity</li>
+        </ul>
+      </div>
+
+      <div class="phase phase-10">
+        <h3>
+          Phase 10: Job Runner System
+          <span class="badge badge-purple">NEW module</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li>
+            Create <code>features/jobs/server/</code> — queue, runner,
+            dispatcher, idempotency, definitions
+          </li>
+          <li>
+            Create 4 workflow files (SEO planner, image gen, distribution, blog
+            autopublish)
+          </li>
+          <li>
+            Create <code>/api/jobs/enqueue</code> +
+            <code>/api/jobs/run</code> endpoints
+          </li>
+          <li>Wire into existing cron (process-pending-jobs task)</li>
+        </ul>
+      </div>
+
+      <div class="phase phase-11">
+        <h3>
+          Phase 11: Server Actions Wave 1
+          <span class="badge badge-orange">leaf CRUD</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li>Tags CRUD → <code>features/tags/server/actions.ts</code></li>
+          <li>
+            Categories CRUD →
+            <code>features/blog/server/category-actions.ts</code>
+          </li>
+          <li>
+            Media Folders → <code>features/media/server/folder-actions.ts</code>
+          </li>
+          <li>
+            Settings, Ads, Distribution, Auth, Media → <code>actions.ts</code>
+          </li>
+          <li>Keep API routes alive (deprecate, don't delete)</li>
+        </ul>
+      </div>
+
+      <div class="phase phase-12">
+        <h3>
+          Phase 12: Instrumentation &amp; Consistency
+          <span class="badge badge-blue">polish</span>
+        </h3>
+        <ul style="padding-left: 1.2rem">
+          <li>Add <code>instrumentation.ts</code> for OpenTelemetry</li>
+          <li>Tags admin — add server-side pagination</li>
+          <li>
+            Extract <code>useBulkSelection</code> shared hook (eliminate 7×
+            copy-paste)
+          </li>
+          <li>Create shared <code>handleApiResponse()</code> utility</li>
+        </ul>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 10. JOB RUNNER                                                     -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="job-runner">10. Job Runner Architecture</h2>
+
+      <div class="card">
+        <h4>Step-Based Workflow Design (Vercel-Optimized)</h4>
+        <p style="margin: 0.5rem 0">
+          Each autonomous workflow runs as a series of small steps (&lt;10s
+          each), persisted between invocations. This avoids Vercel's function
+          duration limits and keeps compute costs predictable.
+        </p>
+
+        <div class="tree" style="margin: 1rem 0">
+          ┌─────────────┐ ┌──────────────┐ ┌─────────────────┐ │ Cron Tick
+          │────▶│ /api/jobs/run│────▶│ runner.ts │ │ (hourly) │ │ (POST) │ │
+          processNextJob()│ └─────────────┘ └──────────────┘ └────────┬────────┘
+          │ ┌────────▼────────┐ │ dispatcher.ts │ │ type+step→fn() │
+          └────────┬────────┘ ┌──────────────────────┼──────────────────────┐
+          ┌─────────▼──────────┐ ┌────────▼─────────┐ ┌─────────▼──────────┐ │
+          seo-planner.ts │ │ image-gen.ts │ │ distribution.ts │ │ Steps: │ │
+          Steps: │ │ Steps: │ │ 1. analyze │ │ 1. extract │ │ 1. select targets
+          │ │ 2. research │ │ 2. prompt │ │ 2. format │ │ 3. score │ │ 3.
+          generate │ │ 3. distribute │ │ 4. suggest │ │ 4. store │ │ 4. verify │
+          └────────────────────┘ └──────────────────┘ └────────────────────┘
+          Each step: pick PENDING → lock (Redis) → execute → save result →
+          enqueue next step → unlock
+        </div>
+
+        <table>
+          <tr>
+            <th>Property</th>
+            <th>Value</th>
+            <th>Reason</th>
+          </tr>
+          <tr>
+            <td>Max step duration</td>
+            <td>10 seconds</td>
+            <td>Vercel function timeout safety margin</td>
+          </tr>
+          <tr>
+            <td>Steps per cron tick</td>
+            <td>5</td>
+            <td>50s total within 60s cron limit</td>
+          </tr>
+          <tr>
+            <td>Retry strategy</td>
+            <td>3 attempts, exponential backoff</td>
+            <td>Resilience against transient failures</td>
+          </tr>
+          <tr>
+            <td>Idempotency</td>
+            <td>Redis dedup key per job ID</td>
+            <td>Prevent double-processing</td>
+          </tr>
+          <tr>
+            <td>Concurrency</td>
+            <td>Per-job Redis lock</td>
+            <td>No parallel execution of same job</td>
+          </tr>
+          <tr>
+            <td>Persistence</td>
+            <td>Job.result JSON between steps</td>
+            <td>Survives function cold starts</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 11. SERVER ACTIONS                                                 -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="server-actions">11. Server Actions Migration Plan</h2>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header" style="color: var(--green)">
+            ✅ Migrate to Server Actions
+          </div>
+          <table>
+            <tr>
+              <th>Route</th>
+              <th>Action File</th>
+            </tr>
+            <tr>
+              <td>Tags CRUD</td>
+              <td><code>tags/server/actions.ts</code></td>
+            </tr>
+            <tr>
+              <td>Categories CRUD</td>
+              <td><code>blog/server/category-actions.ts</code></td>
+            </tr>
+            <tr>
+              <td>Media Folders</td>
+              <td><code>media/server/folder-actions.ts</code></td>
+            </tr>
+            <tr>
+              <td>Settings test-email</td>
+              <td><code>settings/server/actions.ts</code></td>
+            </tr>
+            <tr>
+              <td>Ads kill-switch</td>
+              <td><code>ads/server/actions.ts</code></td>
+            </tr>
+            <tr>
+              <td>Distribution channels</td>
+              <td><code>distribution/server/actions.ts</code></td>
+            </tr>
+            <tr>
+              <td>Users bulk</td>
+              <td><code>auth/server/actions.ts</code></td>
+            </tr>
+            <tr>
+              <td>Media items</td>
+              <td><code>media/server/actions.ts</code></td>
+            </tr>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header" style="color: var(--red)">
+            ❌ Keep as API Routes
+          </div>
+          <table>
+            <tr>
+              <th>Route</th>
+              <th>Reason</th>
+            </tr>
+            <tr>
+              <td>Comments POST</td>
+              <td>Public consumers (blog pages)</td>
+            </tr>
+            <tr>
+              <td>Contact POST</td>
+              <td>Public form submission</td>
+            </tr>
+            <tr>
+              <td>Newsletter *</td>
+              <td>Public subscribe/confirm/unsub</td>
+            </tr>
+            <tr>
+              <td>Captcha *</td>
+              <td>Public challenge/verify</td>
+            </tr>
+            <tr>
+              <td>Auth *</td>
+              <td>NextAuth handles routing</td>
+            </tr>
+            <tr>
+              <td>Posts CRUD</td>
+              <td>Complex orchestration</td>
+            </tr>
+            <tr>
+              <td>Pages CRUD</td>
+              <td>Complex orchestration</td>
+            </tr>
+            <tr>
+              <td>SEO *</td>
+              <td>Complex multi-step</td>
+            </tr>
+            <tr>
+              <td>Cron</td>
+              <td>External scheduler</td>
+            </tr>
+            <tr>
+              <td>Health</td>
+              <td>External monitoring</td>
+            </tr>
+            <tr>
+              <td>OG image</td>
+              <td>External consumers</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 12. VERIFICATION                                                   -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="verification">12. Verification Checklist</h2>
+
+      <table>
+        <tr>
+          <th>Check</th>
+          <th>Command</th>
+          <th>Expected</th>
+        </tr>
+        <tr>
+          <td>TypeScript</td>
+          <td><code>npx tsc --noEmit</code></td>
+          <td>0 errors</td>
+        </tr>
+        <tr>
+          <td>ESLint</td>
+          <td><code>npx eslint .</code></td>
+          <td>0 errors, 0 warnings</td>
+        </tr>
+        <tr>
+          <td>Build</td>
+          <td><code>npx next build</code></td>
+          <td>0 errors, clean output</td>
+        </tr>
+        <tr>
+          <td>Unit tests (Vitest)</td>
+          <td><code>npx vitest run</code></td>
+          <td>All pass</td>
+        </tr>
+        <tr>
+          <td>Server tests (Jest)</td>
+          <td><code>npx jest --runInBand</code></td>
+          <td>All pass</td>
+        </tr>
+        <tr>
+          <td>E2E tests (Playwright)</td>
+          <td><code>npx playwright test</code></td>
+          <td>All pass</td>
+        </tr>
+        <tr>
+          <td>Double casts</td>
+          <td><code>grep -r "as unknown as" src/ | wc -l</code></td>
+          <td>Near 0 (only justified with SAFETY comment)</td>
+        </tr>
+        <tr>
+          <td>Loose any</td>
+          <td><code>grep -r ": any" src/ | wc -l</code></td>
+          <td>Near 0</td>
+        </tr>
+        <tr>
+          <td>Unvalidated JSON.parse</td>
+          <td><code>grep -r "JSON.parse" src/ | grep -v safeParse</code></td>
+          <td>All wrapped in try/catch + Zod</td>
+        </tr>
+        <tr>
+          <td>Dead exports</td>
+          <td><code>npx knip</code></td>
+          <td>0 unused exports/deps</td>
+        </tr>
+        <tr>
+          <td>URL routing</td>
+          <td>All public URLs unchanged</td>
+          <td>Route groups invisible</td>
+        </tr>
+        <tr>
+          <td>Password change</td>
+          <td>Test as regular user</td>
+          <td>Must succeed</td>
+        </tr>
+      </table>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- 13. DECISIONS                                                      -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <h2 id="decisions">13. Key Architectural Decisions</h2>
+
+      <table>
+        <tr>
+          <th>Decision</th>
+          <th>Choice</th>
+          <th>Rationale</th>
+        </tr>
+        <tr>
+          <td>Structure approach</td>
+          <td>Feature-First (Option B) enhanced</td>
+          <td>
+            Already established; monorepo (Option C) is tooling overhead while
+            solo
+          </td>
+        </tr>
+        <tr>
+          <td>Route groups</td>
+          <td>
+            <code>(public)</code>, <code>(auth)</code>, <code>(admin)</code>
+          </td>
+          <td>Layout isolation, code splitting, PublicShell fix</td>
+        </tr>
+        <tr>
+          <td>Server Actions scope</td>
+          <td>Leaf CRUD only</td>
+          <td>Complex orchestration stays API; public forms stay API</td>
+        </tr>
+        <tr>
+          <td>Job runner</td>
+          <td>Integrated into existing cron</td>
+          <td>No separate worker; step-based within 60s limit</td>
+        </tr>
+        <tr>
+          <td>Prisma typing</td>
+          <td><code>AppPrismaClient</code> intersection</td>
+          <td>
+            Eliminates ~40 double casts in wiring with one architectural change
+          </td>
+        </tr>
+        <tr>
+          <td>Delegate typing</td>
+          <td>Generic <code>PrismaDelegate&lt;T&gt;</code></td>
+          <td>Eliminates ~80 <code>any</code> params across 10 types files</td>
+        </tr>
+        <tr>
+          <td>Rate limit IP</td>
+          <td><code>x-real-ip</code> primary</td>
+          <td>Defense against <code>x-forwarded-for</code> spoofing</td>
+        </tr>
+        <tr>
+          <td>CSP style-src</td>
+          <td>Keep <code>unsafe-inline</code></td>
+          <td>Required for Tailwind + next-themes; documented</td>
+        </tr>
+        <tr>
+          <td>Entry point</td>
+          <td><code>proxy.ts</code> (NOT <code>middleware.ts</code>)</td>
+          <td>Next.js 16 convention</td>
+        </tr>
+        <tr>
+          <td>UI library</td>
+          <td>Tailwind + Headless UI (NO MUI)</td>
+          <td>Leaner bundle, lower cost, already established</td>
+        </tr>
+        <tr>
+          <td>Dead packages</td>
+          <td>
+            Remove <code>openai</code>, <code>slugify</code>,
+            <code>floating-menu</code>
+          </td>
+          <td>Never imported in source</td>
+        </tr>
+        <tr>
+          <td>Job model</td>
+          <td>Activate existing scaffolded model</td>
+          <td>Schema already has type/step/status/payload/result/attempts</td>
+        </tr>
+      </table>
+
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- FOOTER                                                             -->
+      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <hr style="border-color: var(--border); margin: 3rem 0 1.5rem" />
+      <p style="color: var(--muted); text-align: center; font-size: 0.85rem">
+        MyBlog Architecture Blueprint — Generated February 20, 2026<br />
+        Next.js 16.1.6 • React 19.2.3 • Prisma 7.4.0 • TypeScript 5 • Tailwind
+        v4 • Vercel Deployment
+      </p>
+    </div>
+    <!-- .container -->
+  </body>
+</html>

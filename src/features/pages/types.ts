@@ -9,26 +9,44 @@
 /*  ENUMS                                                                     */
 /* ========================================================================== */
 
-export const PAGE_STATUSES = ['DRAFT', 'PUBLISHED', 'SCHEDULED', 'ARCHIVED'] as const;
+export const PAGE_STATUSES = [
+  "DRAFT",
+  "PUBLISHED",
+  "SCHEDULED",
+  "ARCHIVED",
+] as const;
 export type PageStatus = (typeof PAGE_STATUSES)[number];
 
 export const PAGE_TEMPLATES = [
-  'DEFAULT', 'FULL_WIDTH', 'SIDEBAR_LEFT', 'SIDEBAR_RIGHT',
-  'LANDING', 'BLANK', 'CUSTOM',
+  "DEFAULT",
+  "FULL_WIDTH",
+  "SIDEBAR_LEFT",
+  "SIDEBAR_RIGHT",
+  "LANDING",
+  "BLANK",
+  "CUSTOM",
 ] as const;
 export type PageTemplate = (typeof PAGE_TEMPLATES)[number];
 
 export const PAGE_VISIBILITIES = [
-  'PUBLIC', 'PRIVATE', 'PASSWORD_PROTECTED', 'LOGGED_IN_ONLY',
+  "PUBLIC",
+  "PRIVATE",
+  "PASSWORD_PROTECTED",
+  "LOGGED_IN_ONLY",
 ] as const;
 export type PageVisibility = (typeof PAGE_VISIBILITIES)[number];
 
 export const PAGE_SORT_FIELDS = [
-  'createdAt', 'updatedAt', 'publishedAt', 'title', 'sortOrder', 'slug',
+  "createdAt",
+  "updatedAt",
+  "publishedAt",
+  "title",
+  "sortOrder",
+  "slug",
 ] as const;
 export type PageSortField = (typeof PAGE_SORT_FIELDS)[number];
 
-export const SORT_ORDERS = ['asc', 'desc'] as const;
+export const SORT_ORDERS = ["asc", "desc"] as const;
 export type SortOrder = (typeof SORT_ORDERS)[number];
 
 /**
@@ -38,12 +56,30 @@ export type SortOrder = (typeof SORT_ORDERS)[number];
  * template, visibility), but their slug and systemKey are immutable.
  */
 export const SYSTEM_PAGE_KEYS = [
-  'HOME', 'ABOUT', 'CONTACT', 'PRIVACY_POLICY', 'TERMS_OF_SERVICE',
-  'COOKIE_POLICY', 'DISCLAIMER', 'FAQ', 'SITEMAP',
-  'NOT_FOUND', 'MAINTENANCE', 'COMING_SOON',
-  'SEARCH_RESULTS', 'BLOG_INDEX', 'ARCHIVE', 'CATEGORIES', 'TAGS',
-  'LOGIN', 'REGISTER', 'FORGOT_PASSWORD', 'RESET_PASSWORD',
-  'DASHBOARD', 'PROFILE', 'SETTINGS',
+  "HOME",
+  "ABOUT",
+  "CONTACT",
+  "PRIVACY_POLICY",
+  "TERMS_OF_SERVICE",
+  "COOKIE_POLICY",
+  "DISCLAIMER",
+  "FAQ",
+  "SITEMAP",
+  "NOT_FOUND",
+  "MAINTENANCE",
+  "COMING_SOON",
+  "SEARCH_RESULTS",
+  "BLOG_INDEX",
+  "ARCHIVE",
+  "CATEGORIES",
+  "TAGS",
+  "LOGIN",
+  "REGISTER",
+  "FORGOT_PASSWORD",
+  "RESET_PASSWORD",
+  "DASHBOARD",
+  "PROFILE",
+  "SETTINGS",
 ] as const;
 export type SystemPageKey = (typeof SYSTEM_PAGE_KEYS)[number];
 
@@ -140,7 +176,12 @@ export interface PageRevision {
 /* ========================================================================== */
 
 export interface PageWithRelations extends Page {
-  author?: { id: string; username: string; displayName?: string | null; email?: string | null };
+  author?: {
+    id: string;
+    username: string;
+    displayName?: string | null;
+    email?: string | null;
+  };
   parent?: Page | null;
   children?: Page[];
   revisions?: PageRevision[];
@@ -426,31 +467,36 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 /*  DEPENDENCY INJECTION INTERFACES                                           */
 /* ========================================================================== */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export interface PagesPrismaDelegate {
-  create(args: any): Promise<any>;
-  findUnique(args: any): Promise<any>;
-  findFirst(args: any): Promise<any>;
-  findMany(args: any): Promise<any[]>;
-  update(args: any): Promise<any>;
-  updateMany(args: any): Promise<{ count: number }>;
-  delete(args: any): Promise<any>;
-  deleteMany(args: any): Promise<{ count: number }>;
-  count(args?: any): Promise<number>;
+export interface PagesPrismaDelegate<T = Record<string, unknown>> {
+  create(args: Record<string, unknown>): Promise<T>;
+  findUnique(args: Record<string, unknown>): Promise<T | null>;
+  findFirst(args: Record<string, unknown>): Promise<T | null>;
+  findMany(args: Record<string, unknown>): Promise<T[]>;
+  update(args: Record<string, unknown>): Promise<T>;
+  updateMany(args: Record<string, unknown>): Promise<{ count: number }>;
+  delete(args: Record<string, unknown>): Promise<T>;
+  deleteMany(args: Record<string, unknown>): Promise<{ count: number }>;
+  count(args?: Record<string, unknown>): Promise<number>;
 }
 
 export interface PagesPrismaClient {
-  page: PagesPrismaDelegate;
-  pageRevision: PagesPrismaDelegate;
+  page: PagesPrismaDelegate<Page>;
+  pageRevision: PagesPrismaDelegate<PageRevision>;
   pageSettings: {
-    findFirst(args?: any): Promise<any>;
-    create(args: { data: Record<string, unknown> }): Promise<any>;
-    update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<any>;
+    findFirst(
+      args?: Record<string, unknown>,
+    ): Promise<Record<string, unknown> | null>;
+    create(args: {
+      data: Record<string, unknown>;
+    }): Promise<Record<string, unknown>>;
+    update(args: {
+      where: { id: string };
+      data: Record<string, unknown>;
+    }): Promise<Record<string, unknown>>;
   };
   $transaction<T>(fn: (tx: PagesPrismaClient) => Promise<T>): Promise<T>;
   $transaction(args: unknown[]): Promise<unknown[]>;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** Cache provider for the pages module. */
 export interface PagesCacheProvider {
@@ -481,6 +527,6 @@ export class PageError extends Error {
     public readonly statusCode: number = 400,
   ) {
     super(message);
-    this.name = 'PageError';
+    this.name = "PageError";
   }
 }

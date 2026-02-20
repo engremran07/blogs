@@ -4,17 +4,15 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { adsAdminSettings } from "@/server/wiring";
 import { updateAdsConfigSchema } from "@/features/ads/server/schemas";
 import type { AdsConfig } from "@/features/ads/types";
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const config = await adsAdminSettings.getConfig();
     return NextResponse.json({ success: true, data: config });
@@ -28,10 +26,8 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const input = updateAdsConfigSchema.parse(body);

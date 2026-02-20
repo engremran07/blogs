@@ -56,8 +56,11 @@ export function SeoDropdown({
   const isOpen = activeDropdown === DROPDOWN_ID;
 
   const seo = useSeoScore({
-    resourceType: route.resourceType,
-    resourceId: editor?.postId ?? editor?.pageId ?? route.resourceId,
+    resourceType:
+      route.resourceType ??
+      (route.isViewingPost ? "post" : route.isViewingPage ? "page" : null),
+    resourceId: editor?.postId ?? editor?.pageId ?? route.resourceId ?? null,
+    resourceSlug: route.publicSlug ?? null,
   });
 
   const handleToggle = useCallback(() => {

@@ -4,61 +4,61 @@
 // ─── Enums ──────────────────────────────────────────────────────────────────
 
 export enum CommentStatus {
-  PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
-  SPAM = 'SPAM',
-  FLAGGED = 'FLAGGED',
-  REJECTED = 'REJECTED',
-  DELETED = 'DELETED',
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  SPAM = "SPAM",
+  FLAGGED = "FLAGGED",
+  REJECTED = "REJECTED",
+  DELETED = "DELETED",
 }
 
 export enum CommentSortField {
-  CREATED_AT = 'createdAt',
-  UPDATED_AT = 'updatedAt',
-  UPVOTES = 'upvotes',
-  DOWNVOTES = 'downvotes',
+  CREATED_AT = "createdAt",
+  UPDATED_AT = "updatedAt",
+  UPVOTES = "upvotes",
+  DOWNVOTES = "downvotes",
 }
 
 export enum VoteType {
-  UP = 'UP',
-  DOWN = 'DOWN',
+  UP = "UP",
+  DOWN = "DOWN",
 }
 
 export enum ModerationAction {
-  APPROVE = 'APPROVE',
-  REJECT = 'REJECT',
-  FLAG = 'FLAG',
-  UNFLAG = 'UNFLAG',
-  PIN = 'PIN',
-  UNPIN = 'UNPIN',
-  RESOLVE = 'RESOLVE',
-  UNRESOLVE = 'UNRESOLVE',
-  DELETE = 'DELETE',
-  RESTORE = 'RESTORE',
+  APPROVE = "APPROVE",
+  REJECT = "REJECT",
+  FLAG = "FLAG",
+  UNFLAG = "UNFLAG",
+  PIN = "PIN",
+  UNPIN = "UNPIN",
+  RESOLVE = "RESOLVE",
+  UNRESOLVE = "UNRESOLVE",
+  DELETE = "DELETE",
+  RESTORE = "RESTORE",
 }
 
 export enum CommentEvent {
-  CREATED = 'comment.created',
-  UPDATED = 'comment.updated',
-  DELETED = 'comment.deleted',
-  APPROVED = 'comment.approved',
-  REJECTED = 'comment.rejected',
-  FLAGGED = 'comment.flagged',
-  UNFLAGGED = 'comment.unflagged',
-  PINNED = 'comment.pinned',
-  UNPINNED = 'comment.unpinned',
-  RESOLVED = 'comment.resolved',
-  UNRESOLVED = 'comment.unresolved',
-  VOTED = 'comment.voted',
-  REPLIED = 'comment.replied',
-  SPAM_DETECTED = 'comment.spam_detected',
-  RESTORED = 'comment.restored',
-  BULK_ACTION = 'comment.bulk_action',
-  AUTO_APPROVED = 'comment.auto_approved',
-  EDITED = 'comment.edited',
-  SETTINGS_UPDATED = 'comment.settings_updated',
-  AUTO_CLOSED = 'comment.auto_closed',
-  RATE_LIMITED = 'comment.rate_limited',
+  CREATED = "comment.created",
+  UPDATED = "comment.updated",
+  DELETED = "comment.deleted",
+  APPROVED = "comment.approved",
+  REJECTED = "comment.rejected",
+  FLAGGED = "comment.flagged",
+  UNFLAGGED = "comment.unflagged",
+  PINNED = "comment.pinned",
+  UNPINNED = "comment.unpinned",
+  RESOLVED = "comment.resolved",
+  UNRESOLVED = "comment.unresolved",
+  VOTED = "comment.voted",
+  REPLIED = "comment.replied",
+  SPAM_DETECTED = "comment.spam_detected",
+  RESTORED = "comment.restored",
+  BULK_ACTION = "comment.bulk_action",
+  AUTO_APPROVED = "comment.auto_approved",
+  EDITED = "comment.edited",
+  SETTINGS_UPDATED = "comment.settings_updated",
+  AUTO_CLOSED = "comment.auto_closed",
+  RATE_LIMITED = "comment.rate_limited",
 }
 
 // ─── Pagination ─────────────────────────────────────────────────────────────
@@ -194,7 +194,7 @@ export interface QueryCommentsInput {
   page?: number;
   limit?: number;
   sortBy?: CommentSortField;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   status?: CommentStatus;
   postId?: string;
   userId?: string;
@@ -380,25 +380,16 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 
 // ─── Minimal Prisma Interface (DI boundary) ─────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export interface PrismaDelegate {
-  findUnique(args: any): Promise<any>;
-  findFirst(args?: any): Promise<any>;
-  findMany(args?: any): Promise<any[]>;
-  create(args: any): Promise<any>;
-  update(args: any): Promise<any>;
-  updateMany(args: any): Promise<any>;
-  delete(args: any): Promise<any>;
-  deleteMany(args: any): Promise<any>;
-  count(args?: any): Promise<number>;
-  aggregate(args: any): Promise<any>;
-}
+import type {
+  PrismaDelegate,
+  PrismaDelegateWithAggregate,
+} from "@/shared/prisma-delegate.types";
+export type { PrismaDelegate };
 
 export interface CommentsPrismaClient {
-  comment: PrismaDelegate;
+  comment: PrismaDelegateWithAggregate<CommentData>;
   commentVote: PrismaDelegate;
-  learningSignal: PrismaDelegate;
+  learningSignal: PrismaDelegate<LearningSignalData>;
   commentSettings: PrismaDelegate;
   post: PrismaDelegate;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */

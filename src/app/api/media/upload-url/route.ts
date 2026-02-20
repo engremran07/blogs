@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { mediaService } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
 import { UploadFromUrlSchema } from "@/features/media/server/schemas";
@@ -11,25 +11,8 @@ const logger = createLogger("api/media/upload-url");
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const role = (session.user as { role?: string })?.role;
-    if (
-      !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR", "AUTHOR"].includes(
-        role || ""
-      )
-    ) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 }
-      );
-    }
+    const { userId, errorResponse } = await requireAuth({ level: 'author' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const validation = UploadFromUrlSchema.safeParse(body);
@@ -47,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     const result = await mediaService.uploadFromUrl(
       validation.data,
-      (session.user as { id?: string })?.id
+      userId
     );
 
     if (!result.success) {

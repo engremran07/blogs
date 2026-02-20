@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { createLogger } from "@/server/observability/logger";
 import { commentService, moderationService } from "@/server/wiring";
 import { updateCommentSchema } from "@/features/comments/server/schemas";
@@ -12,23 +12,21 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-    }
+    const { userId, userRole, errorResponse } = await requireAuth();
+    if (errorResponse) return errorResponse;
     const body = await req.json();
 
     // Admin moderation actions (status change) — editors+ only
     if (body.status && Object.keys(body).length === 1) {
       const allowedModRoles = ["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"];
-      if (!allowedModRoles.includes(session.user.role)) {
+      if (!allowedModRoles.includes(userRole)) {
         return NextResponse.json(
           { success: false, error: "Only editors and admins can moderate comments" },
           { status: 403 }
         );
       }
       const status = body.status as string;
-      const moderatorId = session.user.id || "system";
+      const moderatorId = userId || "system";
       let comment;
       switch (status) {
         case "APPROVED":
@@ -60,7 +58,6 @@ export async function PATCH(
       );
     }
 
-    const userId = session.user.id;
     const comment = await commentService.update(id, parsed.data, userId);
     return NextResponse.json({ success: true, data: comment });
   } catch (error) {
@@ -80,14 +77,12 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-    }
+    const { userId, userRole, errorResponse } = await requireAuth();
+    if (errorResponse) return errorResponse;
     // Admins can delete any comment; regular users can only delete their own
-    const isAdminRole = ["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role);
-    const userId = isAdminRole ? undefined : session.user.id;
-    await commentService.softDelete(id, userId);
+    const isAdminRole = ["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(userRole);
+    const ownerFilter = isAdminRole ? undefined : userId;
+    await commentService.softDelete(id, ownerFilter);
     return NextResponse.json({ success: true });
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : "Failed to delete comment";

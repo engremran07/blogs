@@ -2,17 +2,15 @@
  * /api/distribution/posts/[postId] — Get distributions for a specific post
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { distributionService, siteSettingsService } from "@/server/wiring";
 
 type Params = { params: Promise<{ postId: string }> };
 
 export async function GET(_req: NextRequest, ctx: Params) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR", "AUTHOR"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'author' });
+    if (errorResponse) return errorResponse;
 
     const settings = await siteSettingsService.getSettings();
     if (!settings.distributionEnabled) {

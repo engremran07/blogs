@@ -5,39 +5,39 @@
 // ─── Enums ──────────────────────────────────────────────────────────────────
 
 export enum TagSortField {
-  NAME = 'name',
-  SLUG = 'slug',
-  USAGE_COUNT = 'usageCount',
-  CREATED_AT = 'createdAt',
-  UPDATED_AT = 'updatedAt',
-  SYNONYM_HITS = 'synonymHits',
-  WEIGHT = 'weight',
+  NAME = "name",
+  SLUG = "slug",
+  USAGE_COUNT = "usageCount",
+  CREATED_AT = "createdAt",
+  UPDATED_AT = "updatedAt",
+  SYNONYM_HITS = "synonymHits",
+  WEIGHT = "weight",
 }
 
 export enum AutocompleteMode {
-  STARTS_WITH = 'startsWith',
-  CONTAINS = 'contains',
+  STARTS_WITH = "startsWith",
+  CONTAINS = "contains",
 }
 
 export enum TagEvent {
-  CREATED = 'TAG_CREATED',
-  UPDATED = 'TAG_UPDATED',
-  DELETED = 'TAG_DELETED',
-  MERGED = 'TAG_MERGED',
-  LOCKED = 'TAG_LOCKED',
-  UNLOCKED = 'TAG_UNLOCKED',
-  FEATURED = 'TAG_FEATURED',
-  UNFEATURED = 'TAG_UNFEATURED',
-  TRENDING_UPDATED = 'TAG_TRENDING_UPDATED',
-  AUTO_TAGGED = 'TAG_AUTO_TAGGED',
-  SYNONYMS_GENERATED = 'TAG_SYNONYMS_GENERATED',
-  BULK_UPDATED = 'TAG_BULK_UPDATED',
-  ORPHANS_CLEANED = 'TAG_ORPHANS_CLEANED',
-  FOLLOWED = 'TAG_FOLLOWED',
-  UNFOLLOWED = 'TAG_UNFOLLOWED',
-  INITIAL_LOADED = 'TAG_INITIAL_LOADED',
-  SETTINGS_UPDATED = 'TAG_SETTINGS_UPDATED',
-  PROTECTED = 'TAG_PROTECTED',
+  CREATED = "TAG_CREATED",
+  UPDATED = "TAG_UPDATED",
+  DELETED = "TAG_DELETED",
+  MERGED = "TAG_MERGED",
+  LOCKED = "TAG_LOCKED",
+  UNLOCKED = "TAG_UNLOCKED",
+  FEATURED = "TAG_FEATURED",
+  UNFEATURED = "TAG_UNFEATURED",
+  TRENDING_UPDATED = "TAG_TRENDING_UPDATED",
+  AUTO_TAGGED = "TAG_AUTO_TAGGED",
+  SYNONYMS_GENERATED = "TAG_SYNONYMS_GENERATED",
+  BULK_UPDATED = "TAG_BULK_UPDATED",
+  ORPHANS_CLEANED = "TAG_ORPHANS_CLEANED",
+  FOLLOWED = "TAG_FOLLOWED",
+  UNFOLLOWED = "TAG_UNFOLLOWED",
+  INITIAL_LOADED = "TAG_INITIAL_LOADED",
+  SETTINGS_UPDATED = "TAG_SETTINGS_UPDATED",
+  PROTECTED = "TAG_PROTECTED",
 }
 
 // ─── Core Data Shapes ───────────────────────────────────────────────────────
@@ -59,16 +59,16 @@ export interface TagData {
   parentId: string | null;
 
   // Tree path (Tagulous-inspired)
-  path: string | null;       // full slug path e.g. "animal/mammal/cat"
-  label: string | null;      // last segment e.g. "Cat"
-  level: number;             // depth in tree (1 = root)
+  path: string | null; // full slug path e.g. "animal/mammal/cat"
+  label: string | null; // last segment e.g. "Cat"
+  level: number; // depth in tree (1 = root)
 
   // Metadata
   usageCount: number;
   featured: boolean;
   trending: boolean;
   locked: boolean;
-  protected: boolean;        // prevents auto-cleanup when count=0 (Tagulous)
+  protected: boolean; // prevents auto-cleanup when count=0 (Tagulous)
 
   // Synonyms & companions
   synonyms: string[];
@@ -83,6 +83,7 @@ export interface TagData {
 }
 
 export interface TagWithRelations extends TagData {
+  posts?: Array<{ id: string }>;
   parent?: TagData | null;
   children?: TagData[];
   _count?: {
@@ -90,6 +91,10 @@ export interface TagWithRelations extends TagData {
     children: number;
     followers: number;
   };
+}
+
+export interface TagFollowWithTag extends TagFollowData {
+  tag: TagData;
 }
 
 export interface TagSummary {
@@ -110,12 +115,12 @@ export interface TagFollowData {
 // ─── Autocomplete (Tagulous-inspired) ───────────────────────────────────
 
 export interface AutocompleteQuery {
-  q: string;                   // search query typed by user
-  page?: number;               // pagination
-  limit?: number;              // max results per page (autocompleteLimit)
-  mode?: AutocompleteMode;     // startsWith (default) | contains
-  parentId?: string | null;    // scope to children of a parent
-  includeCount?: boolean;      // include usage count in results
+  q: string; // search query typed by user
+  page?: number; // pagination
+  limit?: number; // max results per page (autocompleteLimit)
+  mode?: AutocompleteMode; // startsWith (default) | contains
+  parentId?: string | null; // scope to children of a parent
+  includeCount?: boolean; // include usage count in results
 }
 
 export interface AutocompleteResult {
@@ -144,15 +149,15 @@ export interface TagCloudItem {
   slug: string;
   color: string | null;
   usageCount: number;
-  weight: number;   // normalized weight between weightMin..weightMax
+  weight: number; // normalized weight between weightMin..weightMax
 }
 
 // ─── Tag String Parser ──────────────────────────────────────────────────
 
 export interface ParseTagsOptions {
-  spaceDelimiter?: boolean;    // allow spaces as delimiters (default: true)
-  maxCount?: number;           // max tags allowed (0 = no limit)
-  forceLowercase?: boolean;    // force all tags lowercase
+  spaceDelimiter?: boolean; // allow spaces as delimiters (default: true)
+  maxCount?: number; // max tags allowed (0 = no limit)
+  forceLowercase?: boolean; // force all tags lowercase
 }
 
 // ─── Admin Dynamic Settings (DB-backed runtime config) ──────────────────
@@ -161,30 +166,30 @@ export interface TagSystemSettings {
   id: string;
 
   // Core behavior
-  caseSensitive: boolean;      // whether tag names are case-sensitive
-  forceLowercase: boolean;     // force all tag names to lowercase
-  spaceDelimiter: boolean;     // allow spaces as tag delimiters
-  maxTagsPerPost: number;      // max count per post (0 = unlimited)
+  caseSensitive: boolean; // whether tag names are case-sensitive
+  forceLowercase: boolean; // force all tag names to lowercase
+  spaceDelimiter: boolean; // allow spaces as tag delimiters
+  maxTagsPerPost: number; // max count per post (0 = unlimited)
 
   // Autocomplete
-  autocompleteLimit: number;   // max suggestions per page
+  autocompleteLimit: number; // max suggestions per page
   autocompleteMode: AutocompleteMode;
   autocompleteMinChars: number; // min chars before triggering autocomplete
 
   // Protection
-  protectAll: boolean;         // protect ALL count=0 tags from auto-delete
-  protectInitial: boolean;     // protect initial/seed tags from deletion
+  protectAll: boolean; // protect ALL count=0 tags from auto-delete
+  protectInitial: boolean; // protect initial/seed tags from deletion
 
   // Initial / seed tags (comma-separated or JSON array)
-  initialTags: string[];       // predefined seed tags
+  initialTags: string[]; // predefined seed tags
 
   // Tag cloud
-  tagCloudMin: number;         // min weight for tag cloud
-  tagCloudMax: number;         // max weight for tag cloud
+  tagCloudMin: number; // min weight for tag cloud
+  tagCloudMax: number; // max weight for tag cloud
 
   // Hierarchy / tree
-  enableTree: boolean;         // enable slash-delimited tree tags
-  treeSeparator: string;       // separator character (default: "/")
+  enableTree: boolean; // enable slash-delimited tree tags
+  treeSeparator: string; // separator character (default: "/")
 
   // Following
   enableFollowing: boolean;
@@ -195,7 +200,7 @@ export interface TagSystemSettings {
   enableLlmAutoTag: boolean;
 
   // Cleanup
-  autoCleanupDays: number;     // auto-clean orphans older than N days (0 = off)
+  autoCleanupDays: number; // auto-clean orphans older than N days (0 = off)
 
   // Limits
   maxNameLength: number;
@@ -220,7 +225,11 @@ export interface TagAnalytics {
   recentlyCreated: Array<{ id: string; name: string; createdAt: Date }>;
   unusedTags: Array<{ id: string; name: string; createdAt: Date }>;
   tagsByParent: Array<{ parentName: string | null; count: number }>;
-  synonymUtilization: { totalSynonyms: number; totalHits: number; avgHitsPerTag: number };
+  synonymUtilization: {
+    totalSynonyms: number;
+    totalHits: number;
+    avgHitsPerTag: number;
+  };
   healthScore: number;
   recommendations: string[];
 }
@@ -258,7 +267,7 @@ export interface BulkMergeResult {
 
 export interface AutoTagResult {
   tags: string[];
-  source: 'llm' | 'keyword';
+  source: "llm" | "keyword";
   confidence: number[];
 }
 
@@ -274,7 +283,12 @@ export interface BatchAutoTagResult {
   processed: number;
   tagged: number;
   errors: number;
-  details: Array<{ postId: string; title: string; tagsAdded: number; source: string }>;
+  details: Array<{
+    postId: string;
+    title: string;
+    tagsAdded: number;
+    source: string;
+  }>;
 }
 
 // ─── Service Input Types ────────────────────────────────────────────────────
@@ -318,7 +332,7 @@ export interface QueryTagsInput {
   page?: number;
   limit?: number;
   sortBy?: TagSortField;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   search?: string;
   featured?: boolean;
   trending?: boolean;
@@ -427,24 +441,13 @@ export interface TagsConfig {
 
 // ─── Minimal Prisma Interface (DI boundary) ─────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export interface PrismaDelegate {
-  findUnique(args: any): Promise<any>;
-  findFirst(args?: any): Promise<any>;
-  findMany(args?: any): Promise<any[]>;
-  create(args: any): Promise<any>;
-  update(args: any): Promise<any>;
-  updateMany(args: any): Promise<any>;
-  delete(args: any): Promise<any>;
-  deleteMany(args: any): Promise<any>;
-  count(args?: any): Promise<number>;
-}
+import type { PrismaDelegate } from "@/shared/prisma-delegate.types";
+export type { PrismaDelegate };
 
 export interface TagsPrismaClient {
-  tag: PrismaDelegate;
-  tagFollow: PrismaDelegate;
+  tag: PrismaDelegate<TagData>;
+  tagFollow: PrismaDelegate<TagFollowData>;
   tagSettings: PrismaDelegate;
   post: PrismaDelegate;
   $transaction<T>(fn: (tx: TagsPrismaClient) => Promise<T>): Promise<T>;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */

@@ -8,6 +8,8 @@ import {
   FolderTree,
   Plus,
   ChevronDown,
+  Tag,
+  Users,
 } from "lucide-react";
 import { useAdminBar } from "./AdminBarProvider";
 
@@ -75,6 +77,27 @@ export function NewDropdown() {
           >
             <FolderTree className="h-4 w-4" />
             Categories
+          </Link>
+          <Link
+            href="/admin/tags"
+            onClick={closeDropdown}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+            role="menuitem"
+          >
+            <Tag className="h-4 w-4" />
+            Tags
+          </Link>
+
+          <div className="my-1 border-t border-white/5" />
+
+          <Link
+            href="/admin/users"
+            onClick={closeDropdown}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+            role="menuitem"
+          >
+            <Users className="h-4 w-4" />
+            Manage Users
           </Link>
         </div>
       )}

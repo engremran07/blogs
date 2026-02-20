@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { prisma } from "@/server/db/prisma";
 import { createLogger } from "@/server/observability/logger";
-import { commentService, moderationService, captchaVerificationService, captchaAdminSettings } from "@/server/wiring";
-import { createCommentSchema, queryCommentsSchema, type QueryCommentsPayload } from "@/features/comments/server/schemas";
+import {
+  commentService,
+  moderationService,
+  captchaVerificationService,
+  captchaAdminSettings,
+  siteSettingsService,
+} from "@/server/wiring";
+import { sendTransactionalEmail } from "@/server/mail";
+import {
+  createCommentSchema,
+  queryCommentsSchema,
+  type QueryCommentsPayload,
+} from "@/features/comments/server/schemas";
 import { Sanitize } from "@/features/comments/server/sanitization";
 
 const logger = createLogger("api/comments");
@@ -15,23 +26,32 @@ export async function GET(req: NextRequest) {
 
     // Admin panel query — delegate to ModerationService with full pagination
     if (all) {
-      const session = await auth();
-      if (!session?.user || !["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-        return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-      }
+      const { errorResponse } = await requireAuth({ level: "moderator" });
+      if (errorResponse) return errorResponse;
       const parsed = queryCommentsSchema.safeParse({
-        page: searchParams.get("page") ?? (searchParams.has("skip")
-          ? Math.floor(parseInt(searchParams.get("skip") || "0", 10) / parseInt(searchParams.get("take") || "20", 10)) + 1
-          : 1),
+        page:
+          searchParams.get("page") ??
+          (searchParams.has("skip")
+            ? Math.floor(
+                parseInt(searchParams.get("skip") || "0", 10) /
+                  parseInt(searchParams.get("take") || "20", 10),
+              ) + 1
+            : 1),
         limit: searchParams.get("take") ?? searchParams.get("limit") ?? 20,
         status: searchParams.get("status") || undefined,
         postId: searchParams.get("postId") || undefined,
-        search: searchParams.get("search") ? Sanitize.text(searchParams.get("search")!) : undefined,
+        search: searchParams.get("search")
+          ? Sanitize.text(searchParams.get("search")!)
+          : undefined,
         sortBy: searchParams.get("sortBy") || undefined,
         sortOrder: searchParams.get("sortOrder") || undefined,
       });
-      const query: Partial<QueryCommentsPayload> = parsed.success ? parsed.data : {};
-      const result = await moderationService.findAll(query as QueryCommentsPayload);
+      const query: Partial<QueryCommentsPayload> = parsed.success
+        ? parsed.data
+        : {};
+      const result = await moderationService.findAll(
+        query as QueryCommentsPayload,
+      );
       // include relations for admin view
       const enriched = await prisma.comment.findMany({
         where: { id: { in: result.data.map((c) => c.id) } },
@@ -59,12 +79,15 @@ export async function GET(req: NextRequest) {
     if (!postId) {
       return NextResponse.json(
         { success: false, error: "postId is required for public queries" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+    );
     const skip = (page - 1) * limit;
 
     const [comments, total] = await Promise.all([
@@ -72,12 +95,19 @@ export async function GET(req: NextRequest) {
       commentService.countByPost(postId),
     ]);
     const totalPages = Math.ceil(total / limit);
-    return NextResponse.json({ success: true, data: comments, total, page, limit, totalPages });
+    return NextResponse.json({
+      success: true,
+      data: comments,
+      total,
+      page,
+      limit,
+      totalPages,
+    });
   } catch (error) {
     logger.error("[api/comments] GET error:", { error });
     return NextResponse.json(
       { success: false, error: "Failed to fetch comments" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -88,7 +118,7 @@ export async function POST(req: NextRequest) {
 
     // ── CAPTCHA verification ──
     const captchaRequired = await captchaAdminSettings.isCaptchaRequired({
-      service: 'comments',
+      service: "comments",
     });
 
     if (captchaRequired.required) {
@@ -125,16 +155,17 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       const errors = parsed.error.flatten().formErrors;
       return NextResponse.json(
-        { success: false, error: errors.length > 0 ? errors : 'Invalid input' },
-        { status: 400 }
+        { success: false, error: errors.length > 0 ? errors : "Invalid input" },
+        { status: 400 },
       );
     }
 
     // Extract request metadata for spam analysis & IP blocking
     const meta = {
-      ipAddress: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-        ?? req.headers.get("x-real-ip")
-        ?? undefined,
+      ipAddress:
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+        req.headers.get("x-real-ip") ??
+        undefined,
       userAgent: req.headers.get("user-agent") ?? undefined,
     };
 
@@ -142,16 +173,57 @@ export async function POST(req: NextRequest) {
     // blocked IP/email, XSS sanitization, spam analysis, threading depth, profanity filter)
     const comment = await commentService.create(parsed.data, meta);
 
+    // ── Notify admin on new comment (fire-and-forget) ──────────────────
+    try {
+      const notifyCfg = await siteSettingsService.getNotificationConfig();
+      if (notifyCfg.emailNotifyOnComment) {
+        const smtpCfg = () => siteSettingsService.getSmtpConfig();
+        const adminEmail = (await siteSettingsService.getSmtpConfig())
+          .emailFromAddress;
+        if (adminEmail) {
+          const postTitle = parsed.data.postId ?? "Unknown post";
+          const author =
+            parsed.data.authorName ?? parsed.data.authorEmail ?? "Anonymous";
+          sendTransactionalEmail(
+            smtpCfg,
+            adminEmail,
+            `New comment on your blog`,
+            `<h2>New Comment</h2>
+             <table style="border-collapse:collapse;width:100%;max-width:500px;">
+               <tr><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">Author</td><td style="padding:8px;border:1px solid #e5e7eb;">${author}</td></tr>
+               <tr><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">Post</td><td style="padding:8px;border:1px solid #e5e7eb;">${postTitle}</td></tr>
+               <tr><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">Time</td><td style="padding:8px;border:1px solid #e5e7eb;">${new Date().toISOString()}</td></tr>
+             </table>
+             <blockquote style="margin:16px 0;padding:12px 16px;border-left:4px solid #3b82f6;background:#f8fafc;">${parsed.data.content?.substring(0, 300) ?? ""}</blockquote>`,
+          ).catch((err) =>
+            logger.warn("Comment notification email failed:", {
+              error: (err as Error).message,
+            }),
+          );
+        }
+      }
+    } catch (notifyErr) {
+      logger.warn("Comment notification setup failed:", {
+        error: (notifyErr as Error).message,
+      });
+    }
+
     return NextResponse.json({ success: true, data: comment }, { status: 201 });
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : "Failed to create comment";
-    const status = errMsg.includes("disabled") || errMsg.includes("blocked") || errMsg.includes("closed")
-      ? 403
-      : errMsg.includes("Rate limit") || errMsg.includes("Max")
-        ? 429
-        : errMsg.includes("depth") || errMsg.includes("not allowed") || errMsg.includes("Guest")
-          ? 400
-          : 500;
+    const errMsg =
+      error instanceof Error ? error.message : "Failed to create comment";
+    const status =
+      errMsg.includes("disabled") ||
+      errMsg.includes("blocked") ||
+      errMsg.includes("closed")
+        ? 403
+        : errMsg.includes("Rate limit") || errMsg.includes("Max")
+          ? 429
+          : errMsg.includes("depth") ||
+              errMsg.includes("not allowed") ||
+              errMsg.includes("Guest")
+            ? 400
+            : 500;
     logger.error("[api/comments] POST error:", { error });
     return NextResponse.json({ success: false, error: errMsg }, { status });
   }

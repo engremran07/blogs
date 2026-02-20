@@ -3,13 +3,7 @@ import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/layout/Providers";
-import { PublicShell } from "@/components/layout/PublicShell";
 import { AdminBar } from "@/components/admin/admin-bar";
-import {
-  HeaderAdBanner,
-  FooterAdBanner,
-  OverlayAdSlots,
-} from "@/features/ads/ui/GlobalAdSlots";
 import { siteSettingsService } from "@/server/wiring";
 import { serializeJsonLd } from "@/features/seo/server/json-ld.util";
 
@@ -260,13 +254,7 @@ export default async function RootLayout({
           darkModeDefault={darkModeDefault}
         >
           <AdminBar />
-          <PublicShell
-            headerAdSlot={<HeaderAdBanner />}
-            footerAdSlot={<FooterAdBanner />}
-            overlayAdSlot={<OverlayAdSlots />}
-          >
-            {children}
-          </PublicShell>
+          {children}
         </Providers>
       </body>
     </html>

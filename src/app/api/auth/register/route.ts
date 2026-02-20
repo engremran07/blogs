@@ -14,7 +14,9 @@ import { createLogger } from "@/server/observability/logger";
 import {
   captchaVerificationService,
   captchaAdminSettings,
+  siteSettingsService,
 } from "@/server/wiring";
+import { sendTransactionalEmail } from "@/server/mail";
 
 const logger = createLogger("api/auth/register");
 
@@ -173,12 +175,56 @@ export async function POST(request: Request) {
       select: { id: true, username: true, email: true, role: true },
     });
 
-    // TODO: Send email verification link after registration.
-    // The User model has `isEmailVerified` / `emailVerifiedAt` fields and
-    // auth schemas already define verifyEmailTokenSchema / verifyEmailCodeSchema,
-    // but wiring to the mail infrastructure (sendTransactionalEmail, token
-    // generation, verification endpoint) is non-trivial. Wire this once the
-    // email-verification flow is fully implemented.
+    // ── Post-registration emails (fire-and-forget) ──────────────────────
+    try {
+      const notifyCfg = await siteSettingsService.getNotificationConfig();
+      const smtpCfg = () => siteSettingsService.getSmtpConfig();
+
+      // Welcome email to the new user
+      if (notifyCfg.emailWelcomeEnabled) {
+        sendTransactionalEmail(
+          smtpCfg,
+          email,
+          "Welcome to our blog!",
+          `<h2>Welcome, ${firstName || name || "there"}!</h2>
+           <p>Thank you for creating an account. We're glad to have you on board.</p>
+           <p>You can now leave comments, save your preferences, and engage with our community.</p>
+           <p>— The Blog Team</p>`,
+        ).catch((err) =>
+          logger.warn("Welcome email failed:", {
+            error: (err as Error).message,
+          }),
+        );
+      }
+
+      // Notify admin of new registration
+      if (notifyCfg.emailNotifyOnUser) {
+        const adminEmail = (await siteSettingsService.getSmtpConfig())
+          .emailFromAddress;
+        if (adminEmail) {
+          sendTransactionalEmail(
+            smtpCfg,
+            adminEmail,
+            `New user registered: ${username}`,
+            `<h2>New Registration</h2>
+             <table style="border-collapse:collapse;width:100%;max-width:500px;">
+               <tr><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">Username</td><td style="padding:8px;border:1px solid #e5e7eb;">${username}</td></tr>
+               <tr><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">Email</td><td style="padding:8px;border:1px solid #e5e7eb;">${email}</td></tr>
+               <tr><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">Role</td><td style="padding:8px;border:1px solid #e5e7eb;">${config.defaultRole}</td></tr>
+               <tr><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">Time</td><td style="padding:8px;border:1px solid #e5e7eb;">${new Date().toISOString()}</td></tr>
+             </table>`,
+          ).catch((err) =>
+            logger.warn("Admin registration notification failed:", {
+              error: (err as Error).message,
+            }),
+          );
+        }
+      }
+    } catch (notifyErr) {
+      logger.warn("Post-registration email setup failed:", {
+        error: (notifyErr as Error).message,
+      });
+    }
 
     return NextResponse.json({ success: true, data: user }, { status: 201 });
   } catch (error) {

@@ -7,7 +7,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { adsService, siteSettingsService } from "@/server/wiring";
 
 const killSwitchBodySchema = z.object({
@@ -16,10 +16,8 @@ const killSwitchBodySchema = z.object({
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     // Single source of truth: SiteSettings.adsEnabled (not per-provider killSwitch)
     const settings = await siteSettingsService.getSettings();
@@ -38,10 +36,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { userId, errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const { killed } = killSwitchBodySchema.parse(body);
@@ -52,7 +48,7 @@ export async function POST(req: NextRequest) {
     // Update SiteSettings.adsEnabled via service so cache stays in sync
     const result = await siteSettingsService.updateSettings(
       { adsEnabled: !killed },
-      session.user.id ?? session.user.email ?? "admin",
+      userId,
     );
 
     if (!result.success) {

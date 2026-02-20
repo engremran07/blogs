@@ -11,34 +11,34 @@
 
 /** Supported CAPTCHA provider identifiers. */
 export type CaptchaProviderType =
-  | 'turnstile'
-  | 'recaptcha-v3'
-  | 'recaptcha-v2'
-  | 'hcaptcha'
-  | 'custom';
+  | "turnstile"
+  | "recaptcha-v3"
+  | "recaptcha-v2"
+  | "hcaptcha"
+  | "custom";
 
 /**
  * Runtime array of all provider type values.
  * Used by the orchestrator for normalisation instead of importing @/lib/constants.
  */
 export const CAPTCHA_PROVIDER_TYPES: readonly CaptchaProviderType[] = [
-  'turnstile',
-  'recaptcha-v3',
-  'recaptcha-v2',
-  'hcaptcha',
-  'custom',
+  "turnstile",
+  "recaptcha-v3",
+  "recaptcha-v2",
+  "hcaptcha",
+  "custom",
 ] as const;
 
 // ─── Enums ──────────────────────────────────────────────────────────────────
 
 /** When captcha is required */
-export type CaptchaMode = 'always' | 'suspicious' | 'disabled';
+export type CaptchaMode = "always" | "suspicious" | "disabled";
 
 /** Visual theme for widgets that support theming */
-export type CaptchaTheme = 'light' | 'dark' | 'auto';
+export type CaptchaTheme = "light" | "dark" | "auto";
 
 /** Widget size for providers that support it */
-export type CaptchaSize = 'normal' | 'compact';
+export type CaptchaSize = "normal" | "compact";
 
 // ─── Component Settings ─────────────────────────────────────────────────────
 
@@ -145,11 +145,11 @@ export interface CaptchaChallengeResponse {
  * because it requires no external dependency.
  */
 export const FALLBACK_PRIORITY: readonly CaptchaProviderType[] = [
-  'turnstile',
-  'recaptcha-v3',
-  'recaptcha-v2',
-  'hcaptcha',
-  'custom',
+  "turnstile",
+  "recaptcha-v3",
+  "recaptcha-v2",
+  "hcaptcha",
+  "custom",
 ] as const;
 
 // ─── Module Config (constructor) ────────────────────────────────────────────
@@ -342,7 +342,10 @@ export interface CaptchaStats {
   /** Currently locked out IPs */
   lockedOutCount: number;
   /** Breakdown by provider */
-  providerBreakdown: Record<string, { attempts: number; successes: number; failures: number }>;
+  providerBreakdown: Record<
+    string,
+    { attempts: number; successes: number; failures: number }
+  >;
 }
 
 // ─── API Response Envelope ──────────────────────────────────────────────────
@@ -368,23 +371,14 @@ export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 
 // ─── Minimal Prisma Interface (DI boundary) ─────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export interface PrismaDelegate {
-  findUnique(args: any): Promise<any>;
-  findFirst(args?: any): Promise<any>;
-  findMany(args?: any): Promise<any[]>;
-  create(args: any): Promise<any>;
-  update(args: any): Promise<any>;
-  updateMany(args: any): Promise<any>;
-  delete(args: any): Promise<any>;
-  deleteMany(args: any): Promise<any>;
-  count(args?: any): Promise<number>;
-  groupBy(args: any): Promise<any[]>;
-}
+import type {
+  PrismaDelegate,
+  PrismaDelegateWithGroupBy,
+} from "@/shared/prisma-delegate.types";
+export type { PrismaDelegate };
 
 export interface CaptchaPrismaClient {
-  captchaSettings: PrismaDelegate;
-  captchaAttempt: PrismaDelegate;
+  captchaSettings: PrismaDelegate<CaptchaSystemSettings>;
+  captchaAttempt: PrismaDelegateWithGroupBy;
   captchaChallenge?: PrismaDelegate;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */

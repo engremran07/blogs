@@ -7,17 +7,17 @@
 /* ========================================================================== */
 
 export const AD_PROVIDER_TYPES = [
-  'ADSENSE',        // Google AdSense — display, in-feed, in-article, matched content
-  'AD_MANAGER',     // Google Ad Manager (DFP) — header bidding, programmatic
-  'MEDIA_NET',      // Media.net (Yahoo/Bing contextual)
-  'AMAZON_APS',     // Amazon Publisher Services (TAM/UAM header bidding)
-  'EZOIC',          // Ezoic — AI-optimized ad placements
-  'RAPTIVE',        // Raptive (formerly AdThrive) — premium display
-  'MONUMETRIC',     // Monumetric — tiered ad management
-  'PROPELLER_ADS',  // PropellerAds — push, native, interstitial, popunder
-  'SOVRN',          // Sovrn — programmatic, header bidding
-  'OUTBRAIN',       // Outbrain/Taboola — native content recommendation
-  'CUSTOM',         // Custom / Direct-sold campaigns
+  "ADSENSE", // Google AdSense — display, in-feed, in-article, matched content
+  "AD_MANAGER", // Google Ad Manager (DFP) — header bidding, programmatic
+  "MEDIA_NET", // Media.net (Yahoo/Bing contextual)
+  "AMAZON_APS", // Amazon Publisher Services (TAM/UAM header bidding)
+  "EZOIC", // Ezoic — AI-optimized ad placements
+  "RAPTIVE", // Raptive (formerly AdThrive) — premium display
+  "MONUMETRIC", // Monumetric — tiered ad management
+  "PROPELLER_ADS", // PropellerAds — push, native, interstitial, popunder
+  "SOVRN", // Sovrn — programmatic, header bidding
+  "OUTBRAIN", // Outbrain/Taboola — native content recommendation
+  "CUSTOM", // Custom / Direct-sold campaigns
 ] as const;
 
 export type AdProviderType = (typeof AD_PROVIDER_TYPES)[number];
@@ -27,15 +27,35 @@ export type AdProviderType = (typeof AD_PROVIDER_TYPES)[number];
 /* ========================================================================== */
 
 export const AD_POSITIONS = [
-  'HEADER', 'FOOTER', 'SIDEBAR', 'SIDEBAR_STICKY',
-  'IN_CONTENT', 'IN_ARTICLE', 'IN_FEED', 'BETWEEN_POSTS',
-  'AFTER_PARAGRAPH', 'BEFORE_COMMENTS', 'AFTER_COMMENTS',
-  'WIDGET_TOP', 'WIDGET_BOTTOM', 'WIDGET_BETWEEN', 'WIDGET_INSIDE',
-  'STICKY_TOP', 'STICKY_BOTTOM', 'INTERSTITIAL', 'EXIT_INTENT',
-  'PARALLAX', 'IN_IMAGE', 'NATIVE_RECOMMENDATION', 'MATCHED_CONTENT',
-  'VIDEO_PRE_ROLL', 'VIDEO_MID_ROLL', 'VIDEO_POST_ROLL',
-  'REWARDED', 'FLOATING',
-  'AUTO',
+  "HEADER",
+  "FOOTER",
+  "SIDEBAR",
+  "SIDEBAR_STICKY",
+  "IN_CONTENT",
+  "IN_ARTICLE",
+  "IN_FEED",
+  "BETWEEN_POSTS",
+  "AFTER_PARAGRAPH",
+  "BEFORE_COMMENTS",
+  "AFTER_COMMENTS",
+  "WIDGET_TOP",
+  "WIDGET_BOTTOM",
+  "WIDGET_BETWEEN",
+  "WIDGET_INSIDE",
+  "STICKY_TOP",
+  "STICKY_BOTTOM",
+  "INTERSTITIAL",
+  "EXIT_INTENT",
+  "PARALLAX",
+  "IN_IMAGE",
+  "NATIVE_RECOMMENDATION",
+  "MATCHED_CONTENT",
+  "VIDEO_PRE_ROLL",
+  "VIDEO_MID_ROLL",
+  "VIDEO_POST_ROLL",
+  "REWARDED",
+  "FLOATING",
+  "AUTO",
 ] as const;
 
 export type AdPosition = (typeof AD_POSITIONS)[number];
@@ -45,9 +65,20 @@ export type AdPosition = (typeof AD_POSITIONS)[number];
 /* ========================================================================== */
 
 export const AD_FORMATS = [
-  'DISPLAY', 'NATIVE', 'VIDEO', 'RICH_MEDIA', 'TEXT', 'LINK_UNIT',
-  'MATCHED_CONTENT', 'IN_ARTICLE', 'IN_FEED', 'INTERSTITIAL',
-  'REWARDED', 'ANCHOR', 'VIGNETTE', 'MULTIPLEX',
+  "DISPLAY",
+  "NATIVE",
+  "VIDEO",
+  "RICH_MEDIA",
+  "TEXT",
+  "LINK_UNIT",
+  "MATCHED_CONTENT",
+  "IN_ARTICLE",
+  "IN_FEED",
+  "INTERSTITIAL",
+  "REWARDED",
+  "ANCHOR",
+  "VIGNETTE",
+  "MULTIPLEX",
 ] as const;
 
 export type AdFormat = (typeof AD_FORMATS)[number];
@@ -57,8 +88,11 @@ export type AdFormat = (typeof AD_FORMATS)[number];
 /* ========================================================================== */
 
 export const AUTO_AD_STRATEGIES = [
-  'DENSITY_BASED', 'PARAGRAPH_COUNT', 'CONTENT_AWARE',
-  'VIEWPORT_BASED', 'ENGAGEMENT_BASED',
+  "DENSITY_BASED",
+  "PARAGRAPH_COUNT",
+  "CONTENT_AWARE",
+  "VIEWPORT_BASED",
+  "ENGAGEMENT_BASED",
 ] as const;
 
 export type AutoAdStrategy = (typeof AUTO_AD_STRATEGIES)[number];
@@ -68,9 +102,16 @@ export type AutoAdStrategy = (typeof AUTO_AD_STRATEGIES)[number];
 /* ========================================================================== */
 
 export const AD_EVENT_TYPES = [
-  'IMPRESSION', 'CLICK', 'VIEWABLE', 'CLOSE',
-  'EXPAND', 'COLLAPSE', 'VIDEO_START', 'VIDEO_COMPLETE',
-  'MUTE', 'UNMUTE',
+  "IMPRESSION",
+  "CLICK",
+  "VIEWABLE",
+  "CLOSE",
+  "EXPAND",
+  "COLLAPSE",
+  "VIDEO_START",
+  "VIDEO_COMPLETE",
+  "MUTE",
+  "UNMUTE",
 ] as const;
 
 export type AdEventType = (typeof AD_EVENT_TYPES)[number];
@@ -80,7 +121,10 @@ export type AdEventType = (typeof AD_EVENT_TYPES)[number];
 /* ========================================================================== */
 
 export const RESPONSIVE_BREAKPOINTS = [
-  'MOBILE', 'TABLET', 'DESKTOP', 'WIDESCREEN',
+  "MOBILE",
+  "TABLET",
+  "DESKTOP",
+  "WIDESCREEN",
 ] as const;
 
 export type ResponsiveBreakpoint = (typeof RESPONSIVE_BREAKPOINTS)[number];
@@ -89,7 +133,10 @@ export type ResponsiveBreakpoint = (typeof RESPONSIVE_BREAKPOINTS)[number];
 /*  SIZE MAP                                                                  */
 /* ========================================================================== */
 
-export interface AdSize { width: number; height: number }
+export interface AdSize {
+  width: number;
+  height: number;
+}
 
 export type ResponsiveSizeMap = Partial<
   Record<
@@ -120,7 +167,7 @@ export interface AdProvider {
   allowConcurrent: boolean;
   exclusiveWith: string[];
   maxPerPage: number;
-  loadStrategy: 'eager' | 'lazy' | 'intersection' | 'idle';
+  loadStrategy: "eager" | "lazy" | "intersection" | "idle";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -204,7 +251,7 @@ export interface WidgetAdConfig {
 export interface ConcurrencyPolicy {
   enabled: boolean;
   maxProvidersPerPage: number;
-  priorityResolution: 'highest_wins' | 'round_robin' | 'random';
+  priorityResolution: "highest_wins" | "round_robin" | "random";
   mutuallyExclusivePairs: Array<[AdProviderType, AdProviderType]>;
   adsenseMaxDisplay: number;
   adsenseMaxLink: number;
@@ -215,13 +262,17 @@ export interface ConcurrencyPolicy {
 /*  PROJECTIONS                                                               */
 /* ========================================================================== */
 
-export type SafeAdProvider = Omit<AdProvider, 'apiKey' | 'config'>;
+export type SafeAdProvider = Omit<AdProvider, "apiKey" | "config">;
 
-export interface AdProviderWithCount extends AdProvider { _count: { placements: number } }
-export interface AdSlotWithCount extends AdSlot { _count: { placements: number } }
+export interface AdProviderWithCount extends AdProvider {
+  _count: { placements: number };
+}
+export interface AdSlotWithCount extends AdSlot {
+  _count: { placements: number };
+}
 export interface AdPlacementDetail extends AdPlacement {
-  provider: Pick<AdProvider, 'name' | 'type'>;
-  slot: Pick<AdSlot, 'name' | 'position' | 'format'>;
+  provider: Pick<AdProvider, "name" | "type">;
+  slot: Pick<AdSlot, "name" | "position" | "format">;
 }
 
 /* ========================================================================== */
@@ -263,7 +314,10 @@ export interface AdsConfig {
   consentModes: string[];
 }
 
-export interface AdsSettingsRow extends AdsConfig { id: string; updatedAt?: Date }
+export interface AdsSettingsRow extends AdsConfig {
+  id: string;
+  updatedAt?: Date;
+}
 
 /* ========================================================================== */
 /*  STATS                                                                     */
@@ -281,8 +335,19 @@ export interface AdsOverviewStats {
   totalRevenue: number;
   ctr: number;
   rpm: number;
-  byProvider: Array<{ type: AdProviderType; name: string; impressions: number; clicks: number; ctr: number }>;
-  byPosition: Array<{ position: AdPosition; impressions: number; clicks: number; ctr: number }>;
+  byProvider: Array<{
+    type: AdProviderType;
+    name: string;
+    impressions: number;
+    clicks: number;
+    ctr: number;
+  }>;
+  byPosition: Array<{
+    position: AdPosition;
+    impressions: number;
+    clicks: number;
+    ctr: number;
+  }>;
 }
 
 export interface PlacementStats {
@@ -299,33 +364,63 @@ export interface PlacementStats {
 /*  COMPLIANCE & ADS.TXT                                                      */
 /* ========================================================================== */
 
-export interface ComplianceScanResult { scannedCount: number; passedCount: number; issues: ComplianceIssue[] }
-export interface ComplianceIssue { placementId: string; severity: 'low' | 'medium' | 'high' | 'critical'; message: string; rule: string }
-export interface AdsTxtEntry { domain: string; publisherId: string; relation: 'DIRECT' | 'RESELLER'; certAuthorityId?: string }
+export interface ComplianceScanResult {
+  scannedCount: number;
+  passedCount: number;
+  issues: ComplianceIssue[];
+}
+export interface ComplianceIssue {
+  placementId: string;
+  severity: "low" | "medium" | "high" | "critical";
+  message: string;
+  rule: string;
+}
+export interface AdsTxtEntry {
+  domain: string;
+  publisherId: string;
+  relation: "DIRECT" | "RESELLER";
+  certAuthorityId?: string;
+}
 
 /* ========================================================================== */
 /*  ERROR HANDLING                                                            */
 /* ========================================================================== */
 
 export const ADS_ERROR_CODES = [
-  'PROVIDER_NOT_FOUND', 'SLOT_NOT_FOUND', 'PLACEMENT_NOT_FOUND',
-  'DUPLICATE_SLUG', 'INVALID_DATE_RANGE', 'INVALID_PROVIDER_TYPE',
-  'INVALID_POSITION', 'INVALID_FORMAT', 'ADS_DISABLED', 'POSITION_DISABLED',
-  'RATE_LIMITED', 'COMPLIANCE_SCAN_FAILED', 'SANITIZATION_FAILED',
-  'INVALID_CONFIG', 'PROVIDER_TYPE_NOT_ALLOWED', 'PROVIDER_HAS_PLACEMENTS',
-  'SLOT_HAS_PLACEMENTS', 'CONCURRENCY_VIOLATION', 'PROVIDER_KILLED',
-  'CONSENT_REQUIRED', 'CONTENT_TOO_SHORT',
+  "PROVIDER_NOT_FOUND",
+  "SLOT_NOT_FOUND",
+  "PLACEMENT_NOT_FOUND",
+  "DUPLICATE_SLUG",
+  "INVALID_DATE_RANGE",
+  "INVALID_PROVIDER_TYPE",
+  "INVALID_POSITION",
+  "INVALID_FORMAT",
+  "ADS_DISABLED",
+  "POSITION_DISABLED",
+  "RATE_LIMITED",
+  "COMPLIANCE_SCAN_FAILED",
+  "SANITIZATION_FAILED",
+  "INVALID_CONFIG",
+  "PROVIDER_TYPE_NOT_ALLOWED",
+  "PROVIDER_HAS_PLACEMENTS",
+  "SLOT_HAS_PLACEMENTS",
+  "CONCURRENCY_VIOLATION",
+  "PROVIDER_KILLED",
+  "CONSENT_REQUIRED",
+  "CONTENT_TOO_SHORT",
 ] as const;
 
 export type AdsErrorCode = (typeof ADS_ERROR_CODES)[number];
 
 export class AdsError extends Error {
-  public readonly name = 'AdsError';
+  public readonly name = "AdsError";
   constructor(
     message: string,
     public readonly code: AdsErrorCode,
     public readonly statusCode: number = 400,
-  ) { super(message); }
+  ) {
+    super(message);
+  }
 }
 
 /* ========================================================================== */
@@ -466,50 +561,31 @@ export interface AdSettingsRecord {
 }
 
 export interface AdsAggregateResult {
-  _sum?: { impressions?: number | null; clicks?: number | null; revenue?: number | null };
+  _sum?: {
+    impressions?: number | null;
+    clicks?: number | null;
+    revenue?: number | null;
+  };
 }
 
 /* ── Prisma client interface ─────────────────────────────────────────────── */
 
+import type { PrismaDelegate } from "@/shared/prisma-delegate.types";
+
+/** DI boundary — mirrors Prisma's runtime signature so services don't need casts. */
+export interface AdsPrismaDelegate<
+  T = Record<string, unknown>,
+> extends PrismaDelegate<T> {
+  aggregate?(args: Record<string, unknown>): Promise<Record<string, unknown>>;
+  groupBy?(args: Record<string, unknown>): Promise<Record<string, unknown>[]>;
+}
+
 export interface AdsPrismaClient {
-  adProvider: {
-    create(a: { data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdProviderRecord>;
-    findMany(a?: Record<string, unknown>): Promise<AdProviderRecord[]>;
-    findUnique(a: { where: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdProviderRecord | null>;
-    update(a: { where: Record<string, unknown>; data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdProviderRecord>;
-    updateMany(a: { where?: Record<string, unknown>; data: Record<string, unknown> }): Promise<{ count: number }>;
-    delete(a: { where: Record<string, unknown> }): Promise<AdProviderRecord>;
-    count(a?: Record<string, unknown>): Promise<number>;
-  };
-  adSlot: {
-    create(a: { data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdSlotRecord>;
-    findMany(a?: Record<string, unknown>): Promise<AdSlotRecord[]>;
-    findUnique(a: { where: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdSlotRecord | null>;
-    update(a: { where: Record<string, unknown>; data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdSlotRecord>;
-    delete(a: { where: Record<string, unknown> }): Promise<AdSlotRecord>;
-    count(a?: Record<string, unknown>): Promise<number>;
-  };
-  adPlacement: {
-    create(a: { data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdPlacementRecord>;
-    findMany(a?: Record<string, unknown>): Promise<AdPlacementRecord[]>;
-    findUnique(a: { where: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdPlacementRecord | null>;
-    update(a: { where: Record<string, unknown>; data: Record<string, unknown>; include?: Record<string, unknown> }): Promise<AdPlacementRecord>;
-    delete(a: { where: Record<string, unknown> }): Promise<AdPlacementRecord>;
-    count(a?: Record<string, unknown>): Promise<number>;
-    aggregate(a: Record<string, unknown>): Promise<AdsAggregateResult>;
-  };
-  adLog: {
-    create(a: { data: Record<string, unknown> }): Promise<AdLogRecord>;
-    findMany(a?: Record<string, unknown>): Promise<AdLogRecord[]>;
-    groupBy(a: Record<string, unknown>): Promise<Record<string, unknown>[]>;
-    count(a?: Record<string, unknown>): Promise<number>;
-  };
-  adSettings: {
-    findFirst(a?: Record<string, unknown>): Promise<AdSettingsRecord | null>;
-    create(a: { data: Record<string, unknown> }): Promise<AdSettingsRecord>;
-    update(a: { where: Record<string, unknown>; data: Record<string, unknown> }): Promise<AdSettingsRecord>;
-    delete(a: { where: Record<string, unknown> }): Promise<AdSettingsRecord>;
-  };
+  adProvider: AdsPrismaDelegate<AdProviderRecord>;
+  adSlot: AdsPrismaDelegate<AdSlotRecord>;
+  adPlacement: AdsPrismaDelegate<AdPlacementRecord>;
+  adLog: AdsPrismaDelegate<AdLogRecord>;
+  adSettings: AdsPrismaDelegate<AdSettingsRecord>;
 }
 
 /* ========================================================================== */

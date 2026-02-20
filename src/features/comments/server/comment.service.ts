@@ -15,12 +15,12 @@ import type {
   VoteInput,
   RequestMeta,
   CommentConfigConsumer,
-} from '../types';
-import { CommentStatus, CommentEvent, VoteType } from '../types';
-import { DEFAULT_CONFIG } from './constants';
-import { Sanitize } from './sanitization';
-import { SpamService } from './spam.service';
-import { CommentEventBus } from './events';
+} from "../types";
+import { CommentStatus, CommentEvent, VoteType } from "../types";
+import { DEFAULT_CONFIG } from "./constants";
+import { Sanitize } from "./sanitization";
+import { SpamService } from "./spam.service";
+import { CommentEventBus } from "./events";
 
 export class CommentService implements CommentConfigConsumer {
   private cfg: Required<CommentsConfig>;
@@ -41,46 +41,61 @@ export class CommentService implements CommentConfigConsumer {
 
   // ─── Create ──────────────────────────────────────────────────────────────
 
-  async create(input: CreateCommentInput, meta?: RequestMeta): Promise<CommentData> {
+  async create(
+    input: CreateCommentInput,
+    meta?: RequestMeta,
+  ): Promise<CommentData> {
     // Global kill switch
     if (!this.cfg.commentsEnabled) {
-      throw new Error('Comments are currently disabled');
+      throw new Error("Comments are currently disabled");
     }
 
     // Auto-close: check if comments are closed on this post
     if (this.cfg.closeCommentsAfterDays > 0) {
-      const post = await this.prisma.post.findUnique({
-        where: { id: input.postId },
-        select: { publishedAt: true, createdAt: true },
-      }).catch(() => null);
+      const post = await this.prisma.post
+        .findUnique({
+          where: { id: input.postId },
+          select: { publishedAt: true, createdAt: true },
+        })
+        .catch(() => null);
       if (post) {
-        const referenceDate = post.publishedAt ?? post.createdAt;
+        const referenceDate = (post.publishedAt ?? post.createdAt) as Date;
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - this.cfg.closeCommentsAfterDays);
         if (referenceDate < cutoff) {
-          throw new Error(`Comments are closed on posts older than ${this.cfg.closeCommentsAfterDays} days`);
+          throw new Error(
+            `Comments are closed on posts older than ${this.cfg.closeCommentsAfterDays} days`,
+          );
         }
       }
     }
 
     // Guest comment check
     if (!input.userId && !this.cfg.allowGuestComments) {
-      throw new Error('Guest comments are not allowed — please sign in');
+      throw new Error("Guest comments are not allowed — please sign in");
     }
 
     // Blocked IP check
     if (meta?.ipAddress && this.cfg.blockedIps.length > 0) {
       const ip = meta.ipAddress;
-      if (this.cfg.blockedIps.some((b) => ip === b || ip.startsWith(b.replace(/\/.*$/, '')))) {
-        throw new Error('Your IP address has been blocked');
+      if (
+        this.cfg.blockedIps.some(
+          (b) => ip === b || ip.startsWith(b.replace(/\/.*$/, "")),
+        )
+      ) {
+        throw new Error("Your IP address has been blocked");
       }
     }
 
     // Blocked email check
     if (input.authorEmail && this.cfg.blockedEmails.length > 0) {
       const email = input.authorEmail.toLowerCase();
-      if (this.cfg.blockedEmails.some((b) => email === b || email.endsWith(`@${b}`))) {
-        throw new Error('This email address is not allowed');
+      if (
+        this.cfg.blockedEmails.some(
+          (b) => email === b || email.endsWith(`@${b}`),
+        )
+      ) {
+        throw new Error("This email address is not allowed");
       }
     }
 
@@ -92,14 +107,22 @@ export class CommentService implements CommentConfigConsumer {
           where: { userId: input.userId, createdAt: { gte: oneHourAgo } },
         });
         if (recent >= this.cfg.maxCommentsPerHour) {
-          throw new Error(`Rate limit: max ${this.cfg.maxCommentsPerHour} comments per hour`);
+          throw new Error(
+            `Rate limit: max ${this.cfg.maxCommentsPerHour} comments per hour`,
+          );
         }
       } else if (meta?.ipAddress && this.cfg.trackMetadata) {
         const recent = await this.prisma.comment.count({
-          where: { ipAddress: meta.ipAddress, userId: null, createdAt: { gte: oneHourAgo } },
+          where: {
+            ipAddress: meta.ipAddress,
+            userId: null,
+            createdAt: { gte: oneHourAgo },
+          },
         });
         if (recent >= this.cfg.maxCommentsPerHour) {
-          throw new Error(`Rate limit: max ${this.cfg.maxCommentsPerHour} comments per hour`);
+          throw new Error(
+            `Rate limit: max ${this.cfg.maxCommentsPerHour} comments per hour`,
+          );
         }
       }
     }
@@ -108,39 +131,65 @@ export class CommentService implements CommentConfigConsumer {
     if (this.cfg.maxCommentsPerPostPerUser > 0) {
       if (input.userId) {
         const postCount = await this.prisma.comment.count({
-          where: { userId: input.userId, postId: input.postId, deletedAt: null },
+          where: {
+            userId: input.userId,
+            postId: input.postId,
+            deletedAt: null,
+          },
         });
         if (postCount >= this.cfg.maxCommentsPerPostPerUser) {
-          throw new Error(`Max ${this.cfg.maxCommentsPerPostPerUser} comments per post reached`);
+          throw new Error(
+            `Max ${this.cfg.maxCommentsPerPostPerUser} comments per post reached`,
+          );
         }
       } else if (meta?.ipAddress && this.cfg.trackMetadata) {
         const postCount = await this.prisma.comment.count({
-          where: { ipAddress: meta.ipAddress, userId: null, postId: input.postId, deletedAt: null },
+          where: {
+            ipAddress: meta.ipAddress,
+            userId: null,
+            postId: input.postId,
+            deletedAt: null,
+          },
         });
         if (postCount >= this.cfg.maxCommentsPerPostPerUser) {
-          throw new Error(`Max ${this.cfg.maxCommentsPerPostPerUser} comments per post reached`);
+          throw new Error(
+            `Max ${this.cfg.maxCommentsPerPostPerUser} comments per post reached`,
+          );
         }
       }
     }
 
     const content = Sanitize.html(input.content);
-    const authorName = input.authorName ? Sanitize.text(input.authorName) : undefined;
-    const authorEmail = input.authorEmail ? Sanitize.email(input.authorEmail) : undefined;
-    const authorWebsite = input.authorWebsite ? Sanitize.url(input.authorWebsite) : undefined;
+    const authorName = input.authorName
+      ? Sanitize.text(input.authorName)
+      : undefined;
+    const authorEmail = input.authorEmail
+      ? Sanitize.email(input.authorEmail)
+      : undefined;
+    const authorWebsite = input.authorWebsite
+      ? Sanitize.url(input.authorWebsite)
+      : undefined;
 
     // Validate reply depth
     if (input.parentId) {
       if (!this.cfg.enableThreading) {
-        throw new Error('Threaded replies are disabled');
+        throw new Error("Threaded replies are disabled");
       }
       const depth = await this.getDepth(input.parentId);
       if (depth >= this.cfg.maxReplyDepth) {
-        throw new Error(`Maximum reply depth of ${this.cfg.maxReplyDepth} reached`);
+        throw new Error(
+          `Maximum reply depth of ${this.cfg.maxReplyDepth} reached`,
+        );
       }
     }
 
     // Spam analysis
-    const spamResult = this.spam.analyse(content, authorName ?? undefined, authorEmail ?? undefined, meta);
+    const spamResult = this.spam.analyse(
+      content,
+      authorName ?? undefined,
+      authorEmail ?? undefined,
+      meta,
+    );
     const filteredContent = this.spam.filterProfanity(content);
 
     // Auto-approve logic
@@ -177,19 +226,27 @@ export class CommentService implements CommentConfigConsumer {
 
     // Learning signal
     if (this.cfg.enableLearningSignals) {
-      await this.prisma.learningSignal.create({
-        data: {
-          commentId: comment.id,
-          action: status === CommentStatus.SPAM ? 'AUTO_SPAM' : 'SUBMITTED',
-          metadata: { spamScore: spamResult.score, signals: spamResult.signals },
-        },
-      }).catch(() => { /* non-critical */ });
+      await this.prisma.learningSignal
+        .create({
+          data: {
+            commentId: comment.id,
+            action: status === CommentStatus.SPAM ? "AUTO_SPAM" : "SUBMITTED",
+            metadata: {
+              spamScore: spamResult.score,
+              signals: spamResult.signals,
+            },
+          },
+        })
+        .catch(() => {
+          /* non-critical */
+        });
     }
 
     // Event
-    const eventType = status === CommentStatus.APPROVED
-      ? CommentEvent.AUTO_APPROVED
-      : CommentEvent.CREATED;
+    const eventType =
+      status === CommentStatus.APPROVED
+        ? CommentEvent.AUTO_APPROVED
+        : CommentEvent.CREATED;
 
     await this.events.emit(eventType, {
       commentId: comment.id,
@@ -222,25 +279,33 @@ export class CommentService implements CommentConfigConsumer {
 
     const roots = await this.prisma.comment.findMany({
       where,
-      orderBy: [{ isPinned: 'desc' }, { createdAt: 'asc' }],
+      orderBy: [{ isPinned: "desc" }, { createdAt: "asc" }],
       ...(opts.skip != null && { skip: opts.skip }),
       ...(opts.take != null && { take: opts.take }),
       include: {
         replies: {
-          where: opts.includeDeleted ? {} : { deletedAt: null, status: CommentStatus.APPROVED },
-          orderBy: { createdAt: 'asc' },
+          where: opts.includeDeleted
+            ? {}
+            : { deletedAt: null, status: CommentStatus.APPROVED },
+          orderBy: { createdAt: "asc" },
           include: {
             replies: {
-              where: opts.includeDeleted ? {} : { deletedAt: null, status: CommentStatus.APPROVED },
-              orderBy: { createdAt: 'asc' },
+              where: opts.includeDeleted
+                ? {}
+                : { deletedAt: null, status: CommentStatus.APPROVED },
+              orderBy: { createdAt: "asc" },
               include: {
                 replies: {
-                  where: opts.includeDeleted ? {} : { deletedAt: null, status: CommentStatus.APPROVED },
-                  orderBy: { createdAt: 'asc' },
+                  where: opts.includeDeleted
+                    ? {}
+                    : { deletedAt: null, status: CommentStatus.APPROVED },
+                  orderBy: { createdAt: "asc" },
                   include: {
                     replies: {
-                      where: opts.includeDeleted ? {} : { deletedAt: null, status: CommentStatus.APPROVED },
-                      orderBy: { createdAt: 'asc' },
+                      where: opts.includeDeleted
+                        ? {}
+                        : { deletedAt: null, status: CommentStatus.APPROVED },
+                      orderBy: { createdAt: "asc" },
                     },
                   },
                 },
@@ -269,7 +334,7 @@ export class CommentService implements CommentConfigConsumer {
     const [data, total] = await Promise.all([
       this.prisma.comment.findMany({
         where: { userId, deletedAt: null },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
@@ -296,13 +361,18 @@ export class CommentService implements CommentConfigConsumer {
     const where = {
       deletedAt: null,
       OR: [
-        { content: { contains: sanitized, mode: 'insensitive' as const } },
-        { authorName: { contains: sanitized, mode: 'insensitive' as const } },
+        { content: { contains: sanitized, mode: "insensitive" as const } },
+        { authorName: { contains: sanitized, mode: "insensitive" as const } },
       ],
     };
 
     const [data, total] = await Promise.all([
-      this.prisma.comment.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: limit }),
+      this.prisma.comment.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
       this.prisma.comment.count({ where }),
     ]);
 
@@ -317,16 +387,22 @@ export class CommentService implements CommentConfigConsumer {
 
   // ─── Update ──────────────────────────────────────────────────────────────
 
-  async update(id: string, input: UpdateCommentInput, userId?: string): Promise<CommentData> {
+  async update(
+    id: string,
+    input: UpdateCommentInput,
+    userId?: string,
+  ): Promise<CommentData> {
     const existing = await this.prisma.comment.findUnique({ where: { id } });
-    if (!existing) throw new Error('Comment not found');
-    if (existing.deletedAt) throw new Error('Cannot edit a deleted comment');
-    if (userId && existing.userId !== userId) throw new Error('Not authorised to edit this comment');
+    if (!existing) throw new Error("Comment not found");
+    if (existing.deletedAt) throw new Error("Cannot edit a deleted comment");
+    if (userId && existing.userId !== userId)
+      throw new Error("Not authorised to edit this comment");
 
     // Edit window enforcement
     if (this.cfg.editWindowMinutes > 0 && userId) {
       const editDeadline = new Date(
-        (existing.createdAt as Date).getTime() + this.cfg.editWindowMinutes * 60 * 1000,
+        (existing.createdAt as Date).getTime() +
+          this.cfg.editWindowMinutes * 60 * 1000,
       );
       if (new Date() > editDeadline) {
         throw new Error(
@@ -339,7 +415,11 @@ export class CommentService implements CommentConfigConsumer {
     const filteredContent = this.spam.filterProfanity(content);
 
     // Re-run spam check on edit
-    const spamResult = this.spam.analyse(filteredContent, existing.authorName ?? undefined, existing.authorEmail ?? undefined);
+    const spamResult = this.spam.analyse(
+      filteredContent,
+      existing.authorName ?? undefined,
+      existing.authorEmail ?? undefined,
+    );
 
     const updated = await this.prisma.comment.update({
       where: { id },
@@ -368,8 +448,9 @@ export class CommentService implements CommentConfigConsumer {
 
   async softDelete(id: string, userId?: string): Promise<CommentData> {
     const existing = await this.prisma.comment.findUnique({ where: { id } });
-    if (!existing) throw new Error('Comment not found');
-    if (userId && existing.userId !== userId) throw new Error('Not authorised to delete this comment');
+    if (!existing) throw new Error("Comment not found");
+    if (userId && existing.userId !== userId)
+      throw new Error("Not authorised to delete this comment");
 
     const deleted = await this.prisma.comment.update({
       where: { id },
@@ -389,8 +470,11 @@ export class CommentService implements CommentConfigConsumer {
 
   // ─── Voting ──────────────────────────────────────────────────────────────
 
-  async vote(commentId: string, input: VoteInput & { userId: string }): Promise<CommentData> {
-    if (!this.cfg.enableVoting) throw new Error('Voting is disabled');
+  async vote(
+    commentId: string,
+    input: VoteInput & { userId: string },
+  ): Promise<CommentData> {
+    if (!this.cfg.enableVoting) throw new Error("Voting is disabled");
 
     // Deduplicate: one vote per user per comment
     const existingVote = await this.prisma.commentVote.findUnique({
@@ -399,13 +483,14 @@ export class CommentService implements CommentConfigConsumer {
 
     if (existingVote) {
       if (existingVote.type === input.type) {
-        throw new Error('Already voted');
+        throw new Error("Already voted");
       }
       // Flip vote: remove old, apply new
       await this.prisma.commentVote.delete({
         where: { commentId_visitorId: { commentId, visitorId: input.userId } },
       });
-      const decrement = existingVote.type === VoteType.UP ? 'upvotes' : 'downvotes';
+      const decrement =
+        existingVote.type === VoteType.UP ? "upvotes" : "downvotes";
       await this.prisma.comment.update({
         where: { id: commentId },
         data: { [decrement]: { decrement: 1 } },
@@ -416,7 +501,7 @@ export class CommentService implements CommentConfigConsumer {
       data: { commentId, visitorId: input.userId, type: input.type },
     });
 
-    const field = input.type === VoteType.UP ? 'upvotes' : 'downvotes';
+    const field = input.type === VoteType.UP ? "upvotes" : "downvotes";
     const updated = await this.prisma.comment.update({
       where: { id: commentId },
       data: { [field]: { increment: 1 } },
@@ -440,10 +525,10 @@ export class CommentService implements CommentConfigConsumer {
     let depth = 0;
     let currentId: string | null = parentId;
     while (currentId) {
-      const row: { parentId: string | null } | null = await this.prisma.comment.findUnique({
+      const row = (await this.prisma.comment.findUnique({
         where: { id: currentId },
         select: { parentId: true },
-      });
+      })) as { parentId: string | null } | null;
       if (!row) break;
       depth++;
       currentId = row.parentId;

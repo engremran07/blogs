@@ -70,6 +70,9 @@ export async function GET() {
         termsOfServiceUrl: s.termsOfServiceUrl ?? null,
         gdprEnabled: s.gdprEnabled ?? false,
 
+        // Menu structure (for dynamic header/footer/topbar nav)
+        menuStructure: s.menuStructure ?? null,
+
         // Analytics (non-secret — needed by script injector)
         seoGoogleAnalyticsId: s.seoGoogleAnalyticsId ?? null,
       },

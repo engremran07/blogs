@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { z } from "zod";
 
 const upsertSchema = z.object({
@@ -13,10 +13,8 @@ const upsertSchema = z.object({
 
 // GET /api/seo/redirects — list all redirects
 export async function GET() {
-  const session = await auth();
-  if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role ?? "")) {
-    return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-  }
+  const { errorResponse } = await requireAuth({ level: 'moderator' });
+  if (errorResponse) return errorResponse;
 
   const redirects = await prisma.seoRedirect.findMany({
     orderBy: { createdAt: "desc" },
@@ -27,10 +25,8 @@ export async function GET() {
 
 // POST /api/seo/redirects — create or update a redirect
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role ?? "")) {
-    return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-  }
+  const { errorResponse } = await requireAuth({ level: 'moderator' });
+  if (errorResponse) return errorResponse;
 
   const body = await request.json();
   const parsed = upsertSchema.safeParse(body);
@@ -56,10 +52,8 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/seo/redirects?id=<id> — delete a redirect
 export async function DELETE(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role ?? "")) {
-    return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-  }
+  const { errorResponse } = await requireAuth({ level: 'moderator' });
+  if (errorResponse) return errorResponse;
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");

@@ -3,7 +3,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { distributionService } from "@/server/wiring";
 import { updateChannelSchema } from "@/features/distribution/server/schemas";
 
@@ -11,10 +11,8 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, ctx: Params) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await ctx.params;
     const channel = await distributionService.getChannelById(id);
@@ -32,10 +30,8 @@ export async function GET(_req: NextRequest, ctx: Params) {
 
 export async function PATCH(req: NextRequest, ctx: Params) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await ctx.params;
     const body = await req.json();
@@ -59,10 +55,8 @@ export async function PATCH(req: NextRequest, ctx: Params) {
 
 export async function DELETE(_req: NextRequest, ctx: Params) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await ctx.params;
     await distributionService.deleteChannel(id);

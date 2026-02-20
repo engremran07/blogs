@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { createLogger } from "@/server/observability/logger";
 import { moderationService } from "@/server/wiring";
 import { flagSchema } from "@/features/comments/server/schemas";
@@ -12,13 +12,8 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required to report a comment" },
-        { status: 401 },
-      );
-    }
+    const { userId, errorResponse } = await requireAuth();
+    if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const parsed = flagSchema.safeParse(body);
@@ -29,7 +24,7 @@ export async function POST(
       );
     }
 
-    const comment = await moderationService.flag(id, parsed.data.reason, session.user.id);
+    const comment = await moderationService.flag(id, parsed.data.reason, userId);
     return NextResponse.json({ success: true, data: comment });
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : "Failed to flag comment";

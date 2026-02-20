@@ -27,7 +27,7 @@ export interface PostListItem {
   categories?: CategoryItem[];
 }
 
-export interface TagItem {
+interface TagItem {
   id: string;
   name: string;
   slug: string;
@@ -65,17 +65,6 @@ export interface TagDetail {
   mergeCount: number;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface CommentItem {
-  id: string;
-  content: string;
-  authorName: string | null;
-  authorEmail: string | null;
-  status: string;
-  createdAt: Date;
-  post: { id: string; title: string; slug: string } | null;
-  user: { id: string; username: string; displayName: string | null } | null;
 }
 
 export interface AdminPostItem {

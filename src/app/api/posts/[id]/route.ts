@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { prisma } from "@/server/db/prisma";
 import { createLogger } from "@/server/observability/logger";
 import { removePageTypesFromSlots } from "@/features/ads/server/scan-pages";
@@ -98,23 +98,11 @@ export async function PATCH(
         { status: 404 },
       );
     }
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-    const role = session.user.role;
-    if (!["AUTHOR", "EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 },
-      );
-    }
+    const { userId, userRole, errorResponse } = await requireAuth({ level: 'author' });
+    if (errorResponse) return errorResponse;
 
     // AUTHORs can only edit their own posts
-    if (role === "AUTHOR") {
+    if (userRole === "AUTHOR") {
       const existingPost = await prisma.post.findUnique({
         where: { id },
         select: { authorId: true },
@@ -125,7 +113,7 @@ export async function PATCH(
           { status: 404 },
         );
       }
-      if (existingPost.authorId !== session.user.id) {
+      if (existingPost.authorId !== userId) {
         return NextResponse.json(
           { success: false, error: "You can only edit your own posts" },
           { status: 403 },
@@ -303,20 +291,8 @@ export async function DELETE(
         { status: 404 },
       );
     }
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-    const role = session.user.role;
-    if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json(
-        { success: false, error: "Insufficient permissions" },
-        { status: 403 },
-      );
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     // Fetch the post's categories before soft-deleting
     const post = await prisma.post.findUnique({

@@ -10,28 +10,15 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { createLogger } from "@/server/observability/logger";
 
 const logger = createLogger("api/revalidate");
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-
-    const role = session.user.role;
-    if (!["ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 },
-      );
-    }
+    const { userId, errorResponse } = await requireAuth({ level: 'admin' });
+    if (errorResponse) return errorResponse;
 
     const all = req.nextUrl.searchParams.get("all") === "true";
 
@@ -39,14 +26,14 @@ export async function POST(req: NextRequest) {
       // Revalidate the entire site
       revalidatePath("/", "layout");
       logger.info("Full site revalidation triggered", {
-        userId: session.user.id,
+        userId,
       });
     } else {
       // Revalidate key pages
       revalidatePath("/");
       revalidatePath("/blog");
       logger.info("Partial revalidation triggered (home + blog)", {
-        userId: session.user.id,
+        userId,
       });
     }
 

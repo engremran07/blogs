@@ -15,16 +15,14 @@ import {
   User,
   LayoutDashboard,
   ChevronDown,
-  Sun,
-  Moon,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { useTheme } from "next-themes";
-import { useSyncExternalStore } from "react";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Avatar } from "@/components/ui/Card";
 import { isModeratorRole } from "@/features/auth/server/capabilities";
 
-const navLinks = [
+/** Default navigation links — used when no menu builder data is available. */
+const DEFAULT_NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/blog", label: "Blog" },
   { href: "/tags", label: "Tags" },
@@ -32,28 +30,26 @@ const navLinks = [
   { href: "/contact", label: "Contact Us" },
 ];
 
-/* SSR-safe mounted check without triggering set-state-in-effect rule */
-const subscribeNoop = () => () => {};
-const getTrue = () => true;
-const getFalse = () => false;
-
 export function Header({
   siteName = "MyBlog",
   logoUrl,
   showDarkModeToggle = true,
+  menuItems,
 }: {
   siteName?: string;
   logoUrl?: string | null;
   showDarkModeToggle?: boolean;
+  /** Dynamic nav links from the Menu Builder. Falls back to defaults when undefined. */
+  menuItems?: { href: string; label: string; target?: string }[];
 }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { resolvedTheme, setTheme } = useTheme();
-  const mounted = useSyncExternalStore(subscribeNoop, getTrue, getFalse);
 
   const isAdmin = isModeratorRole(session?.user?.role);
+
+  const navLinks = menuItems ?? DEFAULT_NAV_LINKS;
 
   return (
     <header
@@ -108,22 +104,8 @@ export function Header({
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          {/* Dark mode toggle */}
-          {showDarkModeToggle && mounted && (
-            <button
-              onClick={() =>
-                setTheme(resolvedTheme === "dark" ? "light" : "dark")
-              }
-              className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-              aria-label="Toggle dark mode"
-            >
-              {resolvedTheme === "dark" ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </button>
-          )}
+          {/* Theme toggle (auto/light/dark) */}
+          {showDarkModeToggle && <ThemeToggle variant="icon" />}
 
           <Link
             href="/search"

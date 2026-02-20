@@ -10,9 +10,10 @@ import type {
   AutoTagResult,
   TagSuggestion,
   BatchAutoTagResult,
-} from '../types';
-import { DEFAULT_CONFIG, STOP_WORDS } from './constants';
-import { TagService } from './tag.service';
+} from "../types";
+import { DEFAULT_CONFIG, STOP_WORDS } from "./constants";
+import { TagService } from "./tag.service";
+import { z } from "zod";
 
 export class AutoTaggingService {
   private cfg: Required<TagsConfig>;
@@ -39,7 +40,7 @@ export class AutoTaggingService {
 
   /** Extract keywords from content + title, resolve to existing or new tags */
   async extractKeywordTags(content: string, title: string): Promise<string[]> {
-    const plain = content.replace(/<[^>]*>/g, ' ').toLowerCase();
+    const plain = content.replace(/<[^>]*>/g, " ").toLowerCase();
     const titleWords = title.toLowerCase().split(/\s+/);
 
     const words = plain.match(/\b[a-z]{3,}\b/g) || [];
@@ -64,12 +65,12 @@ export class AutoTaggingService {
     // Resolve to tag IDs (match by slug, name, or synonym)
     const tagIds: string[] = [];
     for (const keyword of topKeywords) {
-      const slug = keyword.replace(/\s+/g, '-');
+      const slug = keyword.replace(/\s+/g, "-");
       let tag = await this.prisma.tag.findFirst({
         where: {
           OR: [
             { slug },
-            { name: { equals: keyword, mode: 'insensitive' } },
+            { name: { equals: keyword, mode: "insensitive" } },
             { synonyms: { has: keyword.toLowerCase() } },
           ],
         },
@@ -115,10 +116,22 @@ export class AutoTaggingService {
       syncRelation?: boolean;
     } = {},
   ): Promise<AutoTagResult> {
-    const post = await this.prisma.post.findUnique({
+    const post = (await this.prisma.post.findUnique({
       where: { id: postId },
-      select: { id: true, title: true, content: true, excerpt: true, tags: { select: { id: true } } },
-    });
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        excerpt: true,
+        tags: { select: { id: true } },
+      },
+    })) as {
+      id: string;
+      title: string;
+      content: string | null;
+      excerpt: string | null;
+      tags: { id: string }[];
+    } | null;
     if (!post) throw new Error(`Post ${postId} not found`);
 
     const maxTags = opts.maxTags ?? this.cfg.autoTagMaxTags;
@@ -126,17 +139,23 @@ export class AutoTaggingService {
     const useLlm = opts.useLlm !== false;
     const syncRelation = opts.syncRelation !== false;
 
-    const plain = (post.content || '').replace(/<[^>]*>/g, ' ').substring(0, 3000);
-    const context = `Title: ${post.title}\n\n${post.excerpt || ''}\n\n${plain}`;
+    const plain = (post.content || "")
+      .replace(/<[^>]*>/g, " ")
+      .substring(0, 3000);
+    const context = `Title: ${post.title}\n\n${post.excerpt || ""}\n\n${plain}`;
 
     // Try LLM first
     if (useLlm && this.llm) {
       try {
         const result = await this.extractTagsViaLlm(context, maxTags);
         if (result.tags.length > 0) {
-          const tagIds = await this.resolveAndCreateTags(result.tags, result.confidence, minConfidence);
+          const tagIds = await this.resolveAndCreateTags(
+            result.tags,
+            result.confidence,
+            minConfidence,
+          );
           if (syncRelation) await this.syncTagRelation(postId, tagIds);
-          return { tags: tagIds, source: 'llm', confidence: result.confidence };
+          return { tags: tagIds, source: "llm", confidence: result.confidence };
         }
       } catch {
         // Fall through to keyword
@@ -145,18 +164,25 @@ export class AutoTaggingService {
 
     // Keyword fallback
     const keywordTags = await this.extractKeywordTags(
-      post.content || '',
+      post.content || "",
       post.title,
     );
     if (syncRelation) await this.syncTagRelation(postId, keywordTags);
-    return { tags: keywordTags, source: 'keyword', confidence: keywordTags.map(() => 0.5) };
+    return {
+      tags: keywordTags,
+      source: "keyword",
+      confidence: keywordTags.map(() => 0.5),
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TAG SUGGESTIONS (non-persisting — for editor UI)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async suggestTags(text: string, maxSuggestions = 10): Promise<TagSuggestion[]> {
+  async suggestTags(
+    text: string,
+    maxSuggestions = 10,
+  ): Promise<TagSuggestion[]> {
     // Try LLM
     if (this.llm) {
       try {
@@ -164,12 +190,12 @@ export class AutoTaggingService {
         const suggestions: TagSuggestion[] = [];
         for (let i = 0; i < result.tags.length; i++) {
           const name = result.tags[i];
-          const slug = name.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const slug = name.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
           const existing = await this.prisma.tag.findFirst({
             where: {
               OR: [
                 { slug },
-                { name: { equals: name, mode: 'insensitive' } },
+                { name: { equals: name, mode: "insensitive" } },
                 { synonyms: { has: name.toLowerCase() } },
               ],
             },
@@ -190,10 +216,12 @@ export class AutoTaggingService {
     }
 
     // Keyword fallback
-    const plain = text.replace(/<[^>]*>/g, ' ').toLowerCase();
+    const plain = text.replace(/<[^>]*>/g, " ").toLowerCase();
     const words = plain.match(/\b[a-z]{3,}\b/g) || [];
     const freq: Record<string, number> = {};
-    for (const w of words) { if (!STOP_WORDS.has(w)) freq[w] = (freq[w] || 0) + 1; }
+    for (const w of words) {
+      if (!STOP_WORDS.has(w)) freq[w] = (freq[w] || 0) + 1;
+    }
     const topWords = Object.entries(freq)
       .sort(([, a], [, b]) => b - a)
       .slice(0, maxSuggestions)
@@ -201,9 +229,11 @@ export class AutoTaggingService {
 
     const suggestions: TagSuggestion[] = [];
     for (const word of topWords) {
-      const slug = word.replace(/\s+/g, '-');
+      const slug = word.replace(/\s+/g, "-");
       const existing = await this.prisma.tag.findFirst({
-        where: { OR: [{ slug }, { name: { equals: word, mode: 'insensitive' } }] },
+        where: {
+          OR: [{ slug }, { name: { equals: word, mode: "insensitive" } }],
+        },
         select: { id: true, name: true, slug: true },
       });
       suggestions.push({
@@ -221,26 +251,33 @@ export class AutoTaggingService {
   // BATCH AUTO-TAG
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async batchAutoTag(opts: {
-    maxPosts?: number;
-    minTagsRequired?: number;
-    useLlm?: boolean;
-  } = {}): Promise<BatchAutoTagResult> {
+  async batchAutoTag(
+    opts: {
+      maxPosts?: number;
+      minTagsRequired?: number;
+      useLlm?: boolean;
+    } = {},
+  ): Promise<BatchAutoTagResult> {
     const maxPosts = opts.maxPosts ?? 50;
     const minTagsRequired = opts.minTagsRequired ?? 1;
 
-    const posts = await this.prisma.post.findMany({
-      where: { status: 'PUBLISHED' },
+    const posts = (await this.prisma.post.findMany({
+      where: { status: "PUBLISHED" },
       select: { id: true, title: true, _count: { select: { tags: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: maxPosts * 2,
-    });
+    })) as Array<{ id: string; title: string; _count: { tags: number } }>;
 
     const underTagged = posts
       .filter((p) => p._count.tags < minTagsRequired)
       .slice(0, maxPosts);
 
-    const result: BatchAutoTagResult = { processed: 0, tagged: 0, errors: 0, details: [] };
+    const result: BatchAutoTagResult = {
+      processed: 0,
+      tagged: 0,
+      errors: 0,
+      details: [],
+    };
 
     for (const post of underTagged) {
       result.processed++;
@@ -276,10 +313,11 @@ export class AutoTaggingService {
       // Heuristic: plurals, singulars, dash/space variants
       const name = tag.name.toLowerCase();
       const heuristic: string[] = [];
-      if (!name.endsWith('s')) heuristic.push(name + 's');
-      if (name.endsWith('s') && name.length > 3) heuristic.push(name.slice(0, -1));
-      if (name.includes(' ')) heuristic.push(name.replace(/\s+/g, '-'));
-      if (name.includes('-')) heuristic.push(name.replace(/-/g, ' '));
+      if (!name.endsWith("s")) heuristic.push(name + "s");
+      if (name.endsWith("s") && name.length > 3)
+        heuristic.push(name.slice(0, -1));
+      if (name.includes(" ")) heuristic.push(name.replace(/\s+/g, "-"));
+      if (name.includes("-")) heuristic.push(name.replace(/-/g, " "));
       const newOnes = heuristic.filter((s) => !tag.synonyms.includes(s));
       if (newOnes.length > 0) {
         await this.prisma.tag.update({
@@ -291,12 +329,12 @@ export class AutoTaggingService {
     }
 
     const prompt = `Generate 5-8 synonyms or alternative names for the blog tag "${tag.name}".
-${tag.description ? `Tag description: ${tag.description}` : ''}
+${tag.description ? `Tag description: ${tag.description}` : ""}
 Include: common abbreviations, plural/singular forms, related terms, alternative phrasings.
 Respond in JSON: {"synonyms": ["synonym1", "synonym2", ...]}`;
 
     const result = await this.llm.executeTask({
-      taskType: 'synonym_generation',
+      taskType: "synonym_generation",
       prompt,
       maxTokens: 200,
       temperature: 0.5,
@@ -306,10 +344,14 @@ Respond in JSON: {"synonyms": ["synonym1", "synonym2", ...]}`;
     try {
       const match = text.match(/\{[\s\S]*"synonyms"[\s\S]*\}/);
       if (!match) return [];
-      const parsed = JSON.parse(match[0]) as { synonyms: string[] };
+
+      const synonymSchema = z.object({ synonyms: z.array(z.string()) });
+      const parsed = synonymSchema.parse(JSON.parse(match[0]));
       const newSynonyms = parsed.synonyms
         .map((s) => String(s).toLowerCase().trim())
-        .filter((s) => s && !tag.synonyms.includes(s) && s !== tag.name.toLowerCase());
+        .filter(
+          (s) => s && !tag.synonyms.includes(s) && s !== tag.name.toLowerCase(),
+        );
 
       await this.prisma.tag.update({
         where: { id: tagId },
@@ -330,19 +372,19 @@ Respond in JSON: {"synonyms": ["synonym1", "synonym2", ...]}`;
     text: string,
     maxTags: number,
   ): Promise<{ tags: string[]; confidence: number[] }> {
-    if (!this.llm) throw new Error('LLM service not available');
+    if (!this.llm) throw new Error("LLM service not available");
 
     const existingTags = await this.prisma.tag.findMany({
       select: { name: true },
       take: 200,
-      orderBy: { usageCount: 'desc' },
+      orderBy: { usageCount: "desc" },
     });
     const tagNames = existingTags.map((t) => t.name);
 
     const prompt = `You are a content tagging AI. Analyze the following blog post and extract the most relevant tags.
 
 EXISTING TAGS IN THE SYSTEM (prefer these when relevant):
-${tagNames.slice(0, 100).join(', ')}
+${tagNames.slice(0, 100).join(", ")}
 
 CONTENT TO TAG:
 ${text.substring(0, 2500)}
@@ -359,7 +401,7 @@ Respond in STRICT JSON format only:
 {"tags": ["tag1", "tag2", ...], "confidence": [0.9, 0.8, ...]}`;
 
     const result = await this.llm.executeTask({
-      taskType: 'tag_extraction',
+      taskType: "tag_extraction",
       prompt,
       maxTokens: 500,
       temperature: 0.3,
@@ -367,14 +409,26 @@ Respond in STRICT JSON format only:
 
     const responseText = this.extractLlmText(result.result);
     const jsonMatch = responseText.match(/\{[\s\S]*"tags"[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No JSON found in LLM response');
+    if (!jsonMatch) throw new Error("No JSON found in LLM response");
 
-    const parsed = JSON.parse(jsonMatch[0]) as { tags: string[]; confidence: number[] };
-    if (!Array.isArray(parsed.tags)) throw new Error('Invalid tags format');
+    const llmTagsSchema = z.object({
+      tags: z.array(z.string()),
+      confidence: z.array(z.number()).optional(),
+    });
+
+    let parsed: z.infer<typeof llmTagsSchema>;
+    try {
+      parsed = llmTagsSchema.parse(JSON.parse(jsonMatch[0]));
+    } catch {
+      throw new Error("Invalid JSON structure in LLM tag extraction response");
+    }
 
     return {
-      tags: parsed.tags.slice(0, maxTags).map((t) => String(t).toLowerCase().trim()),
-      confidence: parsed.confidence?.slice(0, maxTags) ?? parsed.tags.map(() => 0.7),
+      tags: parsed.tags
+        .slice(0, maxTags)
+        .map((t) => String(t).toLowerCase().trim()),
+      confidence:
+        parsed.confidence?.slice(0, maxTags) ?? parsed.tags.map(() => 0.7),
     };
   }
 
@@ -390,14 +444,14 @@ Respond in STRICT JSON format only:
       if ((confidence[i] ?? 0) < minConfidence) continue;
 
       const name = tagNames[i];
-      const slug = name.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const slug = name.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
       if (!slug) continue;
 
       let tag = await this.prisma.tag.findFirst({
         where: {
           OR: [
             { slug },
-            { name: { equals: name, mode: 'insensitive' } },
+            { name: { equals: name, mode: "insensitive" } },
             { synonyms: { has: name.toLowerCase() } },
           ],
         },
@@ -418,7 +472,7 @@ Respond in STRICT JSON format only:
           data: {
             slug,
             name: this.titleCase(name),
-            description: 'AI-generated tag',
+            description: "AI-generated tag",
             usageCount: 1,
           },
         });
@@ -432,10 +486,10 @@ Respond in STRICT JSON format only:
 
   /** Sync tag IDs with Post→Tag many-to-many (merges with existing) */
   async syncTagRelation(postId: string, newTagIds: string[]): Promise<void> {
-    const post = await this.prisma.post.findUnique({
+    const post = (await this.prisma.post.findUnique({
       where: { id: postId },
       select: { tags: { select: { id: true } } },
-    });
+    })) as { tags: { id: string }[] } | null;
     if (!post) return;
 
     const existingIds = new Set(post.tags.map((t: { id: string }) => t.id));
@@ -449,7 +503,9 @@ Respond in STRICT JSON format only:
 
   /** Extract text from LLM API response (OpenAI / Anthropic compatible) */
   private extractLlmText(result: Record<string, unknown>): string {
-    const choices = result.choices as Array<{ message?: { content?: string }; text?: string }> | undefined;
+    const choices = result.choices as
+      | Array<{ message?: { content?: string }; text?: string }>
+      | undefined;
     if (choices?.[0]?.message?.content) return choices[0].message.content;
     if (choices?.[0]?.text) return choices[0].text;
     const content = result.content as Array<{ text?: string }> | undefined;
@@ -458,6 +514,9 @@ Respond in STRICT JSON format only:
   }
 
   private titleCase(s: string): string {
-    return s.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return s
+      .split(" ")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
   }
 }

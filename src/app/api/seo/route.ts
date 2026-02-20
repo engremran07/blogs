@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { prisma } from "@/server/db/prisma";
 import { auditContent } from "@/features/seo/server/seo-audit.util";
 import {
@@ -86,16 +86,8 @@ export async function GET(request: NextRequest) {
   const action = searchParams.get("action") || "overview";
 
   try {
-    const session = await auth();
-    if (
-      !session?.user ||
-      !["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)
-    ) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 },
-      );
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
     if (action === "overview") {
       // Aggregate site-wide SEO stats
       const [posts, pages, totalPosts, totalPages] = await Promise.all([
@@ -252,21 +244,33 @@ export async function GET(request: NextRequest) {
 
     if (action === "audit-post") {
       const id = searchParams.get("id");
-      if (!id)
+      const slug = searchParams.get("slug");
+      if (!id && !slug)
         return NextResponse.json(
-          { success: false, error: "Missing id" },
+          { success: false, error: "Missing id or slug" },
           { status: 400 },
         );
 
-      // Accept numeric postNumber or cuid id
-      const num = /^\d+$/.test(id) ? parseInt(id, 10) : NaN;
-      const post = await prisma.post.findUnique({
-        where: !isNaN(num) ? { postNumber: num } : { id },
-        include: {
-          categories: { select: { name: true, slug: true } },
-          tags: { select: { name: true, slug: true } },
-        },
-      });
+      // Accept numeric postNumber, cuid id, or slug
+      let post;
+      if (slug) {
+        post = await prisma.post.findUnique({
+          where: { slug },
+          include: {
+            categories: { select: { name: true, slug: true } },
+            tags: { select: { name: true, slug: true } },
+          },
+        });
+      } else {
+        const num = /^\d+$/.test(id!) ? parseInt(id!, 10) : NaN;
+        post = await prisma.post.findUnique({
+          where: !isNaN(num) ? { postNumber: num } : { id: id! },
+          include: {
+            categories: { select: { name: true, slug: true } },
+            tags: { select: { name: true, slug: true } },
+          },
+        });
+      }
       if (!post)
         return NextResponse.json(
           { success: false, error: "Post not found" },
@@ -288,13 +292,16 @@ export async function GET(request: NextRequest) {
 
     if (action === "audit-page") {
       const id = searchParams.get("id");
-      if (!id)
+      const slug = searchParams.get("slug");
+      if (!id && !slug)
         return NextResponse.json(
-          { success: false, error: "Missing id" },
+          { success: false, error: "Missing id or slug" },
           { status: 400 },
         );
 
-      const page = await prisma.page.findUnique({ where: { id } });
+      const page = slug
+        ? await prisma.page.findUnique({ where: { slug } })
+        : await prisma.page.findUnique({ where: { id: id! } });
       if (!page)
         return NextResponse.json(
           { success: false, error: "Page not found" },
@@ -522,16 +529,8 @@ export async function GET(request: NextRequest) {
 // POST /api/seo — Mutating interlink operations
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (
-      !session?.user ||
-      !["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role)
-    ) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 },
-      );
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const body = await request.json();
     const action = body.action as string;

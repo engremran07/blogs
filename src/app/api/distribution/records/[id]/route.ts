@@ -3,17 +3,15 @@
  * Supports: GET (detail), POST retry, DELETE cancel
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { distributionService } from "@/server/wiring";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, ctx: Params) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await ctx.params;
     const record = await distributionService.getDistributionById(id);
@@ -32,10 +30,8 @@ export async function GET(_req: NextRequest, ctx: Params) {
 /** Retry a failed distribution */
 export async function POST(_req: NextRequest, ctx: Params) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await ctx.params;
     const record = await distributionService.retryDistribution({ recordId: id });
@@ -52,10 +48,8 @@ export async function POST(_req: NextRequest, ctx: Params) {
 /** Cancel a scheduled/pending distribution */
 export async function DELETE(_req: NextRequest, ctx: Params) {
   try {
-    const session = await auth();
-    if (!session?.user || !["ADMINISTRATOR", "SUPER_ADMIN", "EDITOR"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    if (errorResponse) return errorResponse;
 
     const { id } = await ctx.params;
     const record = await distributionService.cancelDistribution({ recordId: id });

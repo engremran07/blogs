@@ -9,6 +9,10 @@ import {
   Trash2,
   RefreshCw,
   ChevronDown,
+  BarChart3,
+  MessageSquare,
+  Image as ImageIcon,
+  FileText,
 } from "lucide-react";
 import { useAdminBar } from "./AdminBarProvider";
 import { toast } from "@/components/ui/Toast";
@@ -119,6 +123,48 @@ export function SiteNameDropdown() {
           >
             <Settings className="h-4 w-4" />
             Site Settings
+          </Link>
+
+          <div className="my-1 border-t border-white/5" />
+
+          <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+            Quick Access
+          </div>
+          <Link
+            href="/admin/posts"
+            onClick={closeDropdown}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+            role="menuitem"
+          >
+            <FileText className="h-4 w-4" />
+            All Posts
+          </Link>
+          <Link
+            href="/admin/comments"
+            onClick={closeDropdown}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+            role="menuitem"
+          >
+            <MessageSquare className="h-4 w-4" />
+            Comments
+          </Link>
+          <Link
+            href="/admin/media"
+            onClick={closeDropdown}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+            role="menuitem"
+          >
+            <ImageIcon className="h-4 w-4" />
+            Media Library
+          </Link>
+          <Link
+            href="/admin/seo"
+            onClick={closeDropdown}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+            role="menuitem"
+          >
+            <BarChart3 className="h-4 w-4" />
+            SEO Dashboard
           </Link>
 
           <div className="my-1 border-t border-white/5" />
