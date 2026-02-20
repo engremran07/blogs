@@ -80,6 +80,14 @@ export default function AdminUsersPage() {
     email: "",
     password: "",
     role: "SUBSCRIBER",
+    firstName: "",
+    lastName: "",
+    displayName: "",
+    nickname: "",
+    bio: "",
+    website: "",
+    phoneNumber: "",
+    customCapabilities: [] as string[],
   });
   const [creating, setCreating] = useState(false);
 
@@ -224,14 +232,37 @@ export default function AdminUsersPage() {
       }
       const data = await res.json();
       if (data.success || data.data) {
-        // Set role if not subscriber
-        if (createForm.role !== "SUBSCRIBER" && data.data?.id) {
+        // Set role, profile fields, and custom capabilities via PATCH
+        const needsPatch =
+          createForm.role !== "SUBSCRIBER" ||
+          createForm.firstName ||
+          createForm.lastName ||
+          createForm.displayName ||
+          createForm.nickname ||
+          createForm.bio ||
+          createForm.website ||
+          createForm.phoneNumber ||
+          createForm.customCapabilities.length > 0;
+
+        if (needsPatch && data.data?.id) {
           await fetch("/api/users", {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: data.data.id, role: createForm.role }),
+            body: JSON.stringify({
+              id: data.data.id,
+              role: createForm.role,
+              firstName: createForm.firstName || null,
+              lastName: createForm.lastName || null,
+              displayName: createForm.displayName || null,
+              nickname: createForm.nickname || null,
+              bio: createForm.bio || null,
+              website: createForm.website || null,
+              phoneNumber: createForm.phoneNumber || null,
+              customCapabilities: createForm.customCapabilities,
+            }),
           }).then((r) => {
-            if (!r.ok) toast("Failed to set role", "error");
+            if (!r.ok)
+              toast("User created but failed to set profile/role", "error");
           });
         }
         toast("User created!", "success");
@@ -241,6 +272,14 @@ export default function AdminUsersPage() {
           email: "",
           password: "",
           role: "SUBSCRIBER",
+          firstName: "",
+          lastName: "",
+          displayName: "",
+          nickname: "",
+          bio: "",
+          website: "",
+          phoneNumber: "",
+          customCapabilities: [],
         });
         fetchUsers();
       } else toast(data.error || "Failed to create user", "error");
@@ -628,65 +667,211 @@ export default function AdminUsersPage() {
         />
       </div>
 
-      {/* Create User Modal */}
+      {/* Create User Modal — Cascaded multi-column layout */}
       <Modal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         title="Add New User"
+        size="xl"
       >
-        <div className="space-y-4">
-          <Input
-            label="Username"
-            value={createForm.username}
-            onChange={(e) =>
-              setCreateForm({ ...createForm, username: e.target.value })
-            }
-            placeholder="username"
-          />
-          <Input
-            label="Email"
-            type="email"
-            value={createForm.email}
-            onChange={(e) =>
-              setCreateForm({ ...createForm, email: e.target.value })
-            }
-            placeholder="user@example.com"
-          />
-          <div className="relative">
-            <Input
-              label="Password"
-              type={showCreatePassword ? "text" : "password"}
-              value={createForm.password}
-              onChange={(e) =>
-                setCreateForm({ ...createForm, password: e.target.value })
-              }
-              placeholder="Enter a strong password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowCreatePassword(!showCreatePassword)}
-              className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              {showCreatePassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-          <PasswordStrengthIndicator
-            password={createForm.password}
-            showWhenEmpty
-          />
-          <div>
-            <RolePicker
-              value={createForm.role}
-              onChange={(role) => setCreateForm({ ...createForm, role })}
-              label="Role"
-            />
+        <div className="max-h-[70vh] overflow-y-auto pr-1">
+          {/* 3-column cascaded grid */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {/* Column 1 — Account */}
+            <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-gray-900/50">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                Account
+              </p>
+              <Input
+                label="First Name"
+                value={createForm.firstName}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, firstName: e.target.value })
+                }
+                placeholder="First name"
+              />
+              <Input
+                label="Last Name"
+                value={createForm.lastName}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, lastName: e.target.value })
+                }
+                placeholder="Last name"
+              />
+              <Input
+                label="Display Name"
+                value={createForm.displayName}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, displayName: e.target.value })
+                }
+                placeholder="Display name"
+              />
+              <Input
+                label="Nickname"
+                value={createForm.nickname}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, nickname: e.target.value })
+                }
+                placeholder="Nickname"
+              />
+              <Input
+                label="Username"
+                value={createForm.username}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, username: e.target.value })
+                }
+                placeholder="username"
+              />
+              <Input
+                label="Email"
+                type="email"
+                value={createForm.email}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, email: e.target.value })
+                }
+                placeholder="user@example.com"
+              />
+              <RolePicker
+                value={createForm.role}
+                onChange={(role) => setCreateForm({ ...createForm, role })}
+                label="Role"
+              />
+            </div>
+
+            {/* Column 2 — Profile & Security */}
+            <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-gray-900/50">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                Profile
+              </p>
+              <Textarea
+                label="Bio"
+                value={createForm.bio}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, bio: e.target.value })
+                }
+                placeholder="Brief biography..."
+                rows={3}
+              />
+              <Input
+                label="Website"
+                value={createForm.website}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, website: e.target.value })
+                }
+                placeholder="https://example.com"
+              />
+              <Input
+                label="Phone"
+                value={createForm.phoneNumber}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, phoneNumber: e.target.value })
+                }
+                placeholder="+1 555-0100"
+              />
+
+              <div className="mt-5! border-t border-gray-200 pt-3 dark:border-gray-700">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  Security
+                </p>
+                <div className="relative">
+                  <Input
+                    label="Password"
+                    type={showCreatePassword ? "text" : "password"}
+                    value={createForm.password}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, password: e.target.value })
+                    }
+                    placeholder="Enter a strong password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCreatePassword(!showCreatePassword)}
+                    className="absolute right-3 top-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showCreatePassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <PasswordStrengthIndicator
+                  password={createForm.password}
+                  showWhenEmpty
+                />
+              </div>
+            </div>
+
+            {/* Column 3 — Custom Capabilities */}
+            <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-gray-900/50">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                Extra Capabilities
+              </p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                Grant capabilities beyond the role&apos;s baseline. The role
+                badge stays automatic — these add on top.
+              </p>
+              {(() => {
+                const role = createForm.role as UserRole;
+                const roleCaps: readonly string[] =
+                  role === "SUPER_ADMIN"
+                    ? ALL_CAPABILITIES
+                    : (ROLE_CAPABILITIES[
+                        role as Exclude<UserRole, "SUPER_ADMIN">
+                      ] ?? []);
+
+                return CAPABILITY_CATEGORIES.map((cat) => {
+                  const extras = cat.capabilities.filter(
+                    (c) => !roleCaps.includes(c),
+                  );
+                  if (extras.length === 0) return null;
+
+                  return (
+                    <div key={cat.label}>
+                      <p className="mb-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                        {cat.label}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {extras.map((cap) => {
+                          const active =
+                            createForm.customCapabilities.includes(cap);
+                          return (
+                            <button
+                              key={cap}
+                              type="button"
+                              onClick={() => {
+                                const next = active
+                                  ? createForm.customCapabilities.filter(
+                                      (c) => c !== cap,
+                                    )
+                                  : [...createForm.customCapabilities, cap];
+                                setCreateForm({
+                                  ...createForm,
+                                  customCapabilities: next,
+                                });
+                              }}
+                              className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-all ${
+                                active
+                                  ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-700"
+                                  : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                              }`}
+                            >
+                              {active ? "✓ " : ""}
+                              {cap.replace(/_/g, " ")}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
           </div>
         </div>
-        <div className="mt-6 flex justify-end gap-2">
+
+        {/* Footer actions */}
+        <div className="mt-4 flex justify-end gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
           <Button variant="ghost" onClick={() => setCreateOpen(false)}>
             Cancel
           </Button>
