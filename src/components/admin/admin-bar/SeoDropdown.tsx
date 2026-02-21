@@ -60,7 +60,7 @@ export function SeoDropdown({
       route.resourceType ??
       (route.isViewingPost ? "post" : route.isViewingPage ? "page" : null),
     resourceId: editor?.postId ?? editor?.pageId ?? route.resourceId ?? null,
-    resourceSlug: route.publicSlug ?? null,
+    resourceSlug: editor?.slug ?? route.publicSlug ?? null,
   });
 
   const handleToggle = useCallback(() => {

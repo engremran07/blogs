@@ -506,11 +506,12 @@ export default function SeoAdminPage() {
     try {
       if (redirectEditing) {
         // Update — using DELETE + re-create since the API may not have PATCH
-        const delRes = await fetch("/api/seo/redirects", {
+        const delRes = await fetch(
+          `/api/seo/redirects?id=${encodeURIComponent(redirectEditing)}`,
+          {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: redirectEditing }),
-        });
+          },
+        );
         if (!delRes.ok) {
           toast("Failed to delete old redirect", "error");
           return;
@@ -538,17 +539,19 @@ export default function SeoAdminPage() {
       }
     } catch {
       /* ignore */
+    } finally {
+      setRedirectSaving(false);
     }
-    setRedirectSaving(false);
   };
 
   const deleteRedirect = async (id: string) => {
     try {
-      const res = await fetch("/api/seo/redirects", {
+      const res = await fetch(
+        `/api/seo/redirects?id=${encodeURIComponent(id)}`,
+        {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
+        },
+      );
       if (!res.ok) {
         toast("Failed to delete redirect", "error");
         return;

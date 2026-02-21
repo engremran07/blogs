@@ -99,8 +99,8 @@ export function RightZone({
       {/* Theme toggle */}
       <ThemeToggle variant="adminbar" />
 
-      {/* Site SEO overview — homepage only */}
-      {route.isHome && <SiteSeoDropdown />}
+      {/* Site SEO overview — global */}
+      <SiteSeoDropdown />
 
       {/* + New dropdown */}
       <NewDropdown />

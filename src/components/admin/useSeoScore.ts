@@ -39,6 +39,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 export function useSeoScore({
   resourceType,
   resourceId,
+  resourceSlug,
 }: UseSeoScoreOptions): UseSeoScoreReturn {
   const [score, setScore] = useState<number | null>(null);
   const [checks, setChecks] = useState<SeoScoreResult["checks"]>([]);
@@ -53,9 +54,9 @@ export function useSeoScore({
   const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(() => {
-    if (!resourceType || !resourceId) return;
+    if (!resourceType || (!resourceId && !resourceSlug)) return;
 
-    const cacheKey = `${resourceType}:${resourceId}`;
+    const cacheKey = `${resourceType}:${resourceSlug ?? resourceId}`;
 
     // Return cached data if still fresh
     if (
@@ -75,7 +76,13 @@ export function useSeoScore({
     abortRef.current = controller;
 
     const action = resourceType === "post" ? "audit-post" : "audit-page";
-    const url = `/api/seo?action=${action}&id=${encodeURIComponent(resourceId)}`;
+    const query = new URLSearchParams({ action });
+    if (resourceSlug) {
+      query.set("slug", resourceSlug);
+    } else if (resourceId) {
+      query.set("id", resourceId);
+    }
+    const url = `/api/seo?${query.toString()}`;
 
     setLoading(true);
     setError(null);
@@ -105,7 +112,7 @@ export function useSeoScore({
           setLoading(false);
         }
       });
-  }, [resourceType, resourceId]);
+  }, [resourceType, resourceId, resourceSlug]);
 
   return { score, checks, recommendations, loading, error, refresh };
 }

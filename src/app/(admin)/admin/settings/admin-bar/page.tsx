@@ -148,7 +148,14 @@ function PreviewBar({ settings }: { settings: AdminBarSettings }) {
           <span className="font-mono text-xs text-gray-400">1,240 words</span>
         )}
         {settings.adminBarShowSeoScore && (
-          <span className="text-xs font-bold text-green-400">SEO 85</span>
+          <div className="flex items-center gap-1 text-[10px] font-semibold">
+            <span className="rounded bg-emerald-900/40 px-1.5 py-0.5 text-emerald-300">
+              Site SEO 88
+            </span>
+            <span className="rounded bg-green-900/40 px-1.5 py-0.5 text-green-300">
+              Content SEO 85
+            </span>
+          </div>
         )}
         {settings.adminBarShowNewButton && (
           <span className="text-xs text-gray-400">+ New</span>
@@ -393,8 +400,8 @@ export default function AdminBarSettingsPage() {
             disabled={!settings.adminBarEnabled}
           />
           <ToggleItem
-            label="SEO Score"
-            description="On-demand SEO audit score and checklist"
+            label="SEO Badges"
+            description="On-demand site and page/post SEO scores"
             icon={BarChart3}
             checked={settings.adminBarShowSeoScore}
             onChange={(v) => update("adminBarShowSeoScore", v)}
