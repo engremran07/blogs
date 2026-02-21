@@ -5,7 +5,7 @@
 // bundled, so consumers that don't use S3 pay zero cost.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { StorageProvider } from '../../types';
+import type { StorageProvider } from "../../types";
 
 /* ====================================================================== *
  *  Minimal SDK type stubs                                                *
@@ -98,19 +98,19 @@ export class S3StorageProvider implements StorageProvider {
   private _client: S3ClientLike | null = null;
 
   constructor(config: S3StorageConfig) {
-    this.bucket         = config.bucket;
-    this.region         = config.region;
-    this.prefix         = (config.prefix ?? '').replace(/\/$/, '') + '/';
-    this.acl            = config.acl ?? 'public-read';
-    this.endpoint       = config.endpoint;
-    this.accessKeyId    = config.accessKeyId;
+    this.bucket = config.bucket;
+    this.region = config.region;
+    this.prefix = (config.prefix ?? "").replace(/\/$/, "") + "/";
+    this.acl = config.acl ?? "public-read";
+    this.endpoint = config.endpoint;
+    this.accessKeyId = config.accessKeyId;
     this.secretAccessKey = config.secretAccessKey;
     this.forcePathStyle = config.forcePathStyle ?? false;
 
     if (config.publicUrl) {
-      this.publicUrl = config.publicUrl.replace(/\/+$/, '');
+      this.publicUrl = config.publicUrl.replace(/\/+$/, "");
     } else if (config.endpoint) {
-      this.publicUrl = `${config.endpoint.replace(/\/+$/, '')}/${this.bucket}`;
+      this.publicUrl = `${config.endpoint.replace(/\/+$/, "")}/${this.bucket}`;
     } else {
       this.publicUrl = `https://${this.bucket}.s3.${this.region}.amazonaws.com`;
     }
@@ -126,17 +126,17 @@ export class S3StorageProvider implements StorageProvider {
     contentType?: string,
   ): Promise<string> {
     const client = await this.getClient();
-    const s3 = await import('@aws-sdk/client-s3');
+    const s3 = await import("@aws-sdk/client-s3");
 
     const key = this.toKey(destPath);
 
     const command = new s3.PutObjectCommand({
-      Bucket:      this.bucket,
-      Key:         key,
-      Body:        Buffer.from(buffer),
-      ContentType: contentType ?? 'application/octet-stream',
-      ACL:         this.acl as never,
-      CacheControl: 'public, max-age=31536000, immutable',
+      Bucket: this.bucket,
+      Key: key,
+      Body: Buffer.from(buffer),
+      ContentType: contentType ?? "application/octet-stream",
+      ACL: this.acl as never,
+      CacheControl: "public, max-age=31536000, immutable",
     });
 
     await client.send(command);
@@ -145,11 +145,11 @@ export class S3StorageProvider implements StorageProvider {
 
   async delete(filePath: string): Promise<void> {
     const client = await this.getClient();
-    const s3 = await import('@aws-sdk/client-s3');
+    const s3 = await import("@aws-sdk/client-s3");
 
     const command = new s3.DeleteObjectCommand({
       Bucket: this.bucket,
-      Key:    this.toKey(filePath),
+      Key: this.toKey(filePath),
     });
 
     await client.send(command);
@@ -162,12 +162,12 @@ export class S3StorageProvider implements StorageProvider {
 
   async exists(filePath: string): Promise<boolean> {
     const client = await this.getClient();
-    const s3 = await import('@aws-sdk/client-s3');
+    const s3 = await import("@aws-sdk/client-s3");
 
     try {
       const command = new s3.HeadObjectCommand({
         Bucket: this.bucket,
-        Key:    this.toKey(filePath),
+        Key: this.toKey(filePath),
       });
       await client.send(command);
       return true;
@@ -178,23 +178,23 @@ export class S3StorageProvider implements StorageProvider {
 
   async move(fromPath: string, toPath: string): Promise<string> {
     const client = await this.getClient();
-    const s3 = await import('@aws-sdk/client-s3');
+    const s3 = await import("@aws-sdk/client-s3");
 
     const sourceKey = this.toKey(fromPath);
-    const destKey   = this.toKey(toPath);
+    const destKey = this.toKey(toPath);
 
     // Copy then delete (S3 has no rename operation)
     const copyCmd = new s3.CopyObjectCommand({
-      Bucket:     this.bucket,
+      Bucket: this.bucket,
       CopySource: `${this.bucket}/${sourceKey}`,
-      Key:        destKey,
-      ACL:        this.acl as never,
+      Key: destKey,
+      ACL: this.acl as never,
     });
     await client.send(copyCmd);
 
     const delCmd = new s3.DeleteObjectCommand({
       Bucket: this.bucket,
-      Key:    sourceKey,
+      Key: sourceKey,
     });
     await client.send(delCmd);
 
@@ -203,14 +203,16 @@ export class S3StorageProvider implements StorageProvider {
 
   async getStream(filePath: string): Promise<NodeJS.ReadableStream> {
     const client = await this.getClient();
-    const s3 = await import('@aws-sdk/client-s3');
+    const s3 = await import("@aws-sdk/client-s3");
 
     const command = new s3.GetObjectCommand({
       Bucket: this.bucket,
-      Key:    this.toKey(filePath),
+      Key: this.toKey(filePath),
     });
 
-    const result = await client.send(command) as { Body?: NodeJS.ReadableStream };
+    const result = (await client.send(command)) as {
+      Body?: NodeJS.ReadableStream;
+    };
     if (!result.Body) {
       throw new Error(`Object not found: ${filePath}`);
     }
@@ -219,9 +221,9 @@ export class S3StorageProvider implements StorageProvider {
 
   async listFolder(prefix: string): Promise<string[]> {
     const client = await this.getClient();
-    const s3 = await import('@aws-sdk/client-s3');
+    const s3 = await import("@aws-sdk/client-s3");
 
-    const fullPrefix = this.toKey(prefix).replace(/\/?$/, '/');
+    const fullPrefix = this.toKey(prefix).replace(/\/?$/, "/");
 
     const command = new s3.ListObjectsV2Command({
       Bucket: this.bucket,
@@ -229,15 +231,15 @@ export class S3StorageProvider implements StorageProvider {
       MaxKeys: 1000,
     });
 
-    const result = await client.send(command) as {
+    const result = (await client.send(command)) as {
       Contents?: { Key?: string }[];
     };
 
     if (!result.Contents) return [];
 
-    return result.Contents
-      .filter((obj): obj is { Key: string } => !!obj.Key)
-      .map((obj) => obj.Key.replace(this.prefix, ''));
+    return result.Contents.filter(
+      (obj): obj is { Key: string } => !!obj.Key,
+    ).map((obj) => obj.Key.replace(this.prefix, ""));
   }
 
   /* ------------------------------------------------------------------ *
@@ -246,13 +248,13 @@ export class S3StorageProvider implements StorageProvider {
 
   /** Convert a consumer‑facing relative path to an S3 object key. */
   private toKey(filePath: string): string {
-    const normalised = filePath
-      .replace(/\\/g, '/')
-      .replace(/^\/+/, '');
+    const normalised = filePath.replace(/\\/g, "/").replace(/^\/+/, "");
 
     // Block path traversal patterns
-    if (normalised.includes('..') || normalised.includes('./')) {
-      throw new Error('Path traversal detected — cannot use ".." in S3 key paths');
+    if (normalised.includes("..") || normalised.includes("./")) {
+      throw new Error(
+        'Path traversal detected — cannot use ".." in S3 key paths',
+      );
     }
 
     return `${this.prefix}${normalised}`;
@@ -262,7 +264,7 @@ export class S3StorageProvider implements StorageProvider {
   private async getClient(): Promise<S3ClientLike> {
     if (this._client) return this._client;
 
-    const s3 = await import('@aws-sdk/client-s3');
+    const s3 = await import("@aws-sdk/client-s3");
 
     const clientConfig: Record<string, unknown> = {
       region: this.region,
@@ -278,12 +280,12 @@ export class S3StorageProvider implements StorageProvider {
 
     if (this.accessKeyId && this.secretAccessKey) {
       clientConfig.credentials = {
-        accessKeyId:     this.accessKeyId,
+        accessKeyId: this.accessKeyId,
         secretAccessKey: this.secretAccessKey,
       };
     }
 
-    this._client = new s3.S3Client(clientConfig) as unknown as S3ClientLike;
+    this._client = new s3.S3Client(clientConfig) as S3ClientLike;
     return this._client;
   }
 }

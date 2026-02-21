@@ -24,7 +24,7 @@ import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { Typography } from "@tiptap/extension-typography";
-import { BubbleMenu } from "@tiptap/extension-bubble-menu";
+
 import { common, createLowlight } from "lowlight";
 
 import {
@@ -94,17 +94,7 @@ export default function RichTextEditor({
       Columns,
       Column,
       StyledSeparator,
-      ...(!readOnly
-        ? [
-            BubbleMenu.configure({
-              pluginKey: "bubbleMenu",
-              shouldShow: ({ state }) => {
-                const { empty } = state.selection;
-                return !empty;
-              },
-            }),
-          ]
-        : []),
+
     ],
     content,
     editable: !readOnly,
@@ -200,10 +190,12 @@ export default function RichTextEditor({
   const readingTime = Math.max(1, Math.ceil(wordCount / READING_WPM));
 
   return (
-    <div className={`tiptap-editor rte-wrapper rounded-lg border border-gray-200 dark:border-gray-700 ${className}`}>
+    <div className={`tiptap-editor rte-wrapper flex flex-col rounded-lg border border-gray-200 dark:border-gray-700 ${className}`}>
       {!readOnly && <EditorToolbar editor={editor} onImageUpload={onImageUpload} />}
 
-      <EditorContent editor={editor} />
+      <div className="flex-1 overflow-hidden">
+        <EditorContent editor={editor} />
+      </div>
 
       {!readOnly && (
         <div className="rte-status-bar flex items-center justify-end gap-4 border-t border-gray-200 px-3 py-1.5 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">

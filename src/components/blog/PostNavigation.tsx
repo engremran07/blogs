@@ -40,12 +40,12 @@ export async function PostNavigation({ currentPostId, publishedAt }: PostNavigat
       {prevPost ? (
         <Link
           href={`/blog/${prevPost.slug}`}
-          className="group flex items-center gap-3 rounded-xl border border-gray-200 p-4 transition-colors hover:border-blue-300 hover:bg-blue-50/50 dark:border-gray-700 dark:hover:border-blue-600 dark:hover:bg-blue-900/10"
+          className="group flex items-center gap-3 rounded-xl border border-gray-200 p-4 transition-colors hover:border-primary/30 hover:bg-primary/5 dark:border-gray-700"
         >
-          <ChevronLeft className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-blue-500" />
+          <ChevronLeft className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-primary" />
           <div className="min-w-0">
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Previous</p>
-            <p className="line-clamp-1 text-sm font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+            <p className="line-clamp-1 text-sm font-semibold text-gray-900 group-hover:text-primary dark:text-white">
               {prevPost.title}
             </p>
           </div>
@@ -56,15 +56,15 @@ export async function PostNavigation({ currentPostId, publishedAt }: PostNavigat
       {nextPost ? (
         <Link
           href={`/blog/${nextPost.slug}`}
-          className="group flex items-center justify-end gap-3 rounded-xl border border-gray-200 p-4 text-right transition-colors hover:border-blue-300 hover:bg-blue-50/50 dark:border-gray-700 dark:hover:border-blue-600 dark:hover:bg-blue-900/10"
+          className="group flex items-center justify-end gap-3 rounded-xl border border-gray-200 p-4 text-right transition-colors hover:border-primary/30 hover:bg-primary/5 dark:border-gray-700"
         >
           <div className="min-w-0">
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Next</p>
-            <p className="line-clamp-1 text-sm font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+            <p className="line-clamp-1 text-sm font-semibold text-gray-900 group-hover:text-primary dark:text-white">
               {nextPost.title}
             </p>
           </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-blue-500" />
+          <ChevronRight className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-primary" />
         </Link>
       ) : (
         <div />

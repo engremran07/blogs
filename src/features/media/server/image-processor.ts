@@ -16,7 +16,7 @@ import type {
   MediaVariantMapWithWebP,
   VariantPresetConfig,
   MediaVariant,
-} from '../types';
+} from "../types";
 
 /* ====================================================================== *
  *  Minimal sharp type stubs (compile without installing sharp)           *
@@ -34,7 +34,11 @@ interface SharpInstance {
     density?: number;
     space?: string;
   }>;
-  resize(width: number, height: number, options?: Record<string, unknown>): SharpInstance;
+  resize(
+    width: number,
+    height: number,
+    options?: Record<string, unknown>,
+  ): SharpInstance;
   toFormat(format: string, options?: Record<string, unknown>): SharpInstance;
   toBuffer(): Promise<Buffer>;
   clone(): SharpInstance;
@@ -75,19 +79,19 @@ export class SharpImageProcessor implements ImageProcessor {
 
   async getMetadata(buffer: Buffer | Uint8Array): Promise<ImageMetadata> {
     const sharp = await this.loadSharp();
-    const img   = sharp(Buffer.from(buffer));
-    const meta  = await img.metadata();
+    const img = sharp(Buffer.from(buffer));
+    const meta = await img.metadata();
 
     return {
-      width:      meta.width  ?? 0,
-      height:     meta.height ?? 0,
-      format:     meta.format ?? 'unknown',
-      size:       buffer.byteLength,
-      hasAlpha:   meta.hasAlpha ?? false,
+      width: meta.width ?? 0,
+      height: meta.height ?? 0,
+      format: meta.format ?? "unknown",
+      size: buffer.byteLength,
+      hasAlpha: meta.hasAlpha ?? false,
       isAnimated: (meta.pages ?? 1) > 1,
-      channels:   meta.channels,
-      density:    meta.density,
-      space:      meta.space,
+      channels: meta.channels,
+      density: meta.density,
+      space: meta.space,
     };
   }
 
@@ -103,21 +107,21 @@ export class SharpImageProcessor implements ImageProcessor {
     variants: MediaVariantMapWithWebP;
     buffers: Map<string, Buffer>;
   }> {
-    const sharp    = await this.loadSharp();
-    const src      = sharp(Buffer.from(buffer));
-    const srcMeta  = await src.metadata();
-    const srcW     = srcMeta.width  ?? 0;
-    const srcH     = srcMeta.height ?? 0;
+    const sharp = await this.loadSharp();
+    const src = sharp(Buffer.from(buffer));
+    const srcMeta = await src.metadata();
+    const srcW = srcMeta.width ?? 0;
+    const srcH = srcMeta.height ?? 0;
 
     const variants: MediaVariantMapWithWebP = {};
-    const buffers  = new Map<string, Buffer>();
+    const buffers = new Map<string, Buffer>();
 
     for (const [name, preset] of Object.entries(presets)) {
       // Skip if source is smaller than target
-      const targetW = Math.min(preset.width,  srcW || preset.width);
+      const targetW = Math.min(preset.width, srcW || preset.width);
       const targetH = Math.min(preset.height, srcH || preset.height);
 
-      const fit = this.mapFit(preset.fit ?? 'inside');
+      const fit = this.mapFit(preset.fit ?? "inside");
 
       // --- original format variant ---
       const resized = src.clone().resize(targetW, targetH, {
@@ -129,11 +133,11 @@ export class SharpImageProcessor implements ImageProcessor {
       const origKey = name;
 
       const variant: MediaVariant = {
-        url:    '',   // URL is set by the service after storage upload
-        width:  targetW,
+        url: "", // URL is set by the service after storage upload
+        width: targetW,
         height: targetH,
-        format: srcMeta.format ?? 'jpeg',
-        size:   origBuf.byteLength,
+        format: srcMeta.format ?? "jpeg",
+        size: origBuf.byteLength,
       };
 
       variants[origKey as keyof MediaVariantMapWithWebP] = variant;
@@ -141,22 +145,28 @@ export class SharpImageProcessor implements ImageProcessor {
 
       // --- WebP companion ---
       if (options.webp !== false) {
-        const webpBuf = await resized.clone().webp({ quality: preset.quality }).toBuffer();
+        const webpBuf = await resized
+          .clone()
+          .webp({ quality: preset.quality })
+          .toBuffer();
         const webpKey = `${name}_webp`;
 
         variants[webpKey as keyof MediaVariantMapWithWebP] = {
-          url:    '',
-          width:  targetW,
+          url: "",
+          width: targetW,
           height: targetH,
-          format: 'webp',
-          size:   webpBuf.byteLength,
+          format: "webp",
+          size: webpBuf.byteLength,
         };
         buffers.set(webpKey, webpBuf);
       }
 
       // --- AVIF companion ---
       if (options.avif) {
-        const avifBuf = await resized.clone().avif({ quality: preset.quality }).toBuffer();
+        const avifBuf = await resized
+          .clone()
+          .avif({ quality: preset.quality })
+          .toBuffer();
         const avifKey = `${name}_avif`;
 
         // Store in buffers map (not in standard variant map type, but
@@ -178,16 +188,16 @@ export class SharpImageProcessor implements ImageProcessor {
     quality = 80,
   ): Promise<Buffer> {
     const sharp = await this.loadSharp();
-    const img   = sharp(Buffer.from(buffer));
+    const img = sharp(Buffer.from(buffer));
 
     switch (format) {
-      case 'webp':
+      case "webp":
         return img.webp({ quality }).toBuffer();
-      case 'avif':
+      case "avif":
         return img.avif({ quality }).toBuffer();
-      case 'jpeg':
+      case "jpeg":
         return img.jpeg({ quality, mozjpeg: true }).toBuffer();
-      case 'png':
+      case "png":
         return img.png({ quality, compressionLevel: 9 }).toBuffer();
       default:
         return img.toFormat(format, { quality }).toBuffer();
@@ -200,13 +210,11 @@ export class SharpImageProcessor implements ImageProcessor {
 
   async computeHash(
     buffer: Buffer | Uint8Array,
-    algorithm: HashAlgorithm = 'sha256',
+    algorithm: HashAlgorithm = "sha256",
   ): Promise<string> {
     // Node.js crypto is always available in server‑side contexts
-    const { createHash } = await import('crypto');
-    return createHash(algorithm)
-      .update(Buffer.from(buffer))
-      .digest('hex');
+    const { createHash } = await import("crypto");
+    return createHash(algorithm).update(Buffer.from(buffer)).digest("hex");
   }
 
   /* ------------------------------------------------------------------ *
@@ -217,7 +225,7 @@ export class SharpImageProcessor implements ImageProcessor {
     const entries: string[] = [];
 
     // Prefer WebP variants for srcset
-    const presetNames = ['small', 'medium', 'large', 'full'] as const;
+    const presetNames = ["small", "medium", "large", "full"] as const;
     for (const name of presetNames) {
       const webpKey = `${name}_webp` as keyof MediaVariantMapWithWebP;
       const origKey = name as keyof MediaVariantMapWithWebP;
@@ -228,7 +236,7 @@ export class SharpImageProcessor implements ImageProcessor {
       }
     }
 
-    return entries.join(', ');
+    return entries.join(", ");
   }
 
   /* ------------------------------------------------------------------ *
@@ -239,24 +247,24 @@ export class SharpImageProcessor implements ImageProcessor {
     if (this._sharp) return this._sharp;
     try {
       // Dynamic import — sharp may not be installed
-      const mod = await import('sharp');
-      this._sharp = (mod.default ?? mod) as unknown as SharpFactory;
+      const mod = await import("sharp");
+      this._sharp = (mod.default ?? mod) as SharpFactory;
       return this._sharp;
     } catch {
       throw new Error(
-        'sharp is required for image processing. Install it with: npm install sharp',
+        "sharp is required for image processing. Install it with: npm install sharp",
       );
     }
   }
 
   private mapFit(fit: string): string {
     const MAP: Record<string, string> = {
-      cover:   'cover',
-      contain: 'contain',
-      fill:    'fill',
-      inside:  'inside',
-      outside: 'outside',
+      cover: "cover",
+      contain: "contain",
+      fill: "fill",
+      inside: "inside",
+      outside: "outside",
     };
-    return MAP[fit] ?? 'inside';
+    return MAP[fit] ?? "inside";
   }
 }

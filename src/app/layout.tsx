@@ -84,15 +84,14 @@ export async function generateMetadata(): Promise<Metadata> {
     siteName = s.siteName || siteName;
     description = s.siteDescription || description;
     faviconUrl = s.faviconUrl || faviconUrl;
-    const raw = s as unknown as Record<string, unknown>;
-    ogImage = (raw.seoDefaultImage as string) || null;
-    googleVerification = (raw.seoGoogleVerification as string) || null;
-    bingVerification = (raw.seoBingVerification as string) || null;
-    yandexVerification = (raw.seoYandexVerification as string) || null;
-    pinterestVerification = (raw.seoPinterestVerification as string) || null;
-    baiduVerification = (raw.seoBaiduVerification as string) || null;
+    ogImage = s.seoDefaultImage || null;
+    googleVerification = s.seoGoogleVerification || null;
+    bingVerification = s.seoBingVerification || null;
+    yandexVerification = s.seoYandexVerification || null;
+    pinterestVerification = s.seoPinterestVerification || null;
+    baiduVerification = s.seoBaiduVerification || null;
     // Use admin-configured title template if set (e.g. "%s — MySite")
-    const customTemplate = raw.seoTitleTemplate as string | null;
+    const customTemplate = s.seoTitleTemplate;
     if (customTemplate && customTemplate.includes("%s")) {
       titleTemplate = customTemplate.replace(/%siteName%/g, siteName);
     } else {

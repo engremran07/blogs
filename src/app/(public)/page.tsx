@@ -1,16 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/server/db/prisma";
-import { ArrowRight, Calendar, Clock, Tag } from "lucide-react";
+import { ArrowRight, Calendar, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/Card";
 import { PostImageFallback } from "@/components/blog/PostImageFallback";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import {
   buildOrganizationJsonLd,
+  buildWebPageJsonLd,
   serializeJsonLd,
 } from "@/features/seo/server/json-ld.util";
 import type { Metadata } from "next";
-import type { PostListItem, TagDetail } from "@/types/prisma-helpers";
+import type { PostListItem } from "@/types/prisma-helpers";
 
 const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
@@ -18,9 +19,85 @@ const SITE_URL = (
 
 export const revalidate = 900; // ISR: rebuild at most every 15 minutes
 
+/** Returns the page marked as isHomePage, if any. */
+async function getCustomHomePage() {
+  return prisma.page.findFirst({
+    where: { isHomePage: true, status: "PUBLISHED", deletedAt: null },
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      excerpt: true,
+      metaTitle: true,
+      metaDescription: true,
+      ogTitle: true,
+      ogDescription: true,
+      ogImage: true,
+      canonicalUrl: true,
+      noIndex: true,
+      noFollow: true,
+      featuredImage: true,
+      featuredImageAlt: true,
+      customCss: true,
+      customHead: true,
+      updatedAt: true,
+      slug: true,
+      author: { select: { displayName: true, username: true } },
+    },
+  });
+}
+
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.siteSettings.findFirst();
+  const [settings, customPage] = await Promise.all([
+    prisma.siteSettings.findFirst(),
+    getCustomHomePage(),
+  ]);
   const siteName = settings?.siteName || "MyBlog";
+
+  // If a custom home page is set, use its SEO fields
+  if (customPage) {
+    const title = customPage.metaTitle || customPage.title;
+    const description =
+      customPage.metaDescription ||
+      customPage.excerpt ||
+      `${customPage.title} — ${siteName}`;
+    const ogImage = customPage.ogImage;
+
+    return {
+      title: { absolute: `${title} | ${siteName}` },
+      description,
+      alternates: {
+        canonical: customPage.canonicalUrl || SITE_URL,
+      },
+      robots: {
+        index: !customPage.noIndex,
+        follow: !customPage.noFollow,
+      },
+      openGraph: {
+        title: customPage.ogTitle || title,
+        description: customPage.ogDescription || description,
+        url: SITE_URL,
+        type: "website",
+        siteName,
+        locale: "en_US",
+        ...(ogImage
+          ? {
+              images: [
+                { url: ogImage, width: 1200, height: 630, alt: title },
+              ],
+            }
+          : {}),
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: customPage.ogTitle || title,
+        description: customPage.ogDescription || description,
+        ...(ogImage ? { images: [ogImage] } : {}),
+      },
+    };
+  }
+
+  // Default blog home metadata
   const description =
     settings?.siteDescription || "A modern blog platform built with Next.js";
   const ogImage = (settings as Record<string, unknown>)?.seoDefaultImage as
@@ -78,18 +155,63 @@ async function getFeaturedPost() {
   });
 }
 
-async function getPopularTags() {
-  return prisma.tag.findMany({
-    orderBy: { usageCount: "desc" },
-    take: 12,
-  });
-}
 
 export default async function HomePage() {
-  const [posts, featured, tags, settings] = await Promise.all([
+  // Check if admin has set a custom page as the home page
+  const customPage = await getCustomHomePage();
+
+  if (customPage) {
+    const settings = await prisma.siteSettings.findFirst({
+      select: { siteName: true },
+    });
+    const siteName = settings?.siteName || "MyBlog";
+    const jsonLd = buildWebPageJsonLd({
+      name: customPage.metaTitle || customPage.title,
+      url: SITE_URL,
+      description: customPage.excerpt || undefined,
+      isPartOf: { name: siteName, url: SITE_URL },
+    });
+
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+        />
+
+        {customPage.customCss && (
+          <style dangerouslySetInnerHTML={{ __html: customPage.customCss }} />
+        )}
+
+        {/* Page Header */}
+        <header className="mb-10 text-center">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+            {customPage.title}
+          </h1>
+          {customPage.excerpt && (
+            <p className="mt-3 text-lg text-gray-600 dark:text-gray-400">
+              {customPage.excerpt}
+            </p>
+          )}
+        </header>
+
+        {/* Page Content */}
+        <article className="prose prose-lg mx-auto max-w-none dark:prose-invert prose-headings:text-gray-900 prose-p:text-gray-600 prose-a:text-primary dark:prose-headings:text-white dark:prose-p:text-gray-400">
+          <div dangerouslySetInnerHTML={{ __html: customPage.content }} />
+        </article>
+
+        {/* Home Page Ad */}
+        <div className="mt-12">
+          <AdContainer position="IN_CONTENT" pageType="home" />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Default Blog Home Layout ──────────────────────────────────────────
+  const [posts, featured, settings] = await Promise.all([
     getLatestPosts() as Promise<PostListItem[]>,
     getFeaturedPost() as Promise<PostListItem | null>,
-    getPopularTags() as Promise<TagDetail[]>,
     prisma.siteSettings.findFirst(),
   ]);
 
@@ -128,7 +250,7 @@ export default async function HomePage() {
       {/* Hero Section */}
       <section className="mb-16 text-center">
         <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl dark:text-white">
-          Welcome to <span className="text-blue-600">{siteName}</span>
+          Welcome to <span className="text-primary">{siteName}</span>
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
           {siteDescription}
@@ -136,7 +258,7 @@ export default async function HomePage() {
         <div className="mt-8 flex justify-center gap-4">
           <Link
             href="/blog"
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-white transition-colors hover:bg-primary/90"
           >
             Browse Articles
             <ArrowRight className="h-4 w-4" />
@@ -153,7 +275,7 @@ export default async function HomePage() {
       {/* Featured Post */}
       {featured && (
         <section className="mb-16">
-          <h2 className="mb-6 text-sm font-semibold uppercase tracking-wider text-blue-600">
+          <h2 className="mb-6 text-sm font-semibold uppercase tracking-wider text-primary">
             Featured
           </h2>
           <Link
@@ -187,7 +309,7 @@ export default async function HomePage() {
                     </Badge>
                   ))}
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                <h3 className="text-2xl font-bold text-gray-900 group-hover:text-primary dark:text-white">
                   {featured.title}
                 </h3>
                 {featured.excerpt && (
@@ -230,7 +352,7 @@ export default async function HomePage() {
           </h2>
           <Link
             href="/blog"
-            className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
           >
             View all <ArrowRight className="h-4 w-4" />
           </Link>
@@ -275,7 +397,7 @@ export default async function HomePage() {
                       </Badge>
                     ))}
                   </div>
-                  <h3 className="line-clamp-2 text-lg font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                  <h3 className="line-clamp-2 text-lg font-semibold text-gray-900 group-hover:text-primary dark:text-white">
                     {post.title}
                   </h3>
                   {post.excerpt && (
@@ -310,38 +432,6 @@ export default async function HomePage() {
       <div className="my-8">
         <AdContainer position="IN_CONTENT" pageType="home" />
       </div>
-
-      {/* Tags Cloud */}
-      {tags.length > 0 && (
-        <section>
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Popular Tags
-            </h2>
-            <Link
-              href="/tags"
-              className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
-            >
-              All tags <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <Link
-                key={tag.id}
-                href={`/tags/${tag.slug}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
-              >
-                <Tag className="h-3.5 w-3.5" />
-                {tag.name}
-                <span className="text-xs text-gray-400">
-                  ({tag.usageCount})
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

@@ -390,6 +390,6 @@ export interface CommentsPrismaClient {
   comment: PrismaDelegateWithAggregate<CommentData>;
   commentVote: PrismaDelegate;
   learningSignal: PrismaDelegate<LearningSignalData>;
-  commentSettings: PrismaDelegate;
+  commentSettings: PrismaDelegate<CommentSystemSettings>;
   post: PrismaDelegate;
 }

@@ -362,7 +362,7 @@ export default function SeoFixPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -371,7 +371,7 @@ export default function SeoFixPage() {
     return (
       <div className="py-16 text-center text-gray-500">
         Content not found.{" "}
-        <Link href="/admin/seo" className="text-blue-600 hover:underline">
+        <Link href="/admin/seo" className="text-primary hover:underline">
           Back to SEO
         </Link>
       </div>
@@ -460,7 +460,7 @@ export default function SeoFixPage() {
                     fieldChecks.seoTitle.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
                     fieldChecks.seoTitle.status === "fail" ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700" :
                     fieldChecks.seoTitle.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                    "border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600"
+                    "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
                   )}
                 />
                 <div className="mt-1">
@@ -469,7 +469,7 @@ export default function SeoFixPage() {
                 {suggestions?.suggestedTitle && seoTitle !== suggestions.suggestedTitle && (
                   <button
                     onClick={() => applySuggestion("title")}
-                    className="mt-1 text-xs text-blue-600 hover:underline dark:text-blue-400"
+                    className="mt-1 text-xs text-primary hover:underline dark:text-primary"
                   >
                     💡 Use: &quot;{suggestions.suggestedTitle.substring(0, 60)}&quot;
                   </button>
@@ -496,7 +496,7 @@ export default function SeoFixPage() {
                     fieldChecks.seoDescription.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
                     fieldChecks.seoDescription.status === "fail" ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700" :
                     fieldChecks.seoDescription.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                    "border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600"
+                    "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
                   )}
                 />
                 <div className="mt-1">
@@ -505,7 +505,7 @@ export default function SeoFixPage() {
                 {suggestions?.suggestedDescription && seoDescription !== suggestions.suggestedDescription && (
                   <button
                     onClick={() => applySuggestion("description")}
-                    className="mt-1 text-xs text-blue-600 hover:underline dark:text-blue-400"
+                    className="mt-1 text-xs text-primary hover:underline dark:text-primary"
                   >
                     💡 Use suggested description
                   </button>
@@ -527,7 +527,7 @@ export default function SeoFixPage() {
                       "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
                       fieldChecks.keywords.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
                       fieldChecks.keywords.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                      "border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600"
+                      "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
                     )}
                   />
                   <div className="mt-1">
@@ -545,7 +545,7 @@ export default function SeoFixPage() {
                               setSeoKeywords([...current, kw.term].join(", "));
                             }
                           }}
-                          className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400"
+                          className="rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary hover:bg-primary/15 dark:bg-primary/20 dark:text-primary"
                         >
                           +{kw.term}
                         </button>
@@ -570,7 +570,7 @@ export default function SeoFixPage() {
                       "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
                       fieldChecks.excerpt.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
                       fieldChecks.excerpt.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                      "border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600"
+                      "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
                     )}
                   />
                   <div className="mt-1">
@@ -598,7 +598,7 @@ export default function SeoFixPage() {
                       fieldChecks.ogTitle.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
                       fieldChecks.ogTitle.status === "fail" ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700" :
                       fieldChecks.ogTitle.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                      "border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600"
+                      "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
                     )}
                   />
                   <div className="mt-1">
@@ -617,7 +617,7 @@ export default function SeoFixPage() {
                       fieldChecks.ogImage.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
                       fieldChecks.ogImage.status === "fail" ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700" :
                       fieldChecks.ogImage.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                      "border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600"
+                      "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
                     )}
                   />
                   <div className="mt-1">
@@ -636,7 +636,7 @@ export default function SeoFixPage() {
                     "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
                     fieldChecks.ogDescription.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
                     fieldChecks.ogDescription.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                    "border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600"
+                    "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
                   )}
                 />
                 <div className="mt-1">
@@ -654,7 +654,7 @@ export default function SeoFixPage() {
                     "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
                     fieldChecks.canonical.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
                     fieldChecks.canonical.status === "fail" ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700" :
-                    "border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600"
+                    "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
                   )}
                 />
                 <div className="mt-1">

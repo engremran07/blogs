@@ -90,7 +90,7 @@ export class CaptchaAdminSettingsService {
       },
     });
 
-    this.cached = updated as unknown as CaptchaSystemSettings;
+    this.cached = updated;
     await this.propagateConfig(this.cached);
     return this.cached;
   }
@@ -537,7 +537,7 @@ export class CaptchaAdminSettingsService {
       });
     }
 
-    this.cached = row as unknown as CaptchaSystemSettings;
+    this.cached = row;
     return this.cached;
   }
 

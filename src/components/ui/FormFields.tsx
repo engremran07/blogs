@@ -37,7 +37,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             className={clsx(
               "block w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 transition-colors",
-              "focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20",
+              "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
               "dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500",
               error
                 ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"
@@ -91,7 +91,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           id={inputId}
           className={clsx(
             "block w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 transition-colors",
-            "focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20",
+            "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
             "dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500",
             "min-h-20 resize-y",
             error
@@ -140,7 +140,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           id={inputId}
           className={clsx(
             "block w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 transition-colors",
-            "focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20",
+            "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
             "dark:bg-gray-900 dark:text-gray-100 dark:border-gray-600",
             error
               ? "border-red-300 focus:border-red-500 focus:ring-red-500/20"

@@ -75,7 +75,7 @@ function LoginForm() {
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold text-white">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-xl font-bold text-white">
             B
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h1>
@@ -148,7 +148,7 @@ function LoginForm() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              className="text-sm font-medium text-primary hover:text-primary/80"
             >
               Forgot password?
             </Link>
@@ -169,7 +169,7 @@ function LoginForm() {
           Don&apos;t have an account?{" "}
           <Link
             href="/register"
-            className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            className="font-medium text-primary hover:text-primary/80"
           >
             Create one
           </Link>

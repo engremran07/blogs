@@ -73,7 +73,7 @@ export default function SearchContent() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by title, content, or tag..."
-            className="w-full rounded-xl border border-gray-300 bg-white py-4 pl-12 pr-12 text-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="w-full rounded-xl border border-gray-300 bg-white py-4 pl-12 pr-12 text-lg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
           {query && (
             <button
@@ -90,7 +90,7 @@ export default function SearchContent() {
       {/* Results */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : searched && results.length === 0 ? (
         <div className="py-12 text-center">
@@ -113,7 +113,7 @@ export default function SearchContent() {
             <Link
               key={post.id}
               href={`/blog/${post.slug}`}
-              className="group flex gap-5 rounded-xl border border-gray-200 bg-white p-5 transition-all hover:border-blue-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600"
+              className="group flex gap-5 rounded-xl border border-gray-200 bg-white p-5 transition-all hover:border-primary/30 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
             >
               {post.featuredImage ? (
                 <div className="hidden h-24 w-36 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:block dark:bg-gray-700">
@@ -136,7 +136,7 @@ export default function SearchContent() {
                 </div>
               )}
               <div className="flex-1">
-                <h2 className="mb-1 font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                <h2 className="mb-1 font-semibold text-gray-900 group-hover:text-primary dark:text-white">
                   {post.title}
                 </h2>
                 {post.excerpt && (

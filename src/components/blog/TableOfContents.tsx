@@ -90,7 +90,7 @@ export function TableOfContents({ content }: { content: string }) {
               }}
               className={`block rounded px-2 py-1 text-sm transition-colors ${
                 activeId === h.id
-                  ? "bg-blue-50 font-medium text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                  ? "bg-primary/10 font-medium text-primary"
                   : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
               }`}
               style={{ paddingLeft: `${(h.level - 1) * 12 + 8}px` }}

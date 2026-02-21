@@ -184,7 +184,7 @@ export default function ProfilePage() {
             fallback={form.displayName || form.username}
             size="lg"
           />
-          <button className="absolute -bottom-1 -right-1 rounded-full bg-blue-600 p-1.5 text-white shadow-md hover:bg-blue-700">
+          <button className="absolute -bottom-1 -right-1 rounded-full bg-primary p-1.5 text-white shadow-md hover:bg-primary/90">
             <Camera className="h-3.5 w-3.5" />
           </button>
         </div>

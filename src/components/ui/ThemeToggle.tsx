@@ -1,26 +1,23 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { Sun, Moon, Monitor } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import { useSyncExternalStore, useCallback } from "react";
 
 const subscribeNoop = () => () => {};
 const getTrue = () => true;
 const getFalse = () => false;
 
-type ThemeMode = "system" | "light" | "dark";
-
-const CYCLE: ThemeMode[] = ["system", "light", "dark"];
+type ThemeMode = "light" | "dark";
 
 const LABELS: Record<ThemeMode, string> = {
-  system: "Auto (system)",
   light: "Light",
   dark: "Dark",
 };
 
 /**
- * Single-button theme toggle that cycles: Auto → Light → Dark → Auto
- * Default is Auto (system). Preference persisted via next-themes (localStorage).
+ * Two-state theme toggle: Light ↔ Dark.
+ * Preference persisted via next-themes (localStorage).
  *
  * @param variant - "icon" (site header), "pill" (segmented control),
  *                  "adminbar" (dark admin bar bg)
@@ -30,32 +27,27 @@ export function ThemeToggle({
 }: {
   variant?: "icon" | "pill" | "adminbar";
 }) {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(subscribeNoop, getTrue, getFalse);
 
-  const current: ThemeMode =
-    theme === "light" || theme === "dark" ? theme : "system";
+  const current: ThemeMode = resolvedTheme === "dark" ? "dark" : "light";
 
-  const cycle = useCallback(() => {
-    const idx = CYCLE.indexOf(current);
-    setTheme(CYCLE[(idx + 1) % CYCLE.length]);
+  const toggle = useCallback(() => {
+    setTheme(current === "dark" ? "light" : "dark");
   }, [current, setTheme]);
 
   if (!mounted) return null;
 
-  // Pick icon based on effective state
-  const Icon =
-    current === "system" ? Monitor : resolvedTheme === "dark" ? Moon : Sun;
+  const Icon = current === "dark" ? Moon : Sun;
 
   /* ── Pill variant: segmented control ── */
   if (variant === "pill") {
+    const modes: ThemeMode[] = ["light", "dark"];
     return (
       <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-100 p-0.5 dark:border-gray-700 dark:bg-gray-800">
-        {CYCLE.map((value) => {
-          const ModeIcon =
-            value === "system" ? Monitor : value === "light" ? Sun : Moon;
-          const label =
-            value === "system" ? "Auto" : value === "light" ? "Light" : "Dark";
+        {modes.map((value) => {
+          const ModeIcon = value === "light" ? Sun : Moon;
+          const label = value === "light" ? "Light" : "Dark";
           return (
             <button
               key={value}
@@ -81,7 +73,7 @@ export function ThemeToggle({
   if (variant === "adminbar") {
     return (
       <button
-        onClick={cycle}
+        onClick={toggle}
         className="flex items-center gap-1 rounded px-1.5 py-1 text-sm text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
         aria-label={`Theme: ${LABELS[current]}`}
         title={`Theme: ${LABELS[current]} — click to switch`}
@@ -91,10 +83,10 @@ export function ThemeToggle({
     );
   }
 
-  /* ── Icon variant (default): single button that cycles ── */
+  /* ── Icon variant (default): single button that toggles ── */
   return (
     <button
-      onClick={cycle}
+      onClick={toggle}
       className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
       aria-label={`Theme: ${LABELS[current]}`}
       title={`Theme: ${LABELS[current]} — click to switch`}

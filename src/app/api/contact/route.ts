@@ -8,7 +8,11 @@ const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(200),
   email: z.string().trim().email("Valid email is required").max(200),
   subject: z.string().trim().max(300).optional().default(""),
-  message: z.string().trim().min(10, "Message must be at least 10 characters").max(5000),
+  message: z
+    .string()
+    .trim()
+    .min(10, "Message must be at least 10 characters")
+    .max(5000),
   captchaToken: z.string().min(1, "Please complete the security check"),
   captchaId: z.string().optional(),
   captchaType: z.string().optional(),
@@ -37,7 +41,10 @@ export async function POST(req: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: parsed.error.issues.map((i) => i.message).join(", ") },
+        {
+          success: false,
+          error: parsed.error.issues.map((i) => i.message).join(", "),
+        },
         { status: 400 },
       );
     }
@@ -45,12 +52,16 @@ export async function POST(req: NextRequest) {
     const { name, email, subject, message } = parsed.data;
 
     // ── Rate limiting (in-memory fallback; middleware also rate-limits mutations) ──
-    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-      || req.headers.get("x-real-ip")
-      || "unknown";
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      "unknown";
     if (isContactRateLimited(clientIp)) {
       return NextResponse.json(
-        { success: false, error: "Too many submissions. Please try again later." },
+        {
+          success: false,
+          error: "Too many submissions. Please try again later.",
+        },
         { status: 429 },
       );
     }
@@ -60,9 +71,18 @@ export async function POST(req: NextRequest) {
       const { captchaVerificationService } = await import("@/server/wiring");
       const result = await captchaVerificationService.verify({
         token: parsed.data.captchaToken,
-        clientIp: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown",
+        clientIp:
+          req.headers.get("x-forwarded-for") ||
+          req.headers.get("x-real-ip") ||
+          "unknown",
         captchaId: parsed.data.captchaId,
-        captchaType: parsed.data.captchaType as "turnstile" | "recaptcha-v3" | "recaptcha-v2" | "hcaptcha" | "custom" | undefined,
+        captchaType: parsed.data.captchaType as
+          | "turnstile"
+          | "recaptcha-v3"
+          | "recaptcha-v2"
+          | "hcaptcha"
+          | "custom"
+          | undefined,
       });
       if (!result.success) {
         return NextResponse.json(
@@ -72,26 +92,34 @@ export async function POST(req: NextRequest) {
       }
     } catch (err) {
       // SECURITY: fail-closed — if captcha service errors, deny the request
-      console.error("[Contact] CAPTCHA verification error:", (err as Error).message);
+      console.error(
+        "[Contact] CAPTCHA verification error:",
+        (err as Error).message,
+      );
       return NextResponse.json(
-        { success: false, error: "Security verification failed. Please try again." },
+        {
+          success: false,
+          error: "Security verification failed. Please try again.",
+        },
         { status: 400 },
       );
     }
 
     // Get settings to find recipient email
     const settings = await siteSettingsService.getSettings();
-    const raw = settings as unknown as Record<string, unknown>;
-    const recipientEmail = (raw.contactEmail as string)
-      || (raw.emailFromAddress as string)
-      || null;
+    const recipientEmail =
+      settings.contactEmail || settings.emailFromAddress || null;
 
     if (!recipientEmail) {
-      console.warn("[Contact] No contact or from email configured — message logged but not sent");
+      console.warn(
+        "[Contact] No contact or from email configured — message logged but not sent",
+      );
     }
 
     // Send the email notification
-    const safeSubject = subject ? `Contact: ${subject}` : `Contact message from ${name}`;
+    const safeSubject = subject
+      ? `Contact: ${subject}`
+      : `Contact message from ${name}`;
     const html = `
       <h2>New Contact Form Submission</h2>
       <table style="border-collapse:collapse; width:100%;">
@@ -105,23 +133,37 @@ export async function POST(req: NextRequest) {
 
     if (recipientEmail) {
       // Only send if emailNotifyOnContact is enabled (defaults to true when not set)
-      const notifyOnContact = (raw.emailNotifyOnContact as boolean | undefined) ?? true;
+      const notifyOnContact = settings.emailNotifyOnContact ?? true;
       if (notifyOnContact) {
         try {
           const smtpConfig = () => siteSettingsService.getSmtpConfig();
-          await sendTransactionalEmail(smtpConfig, recipientEmail, safeSubject, html);
+          await sendTransactionalEmail(
+            smtpConfig,
+            recipientEmail,
+            safeSubject,
+            html,
+          );
         } catch (err) {
-          console.error("[Contact] Failed to send email:", (err as Error).message);
+          console.error(
+            "[Contact] Failed to send email:",
+            (err as Error).message,
+          );
           // Still return success — message was received
         }
       }
     }
 
-    return NextResponse.json({ success: true, message: "Message sent successfully" });
+    return NextResponse.json({
+      success: true,
+      message: "Message sent successfully",
+    });
   } catch (err) {
     console.error("[Contact API] Error:", err);
     return NextResponse.json(
-      { success: false, error: "Failed to process your message. Please try again." },
+      {
+        success: false,
+        error: "Failed to process your message. Please try again.",
+      },
       { status: 500 },
     );
   }

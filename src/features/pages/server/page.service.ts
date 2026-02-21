@@ -171,6 +171,7 @@ export class PageService implements PagesConfigConsumer {
         publishedAt: status === 'PUBLISHED' ? new Date() : null,
         scheduledFor,
         deletedAt: null,
+        ...(input.tagIds?.length ? { tags: { connect: input.tagIds.map(id => ({ id })) } } : {}),
       },
     });
 
@@ -191,7 +192,10 @@ export class PageService implements PagesConfigConsumer {
     const where: Record<string, unknown> = { id };
     if (!includeDeleted) where.deletedAt = null;
 
-    const page = await this.prisma.page.findFirst({ where });
+    const page = await this.prisma.page.findFirst({
+      where,
+      include: { tags: { select: { id: true, name: true, slug: true } } },
+    });
     if (!page) return null;
 
     const result = page as PageWithRelations;
@@ -206,7 +210,10 @@ export class PageService implements PagesConfigConsumer {
     const where: Record<string, unknown> = { slug };
     if (!includeDeleted) where.deletedAt = null;
 
-    const page = await this.prisma.page.findFirst({ where });
+    const page = await this.prisma.page.findFirst({
+      where,
+      include: { tags: { select: { id: true, name: true, slug: true } } },
+    });
     if (!page) return null;
 
     const result = page as PageWithRelations;
@@ -448,6 +455,11 @@ export class PageService implements PagesConfigConsumer {
           data.status = 'DRAFT';
         }
       }
+    }
+
+    // Tags
+    if (input.tagIds !== undefined) {
+      data.tags = { set: input.tagIds.map(tid => ({ id: tid })) };
     }
 
     // Bump revision

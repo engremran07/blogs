@@ -412,7 +412,7 @@ export default function DistributionAdminPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -439,7 +439,7 @@ export default function DistributionAdminPage() {
               role="switch"
               aria-checked={distOn}
               onClick={toggleDistribution}
-              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
+              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
                 distOn ? "bg-green-500" : "bg-red-500"
               }`}
             >
@@ -806,7 +806,7 @@ export default function DistributionAdminPage() {
                           href={r.externalUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline dark:text-blue-400 text-xs"
+                          className="text-primary hover:underline dark:text-primary text-xs"
                         >
                           View
                         </a>
@@ -845,7 +845,7 @@ export default function DistributionAdminPage() {
                                 toast("Retry failed", "error");
                               }
                             }}
-                            className="rounded p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                            className="rounded p-1 text-primary hover:bg-primary/5 dark:text-primary dark:hover:bg-primary/10"
                             title="Retry"
                           >
                             <RefreshCw className="h-3.5 w-3.5" />

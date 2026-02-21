@@ -82,7 +82,7 @@ export async function RelatedPosts({
               />
             )}
             <div className="flex flex-1 flex-col p-4">
-              <h3 className="line-clamp-2 text-sm font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+              <h3 className="line-clamp-2 text-sm font-semibold text-gray-900 group-hover:text-primary dark:text-white">
                 {post.title}
               </h3>
               {post.excerpt && (

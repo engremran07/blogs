@@ -243,7 +243,7 @@ function InhouseCaptchaInner({
   }
 
   /* ── Main render ── */
-  const progressColor = expiryProgress < 20 ? 'bg-amber-500' : 'bg-blue-600';
+  const progressColor = expiryProgress < 20 ? 'bg-amber-500' : 'bg-primary';
 
   return (
     <div
@@ -278,7 +278,7 @@ function InhouseCaptchaInner({
           onClick={() => newChallenge(true)}
           title="New Challenge"
           aria-label="Get new captcha challenge"
-          className="rounded p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+          className="rounded p-1 text-primary hover:bg-primary/10"
         >
           <RefreshCw size={14} />
         </button>
@@ -338,7 +338,7 @@ function InhouseCaptchaInner({
               ? 'border-green-500 ring-1 ring-green-500 dark:border-green-400'
               : expired
                 ? 'border-amber-400 bg-gray-100 text-gray-400 dark:border-amber-600 dark:bg-gray-800 dark:text-gray-500'
-                : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:border-blue-400',
+                : 'border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-600 dark:bg-gray-900 dark:text-white',
           )}
         />
       </div>

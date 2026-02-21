@@ -21,6 +21,7 @@ import type {
 } from "../types";
 import { TagSortField } from "../types";
 import { DEFAULT_CONFIG } from "./constants";
+import { similarity } from "./string-utils";
 
 /** Recursive tree node for getNestedTree */
 interface TagTreeNode {
@@ -610,7 +611,7 @@ export class TagService {
             parent: { select: { name: true } },
             _count: { select: { posts: true, children: true } },
           },
-        }) as unknown as Promise<
+        }) as Promise<
           Array<
             TagData & {
               parent: { name: string } | null;
@@ -738,7 +739,7 @@ export class TagService {
     const duplicates: DuplicateCandidate[] = [];
     for (let i = 0; i < tags.length; i++) {
       for (let j = i + 1; j < tags.length; j++) {
-        const score = this.similarity(tags[i].name, tags[j].name);
+        const score = similarity(tags[i].name, tags[j].name);
         if (score >= cutoff) {
           duplicates.push({
             a: tags[i],
@@ -958,15 +959,19 @@ export class TagService {
     const orphans = (await this.prisma.tag.findMany({
       where,
       select: { id: true, _count: { select: { posts: true, children: true } } },
-    })) as unknown as Array<{
-      id: string;
-      _count: { posts: number; children: number };
-    }>;
+    })) as Array<
+      TagData & {
+        _count?: {
+          posts?: number;
+          children?: number;
+        };
+      }
+    >;
 
     let deleted = 0;
     let skipped = 0;
     for (const tag of orphans) {
-      if (tag._count.posts === 0 && tag._count.children === 0) {
+      if ((tag._count?.posts ?? 0) === 0 && (tag._count?.children ?? 0) === 0) {
         await this.prisma.tagFollow.deleteMany({ where: { tagId: tag.id } });
         await this.prisma.tag.delete({ where: { id: tag.id } });
         deleted++;
@@ -1189,28 +1194,5 @@ export class TagService {
       current = parent?.parentId ?? null;
     }
     return false;
-  }
-
-  private similarity(a: string, b: string): number {
-    const s = a.toLowerCase();
-    const t = b.toLowerCase();
-    if (s === t) return 1;
-    const len = Math.max(s.length, t.length);
-    return 1 - this.levenshtein(s, t) / len;
-  }
-
-  private levenshtein(a: string, b: string): number {
-    const m: number[][] = [];
-    for (let i = 0; i <= b.length; i++) m[i] = [i];
-    for (let j = 0; j <= a.length; j++) m[0][j] = j;
-    for (let i = 1; i <= b.length; i++) {
-      for (let j = 1; j <= a.length; j++) {
-        m[i][j] =
-          b[i - 1] === a[j - 1]
-            ? m[i - 1][j - 1]
-            : Math.min(m[i - 1][j - 1] + 1, m[i][j - 1] + 1, m[i - 1][j] + 1);
-      }
-    }
-    return m[b.length][a.length];
   }
 }

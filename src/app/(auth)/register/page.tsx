@@ -99,7 +99,7 @@ export default function RegisterPage() {
   if (registrationEnabled === null) {
     return (
       <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -118,7 +118,7 @@ export default function RegisterPage() {
           </p>
           <Link
             href="/login"
-            className="mt-6 inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            className="mt-6 inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
           >
             Go to Sign In
           </Link>
@@ -131,7 +131,7 @@ export default function RegisterPage() {
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold text-white">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-xl font-bold text-white">
             B
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create an account</h1>
@@ -212,16 +212,16 @@ export default function RegisterPage() {
                 type="checkbox"
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 required
               />
               <span>
                 I agree to the{" "}
-                <Link href="/privacy-policy" target="_blank" className="font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400">
+                <Link href="/privacy-policy" target="_blank" className="font-medium text-primary underline hover:text-primary/80">
                   Privacy Policy
                 </Link>{" "}
                 and{" "}
-                <Link href="/terms-of-service" target="_blank" className="font-medium text-blue-600 underline hover:text-blue-700 dark:text-blue-400">
+                <Link href="/terms-of-service" target="_blank" className="font-medium text-primary underline hover:text-primary/80">
                   Terms of Service
                 </Link>
               </span>
@@ -254,7 +254,7 @@ export default function RegisterPage() {
           Already have an account?{" "}
           <Link
             href="/login"
-            className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            className="font-medium text-primary hover:text-primary/80"
           >
             Sign in
           </Link>

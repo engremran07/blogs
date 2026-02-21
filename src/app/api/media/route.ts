@@ -4,6 +4,7 @@ import { mediaService } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
 import { UploadMediaSchema } from "@/features/media/server/schemas";
 import { MEDIA_LIMITS } from "@/features/media/server/constants";
+import { parseJsonUnknown } from "@/shared/safe-json.util";
 import { z } from "zod";
 
 const logger = createLogger("api/media");
@@ -11,7 +12,13 @@ const logger = createLogger("api/media");
 /** Valid sort fields for media listing. */
 const VALID_SORT_FIELDS = ["name", "size", "date", "type"] as const;
 const VALID_SORT_DIRS = ["asc", "desc"] as const;
-const VALID_MEDIA_TYPES = ["IMAGE", "VIDEO", "AUDIO", "DOCUMENT", "OTHER"] as const;
+const VALID_MEDIA_TYPES = [
+  "IMAGE",
+  "VIDEO",
+  "AUDIO",
+  "DOCUMENT",
+  "OTHER",
+] as const;
 
 /** Zod schema for GET /api/media query parameters. */
 const mediaListQuerySchema = z.object({
@@ -60,12 +67,17 @@ export async function GET(req: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "Invalid query parameters", details: parsed.error.flatten() },
-        { status: 400 }
+        {
+          success: false,
+          error: "Invalid query parameters",
+          details: parsed.error.flatten(),
+        },
+        { status: 400 },
       );
     }
 
-    const { page, pageSize, search, folder, mediaType, sortField, sortDir } = parsed.data;
+    const { page, pageSize, search, folder, mediaType, sortField, sortDir } =
+      parsed.data;
 
     const filter = {
       ...(search && { search }),
@@ -75,14 +87,19 @@ export async function GET(req: NextRequest) {
 
     const sort = { field: sortField, direction: sortDir };
 
-    const result = await mediaService.list(filter, sort, page, pageSize as number);
+    const result = await mediaService.list(
+      filter,
+      sort,
+      page,
+      pageSize as number,
+    );
 
     return NextResponse.json(result);
   } catch (error) {
     logger.error("[api/media] GET error:", { error });
     return NextResponse.json(
       { success: false, error: "Failed to fetch media" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -93,17 +110,30 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { userId, errorResponse } = await requireAuth({ level: 'author' });
+    const { userId, errorResponse } = await requireAuth({ level: "author" });
     if (errorResponse) return errorResponse;
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
+    const rawTags = formData.get("tags");
 
     if (!file) {
       return NextResponse.json(
         { success: false, error: "No file provided" },
-        { status: 400 }
+        { status: 400 },
       );
+    }
+
+    let tags: unknown = undefined;
+    if (typeof rawTags === "string" && rawTags.length > 0) {
+      const parsedTags = parseJsonUnknown(rawTags);
+      if (!parsedTags.success) {
+        return NextResponse.json(
+          { success: false, error: "Invalid tags JSON" },
+          { status: 400 },
+        );
+      }
+      tags = parsedTags.data;
     }
 
     // Validate with Zod schema
@@ -115,9 +145,7 @@ export async function POST(req: NextRequest) {
       altText: formData.get("altText") || undefined,
       title: formData.get("title") || undefined,
       description: formData.get("description") || undefined,
-      tags: formData.get("tags")
-        ? JSON.parse(formData.get("tags") as string)
-        : undefined,
+      tags,
     });
 
     if (!validation.success) {
@@ -127,7 +155,7 @@ export async function POST(req: NextRequest) {
           error: "Validation failed",
           details: validation.error.flatten(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -146,7 +174,7 @@ export async function POST(req: NextRequest) {
         description: validation.data.description,
         tags: validation.data.tags,
       },
-      userId
+      userId,
     );
 
     if (!result.success) {
@@ -158,7 +186,7 @@ export async function POST(req: NextRequest) {
     logger.error("[api/media] POST error:", { error });
     return NextResponse.json(
       { success: false, error: "Failed to upload file" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

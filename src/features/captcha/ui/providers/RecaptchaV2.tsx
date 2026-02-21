@@ -199,7 +199,7 @@ function RecaptchaV2Inner({
             type="button"
             onClick={handleManualRetry}
             aria-label={widgetState === 'expired' ? 'Retry expired security check' : 'Retry timed out security check'}
-            className="text-xs text-blue-600 underline hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+            className="text-xs text-primary underline hover:text-primary/80"
           >
             Try again
           </button>

@@ -5,9 +5,9 @@
 // Follows the same pattern as `blog/admin-settings.service.ts`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import 'server-only';
+import "server-only";
 
-import { MEDIA_DEFAULTS, CACHE_KEYS, CACHE_TTL } from './constants';
+import { MEDIA_DEFAULTS, CACHE_KEYS, CACHE_TTL } from "./constants";
 import type {
   MediaAdminSettings,
   MediaAdminSettingsServiceDeps,
@@ -15,15 +15,15 @@ import type {
   MediaLogger,
   MediaPrismaClient,
   ApiResponse,
-} from '../types';
+} from "../types";
 
 /* ====================================================================== *
  *  No‑op fallbacks                                                       *
  * ====================================================================== */
 
 const noopLogger: MediaLogger = {
-  info:  () => {},
-  warn:  () => {},
+  info: () => {},
+  warn: () => {},
   error: () => {},
   debug: () => {},
 };
@@ -38,6 +38,10 @@ function ok<T>(data: T, meta?: Record<string, unknown>): ApiResponse<T> {
 
 function fail<T>(code: string, message: string): ApiResponse<T> {
   return { success: false, data: null, error: { code, message } };
+}
+
+function toRecord(value: object): Record<string, unknown> {
+  return { ...value };
 }
 
 /* ====================================================================== *
@@ -73,8 +77,13 @@ export class MediaAdminSettingsService {
 
   constructor(deps: MediaAdminSettingsServiceDeps) {
     this.prisma = deps.prisma;
-    this.cache  = deps.cache ?? null;
-    this.log    = deps.logger ?? noopLogger;
+    this.cache = deps.cache ?? null;
+    this.log = deps.logger ?? noopLogger;
+  }
+
+  private getSettingsDelegate(): MediaSettingsPrismaDelegate | undefined {
+    return (this.prisma as { mediaSettings?: MediaSettingsPrismaDelegate })
+      .mediaSettings;
   }
 
   /* ------------------------------------------------------------------ *
@@ -88,7 +97,9 @@ export class MediaAdminSettingsService {
   async getSettings(): Promise<ApiResponse<MediaAdminSettings>> {
     // Cache first
     if (this.cache) {
-      const cached = await this.cache.get<MediaAdminSettings>(CACHE_KEYS.adminSettings());
+      const cached = await this.cache.get<MediaAdminSettings>(
+        CACHE_KEYS.adminSettings(),
+      );
       if (cached) return ok(cached);
     }
 
@@ -96,21 +107,26 @@ export class MediaAdminSettingsService {
       // Convention: settings delegate lives on the prisma client
       // under a key the consumer maps.  We use a generic approach:
       // look for a single row in whatever model is mapped.
-      const stored = await (this.prisma as unknown as { mediaSettings?: MediaSettingsPrismaDelegate })
-        .mediaSettings?.findFirst?.({});
+      const stored = await this.getSettingsDelegate()?.findFirst?.({});
 
       const merged: MediaAdminSettings = {
         ...MEDIA_DEFAULTS,
-        ...stripNulls(stored as Record<string, unknown> ?? {}),
+        ...stripNulls(stored ? toRecord(stored) : {}),
       };
 
       if (this.cache) {
-        await this.cache.set(CACHE_KEYS.adminSettings(), merged, CACHE_TTL.ADMIN_SETTINGS);
+        await this.cache.set(
+          CACHE_KEYS.adminSettings(),
+          merged,
+          CACHE_TTL.ADMIN_SETTINGS,
+        );
       }
 
       return ok(merged);
     } catch (err) {
-      this.log.warn('Failed to load admin settings, using defaults', { error: String(err) });
+      this.log.warn("Failed to load admin settings, using defaults", {
+        error: String(err),
+      });
       return ok({ ...MEDIA_DEFAULTS });
     }
   }
@@ -128,9 +144,12 @@ export class MediaAdminSettingsService {
     userId?: string,
   ): Promise<ApiResponse<MediaAdminSettings>> {
     try {
-      const delegate = (this.prisma as unknown as { mediaSettings?: MediaSettingsPrismaDelegate }).mediaSettings;
+      const delegate = this.getSettingsDelegate();
       if (!delegate) {
-        return fail('NO_SETTINGS_MODEL', 'Media settings model is not configured in Prisma');
+        return fail(
+          "NO_SETTINGS_MODEL",
+          "Media settings model is not configured in Prisma",
+        );
       }
 
       const data: Record<string, unknown> = {
@@ -140,8 +159,8 @@ export class MediaAdminSettingsService {
       };
 
       const result = await delegate.upsert({
-        where:  { id: 'default' },
-        create: { id: 'default', ...data },
+        where: { id: "default" },
+        create: { id: "default", ...data },
         update: data,
       });
 
@@ -150,17 +169,17 @@ export class MediaAdminSettingsService {
         await this.cache.del(CACHE_KEYS.adminSettings());
       }
 
-      this.log.info('Admin settings updated', { userId });
+      this.log.info("Admin settings updated", { userId });
 
       const merged: MediaAdminSettings = {
         ...MEDIA_DEFAULTS,
-        ...stripNulls(result as unknown as Record<string, unknown>),
+        ...stripNulls(toRecord(result)),
       };
 
       return ok(merged);
     } catch (err) {
-      this.log.error('Failed to update admin settings', { error: String(err) });
-      return fail('UPDATE_FAILED', 'Failed to update admin settings');
+      this.log.error("Failed to update admin settings", { error: String(err) });
+      return fail("UPDATE_FAILED", "Failed to update admin settings");
     }
   }
 
@@ -173,12 +192,13 @@ export class MediaAdminSettingsService {
    */
   async resetSettings(): Promise<ApiResponse<MediaAdminSettings>> {
     try {
-      const delegate = (this.prisma as unknown as { mediaSettings?: MediaSettingsPrismaDelegate }).mediaSettings;
+      const delegate = this.getSettingsDelegate();
       if (delegate) {
+        const defaultsRecord = toRecord(MEDIA_DEFAULTS);
         await delegate.upsert({
-          where:  { id: 'default' },
-          create: { id: 'default', ...(MEDIA_DEFAULTS as unknown as Record<string, unknown>) },
-          update: { ...(MEDIA_DEFAULTS as unknown as Record<string, unknown>), updatedAt: new Date() },
+          where: { id: "default" },
+          create: { id: "default", ...defaultsRecord },
+          update: { ...defaultsRecord, updatedAt: new Date() },
         });
       }
 
@@ -186,11 +206,11 @@ export class MediaAdminSettingsService {
         await this.cache.del(CACHE_KEYS.adminSettings());
       }
 
-      this.log.info('Admin settings reset to defaults');
+      this.log.info("Admin settings reset to defaults");
       return ok({ ...MEDIA_DEFAULTS });
     } catch (err) {
-      this.log.error('Failed to reset admin settings', { error: String(err) });
-      return fail('RESET_FAILED', 'Failed to reset admin settings');
+      this.log.error("Failed to reset admin settings", { error: String(err) });
+      return fail("RESET_FAILED", "Failed to reset admin settings");
     }
   }
 }

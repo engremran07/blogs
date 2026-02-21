@@ -14,6 +14,7 @@ import type {
 import { DEFAULT_CONFIG, STOP_WORDS } from "./constants";
 import { TagService } from "./tag.service";
 import { z } from "zod";
+import { parseJsonWithSchema } from "@/shared/safe-json.util";
 
 export class AutoTaggingService {
   private cfg: Required<TagsConfig>;
@@ -346,8 +347,9 @@ Respond in JSON: {"synonyms": ["synonym1", "synonym2", ...]}`;
       if (!match) return [];
 
       const synonymSchema = z.object({ synonyms: z.array(z.string()) });
-      const parsed = synonymSchema.parse(JSON.parse(match[0]));
-      const newSynonyms = parsed.synonyms
+      const parsed = parseJsonWithSchema(match[0], synonymSchema);
+      if (!parsed.success) return [];
+      const newSynonyms = parsed.data.synonyms
         .map((s) => String(s).toLowerCase().trim())
         .filter(
           (s) => s && !tag.synonyms.includes(s) && s !== tag.name.toLowerCase(),
@@ -416,12 +418,11 @@ Respond in STRICT JSON format only:
       confidence: z.array(z.number()).optional(),
     });
 
-    let parsed: z.infer<typeof llmTagsSchema>;
-    try {
-      parsed = llmTagsSchema.parse(JSON.parse(jsonMatch[0]));
-    } catch {
+    const parsedResult = parseJsonWithSchema(jsonMatch[0], llmTagsSchema);
+    if (!parsedResult.success) {
       throw new Error("Invalid JSON structure in LLM tag extraction response");
     }
+    const parsed = parsedResult.data;
 
     return {
       tags: parsed.tags

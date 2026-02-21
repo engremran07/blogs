@@ -358,7 +358,7 @@ export default function AdminMenusPage() {
               onClick={() => setActiveMenuId(menu.id)}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
                 activeMenuId === menu.id
-                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                  ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
                   : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
               }`}
             >
@@ -408,7 +408,7 @@ export default function AdminMenusPage() {
           ) : (
             <button
               onClick={() => setShowAddMenu(true)}
-              className="flex w-full items-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-3 py-2.5 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 dark:border-gray-600 dark:hover:border-blue-500"
+              className="flex w-full items-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-3 py-2.5 text-sm text-gray-500 hover:border-primary hover:text-primary dark:border-gray-600 dark:hover:border-primary"
             >
               <Plus className="h-4 w-4" /> Add Menu
             </button>
@@ -483,7 +483,7 @@ export default function AdminMenusPage() {
                               )
                             }
                             placeholder="Label"
-                            className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                            className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                           />
                           <input
                             value={item.url}
@@ -496,7 +496,7 @@ export default function AdminMenusPage() {
                               )
                             }
                             placeholder="URL"
-                            className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                            className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                           />
                           <div className="flex items-center gap-2">
                             <select
@@ -549,7 +549,7 @@ export default function AdminMenusPage() {
 
                 <button
                   onClick={addMenuItem}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 py-3 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 dark:border-gray-600 dark:hover:border-blue-500"
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 py-3 text-sm text-gray-500 hover:border-primary hover:text-primary dark:border-gray-600 dark:hover:border-primary"
                 >
                   <Plus className="h-4 w-4" /> Add Menu Item
                 </button>

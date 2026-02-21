@@ -25,9 +25,18 @@ interface AdPrismaExt {
     ): Promise<{ requireConsent?: boolean } | null>;
   };
   adPlacement: {
-    findMany(args: Record<string, unknown>): Promise<RawGlobalPlacement[]>;
+    findMany(args: Record<string, unknown>): Promise<unknown[]>;
   };
 }
+
+const adPrisma: AdPrismaExt = {
+  adSettings: {
+    findFirst: (args) => prisma.adSettings.findFirst(args as never),
+  },
+  adPlacement: {
+    findMany: (args) => prisma.adPlacement.findMany(args as never),
+  },
+};
 
 interface SectionProps {
   /** Current page type for targeting */
@@ -45,9 +54,7 @@ async function getAdConfig() {
     });
     if (!siteSettings?.adsEnabled) return null;
 
-    const adSettings = await (
-      prisma as unknown as AdPrismaExt
-    ).adSettings.findFirst({
+    const adSettings = await adPrisma.adSettings.findFirst({
       select: { requireConsent: true },
     });
     return { requireConsent: (adSettings?.requireConsent ?? false) as boolean };
@@ -65,9 +72,7 @@ async function fetchPositionPlacements(
 ): Promise<AdPlacementData[]> {
   try {
     const now = new Date();
-    const placements = await (
-      prisma as unknown as AdPrismaExt
-    ).adPlacement.findMany({
+    const placements = (await adPrisma.adPlacement.findMany({
       where: {
         isActive: true,
         provider: { isActive: true, killSwitch: false },
@@ -91,7 +96,7 @@ async function fetchPositionPlacements(
         },
       },
       take: 3,
-    });
+    })) as RawGlobalPlacement[];
 
     return placements.filter(
       (p) => !p.endDate || new Date(p.endDate as string) > now,

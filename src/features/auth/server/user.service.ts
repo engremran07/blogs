@@ -659,9 +659,7 @@ export class UserService implements UserConfigConsumer {
       },
     });
 
-    return this.stripSensitiveFields(
-      user as unknown as Record<string, unknown>,
-    );
+    return this.stripSensitiveFields(user);
   }
 
   // ─── Admin: User Detail View ──────────────────────────────────────────
@@ -863,12 +861,54 @@ export class UserService implements UserConfigConsumer {
 
   // ─── Private Helpers ──────────────────────────────────────────────────
 
-  private stripSensitiveFields(user: Record<string, unknown>): SafeUser {
-    const safe = { ...user };
-    delete safe.password;
-    delete safe.resetPasswordToken;
-    delete safe.resetPasswordExpires;
-    return safe as unknown as SafeUser;
+  private stripSensitiveFields<T extends Partial<UserRecord>>(
+    user: T,
+  ): SafeUser {
+    return {
+      id: String(user.id ?? ""),
+      username: String(user.username ?? ""),
+      email: String(user.email ?? ""),
+      firstName: typeof user.firstName === "string" ? user.firstName : null,
+      lastName: typeof user.lastName === "string" ? user.lastName : null,
+      nickname: typeof user.nickname === "string" ? user.nickname : null,
+      displayName:
+        typeof user.displayName === "string" ? user.displayName : null,
+      isEmailVerified: Boolean(user.isEmailVerified),
+      emailVerifiedAt:
+        user.emailVerifiedAt instanceof Date ? user.emailVerifiedAt : null,
+      language: typeof user.language === "string" ? user.language : null,
+      website: typeof user.website === "string" ? user.website : null,
+      phoneNumber:
+        typeof user.phoneNumber === "string" ? user.phoneNumber : null,
+      countryCode:
+        typeof user.countryCode === "string" ? user.countryCode : null,
+      alternateEmail:
+        typeof user.alternateEmail === "string" ? user.alternateEmail : null,
+      whatsapp: typeof user.whatsapp === "string" ? user.whatsapp : null,
+      fax: typeof user.fax === "string" ? user.fax : null,
+      facebook: typeof user.facebook === "string" ? user.facebook : null,
+      twitter: typeof user.twitter === "string" ? user.twitter : null,
+      instagram: typeof user.instagram === "string" ? user.instagram : null,
+      linkedin: typeof user.linkedin === "string" ? user.linkedin : null,
+      youtube: typeof user.youtube === "string" ? user.youtube : null,
+      tiktok: typeof user.tiktok === "string" ? user.tiktok : null,
+      telegram: typeof user.telegram === "string" ? user.telegram : null,
+      github: typeof user.github === "string" ? user.github : null,
+      pinterest: typeof user.pinterest === "string" ? user.pinterest : null,
+      snapchat: typeof user.snapchat === "string" ? user.snapchat : null,
+      bio: typeof user.bio === "string" ? user.bio : null,
+      company: typeof user.company === "string" ? user.company : null,
+      jobTitle: typeof user.jobTitle === "string" ? user.jobTitle : null,
+      address: typeof user.address === "string" ? user.address : null,
+      city: typeof user.city === "string" ? user.city : null,
+      state: typeof user.state === "string" ? user.state : null,
+      zipCode: typeof user.zipCode === "string" ? user.zipCode : null,
+      country: typeof user.country === "string" ? user.country : null,
+      role:
+        typeof user.role === "string" ? (user.role as UserRole) : "SUBSCRIBER",
+      createdAt: user.createdAt instanceof Date ? user.createdAt : new Date(),
+      updatedAt: user.updatedAt instanceof Date ? user.updatedAt : new Date(),
+    };
   }
 
   private getFormattedDisplayName(

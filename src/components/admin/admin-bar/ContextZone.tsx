@@ -12,7 +12,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useAdminBar } from "./AdminBarProvider";
-import { SeoDropdown } from "./SeoDropdown";
+
 import { usePageMeta } from "./usePageMeta";
 import { LAST_SAVED_INTERVAL_MS } from "./constants";
 import type { RouteIntelligence } from "./useRouteIntelligence";
@@ -289,10 +289,7 @@ export function ContextZone({
         />
       )}
 
-      {/* SEO score — on editor pages and public post/page views */}
-      {(route.isEditor || route.isViewingPost || route.isViewingPage) && (
-        <SeoDropdown route={route} editor={editor} />
-      )}
+
 
       {/* Context navigation link — points to SPECIFIC post/page editor */}
       {contextLink && (

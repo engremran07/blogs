@@ -87,7 +87,7 @@ function Pagination({
             onClick={() => onChange(p)}
             className={`min-w-8 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
               p === page
-                ? "bg-blue-600 text-white"
+                ? "bg-primary text-white"
                 : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
             }`}
             aria-current={p === page ? "page" : undefined}
@@ -370,14 +370,14 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
           <div className="mt-3 flex items-center gap-4">
             <button
               onClick={() => handleVote(comment.id)}
-              className="flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-blue-600 dark:text-gray-400"
+              className="flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-primary dark:text-gray-400"
             >
               <ThumbsUp className="h-3.5 w-3.5" />
               {comment.upvotes > 0 && <span>{comment.upvotes}</span>}
             </button>
             <button
               onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
-              className="text-xs text-gray-500 transition-colors hover:text-blue-600 dark:text-gray-400"
+              className="text-xs text-gray-500 transition-colors hover:text-primary dark:text-gray-400"
             >
               Reply
             </button>
@@ -488,7 +488,7 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
                 onClick={() => { setSort(mode); setPage(1); }}
                 className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium capitalize transition-colors ${
                   sort === mode
-                    ? "bg-blue-600 text-white"
+                    ? "bg-primary text-white"
                     : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                 }`}
               >
@@ -509,7 +509,7 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
               onChange={(e) => setGuestName(e.target.value)}
               placeholder="Your name"
               required
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
             <input
               type="email"
@@ -517,7 +517,7 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
               onChange={(e) => setGuestEmail(e.target.value)}
               placeholder="Your email (not published)"
               required
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
           </div>
         )}
@@ -536,7 +536,7 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
         <div className="mt-3 flex items-center justify-between">
           {!session && (
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              <Link href="/login" className="text-blue-600 hover:underline dark:text-blue-400">
+              <Link href="/login" className="text-primary hover:underline">
                 Sign in
               </Link>{" "}
               for a faster experience

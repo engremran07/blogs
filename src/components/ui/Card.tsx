@@ -130,7 +130,7 @@ export function Avatar({ src, alt, fallback, size = "md", className }: AvatarPro
   return (
     <div
       className={clsx(
-        "flex items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+        "flex items-center justify-center rounded-full bg-primary/10 font-semibold text-primary dark:bg-primary/20 dark:text-primary",
         avatarSizes[size],
         className,
       )}
@@ -204,7 +204,7 @@ export function StatCard({ title, value, icon, change, className }: StatCardProp
           )}
         </div>
         {icon && (
-          <div className="rounded-lg bg-blue-50 p-2 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
+          <div className="rounded-lg bg-primary/10 p-2 text-primary dark:bg-primary/20 dark:text-primary">
             {icon}
           </div>
         )}

@@ -5,8 +5,15 @@
 import { prisma } from "@/server/db/prisma";
 import { distributionService } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
+import { SocialPlatform } from "@/features/distribution/types";
 
 const logger = createLogger("distribution/auto-publish");
+
+const SOCIAL_PLATFORM_SET = new Set<string>(Object.values(SocialPlatform));
+
+function isSocialPlatform(value: string): value is SocialPlatform {
+  return SOCIAL_PLATFORM_SET.has(value);
+}
 
 export async function autoDistributePost(postId: string): Promise<void> {
   try {
@@ -26,14 +33,21 @@ export async function autoDistributePost(postId: string): Promise<void> {
       where: { postId, status: "PUBLISHED" },
     });
     if (existing) {
-      logger.info("Post already distributed, skipping auto-publish", { postId });
+      logger.info("Post already distributed, skipping auto-publish", {
+        postId,
+      });
       return;
     }
 
-    const platforms = channels.map((ch: { platform: string }) => ch.platform);
-    const uniquePlatforms = [...new Set(platforms)];
+    const platforms = channels
+      .map((ch: { platform: string }) => ch.platform)
+      .filter(isSocialPlatform);
+    const uniquePlatforms = [...new Set(platforms)] as SocialPlatform[];
 
-    logger.info("Auto-distributing post", { postId, platforms: uniquePlatforms });
+    logger.info("Auto-distributing post", {
+      postId,
+      platforms: uniquePlatforms,
+    });
 
     await distributionService.distributePost({
       postId,

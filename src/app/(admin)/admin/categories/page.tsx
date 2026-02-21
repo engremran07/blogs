@@ -694,7 +694,7 @@ export default function CategoriesPage() {
         {/* Drop indicator: before */}
         {isDropTarget && dropPos === "before" && (
           <div
-            className="mx-3 h-0.5 rounded bg-blue-500"
+            className="mx-3 h-0.5 rounded bg-primary"
             style={{
               marginLeft: depth > 0 ? `${depth * 24 + 12}px` : undefined,
             }}
@@ -715,7 +715,7 @@ export default function CategoriesPage() {
               : ""
           } ${isDragging ? "opacity-40" : "hover:bg-gray-50 dark:hover:bg-gray-700/50"} ${
             isDropTarget && dropPos === "child"
-              ? "ring-2 ring-blue-500 ring-inset bg-blue-50 dark:bg-blue-900/20"
+              ? "ring-2 ring-primary ring-inset bg-primary/5 dark:bg-primary/10"
               : ""
           }`}
         >
@@ -725,11 +725,11 @@ export default function CategoriesPage() {
               e.stopPropagation();
               toggleSelect(cat.id);
             }}
-            className="shrink-0 rounded p-0.5 text-gray-400 hover:text-blue-600 dark:text-gray-500 dark:hover:text-blue-400"
+            className="shrink-0 rounded p-0.5 text-gray-400 hover:text-primary dark:text-gray-500 dark:hover:text-primary"
             title={selected.has(cat.id) ? "Deselect" : "Select"}
           >
             {selected.has(cat.id) ? (
-              <CheckSquare className="h-4 w-4 text-blue-600" />
+              <CheckSquare className="h-4 w-4 text-primary" />
             ) : (
               <Square className="h-4 w-4" />
             )}
@@ -816,7 +816,7 @@ export default function CategoriesPage() {
             <button
               onClick={() => openCreate(cat.id)}
               title="Add child"
-              className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+              className="rounded p-1 text-gray-400 hover:bg-primary/5 hover:text-primary dark:hover:bg-primary/10 dark:hover:text-primary"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -840,7 +840,7 @@ export default function CategoriesPage() {
         {/* Drop indicator: after */}
         {isDropTarget && dropPos === "after" && (
           <div
-            className="mx-3 h-0.5 rounded bg-blue-500"
+            className="mx-3 h-0.5 rounded bg-primary"
             style={{
               marginLeft: depth > 0 ? `${depth * 24 + 12}px` : undefined,
             }}
@@ -859,7 +859,7 @@ export default function CategoriesPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -889,7 +889,7 @@ export default function CategoriesPage() {
             }
           >
             {selected.size === flat.length && flat.length > 0 ? (
-              <CheckSquare className="h-4 w-4 text-blue-600" />
+              <CheckSquare className="h-4 w-4 text-primary" />
             ) : (
               <Square className="h-4 w-4" />
             )}
@@ -1032,7 +1032,7 @@ export default function CategoriesPage() {
                     .map((n, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                        className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary dark:bg-primary/20 dark:text-primary"
                       >
                         {n}
                       </span>

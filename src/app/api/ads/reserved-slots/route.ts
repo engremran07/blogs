@@ -4,6 +4,17 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/server/db/prisma";
+import { z } from "zod";
+
+const reservedSlotsQuerySchema = z.object({
+  pageType: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .regex(/^[a-zA-Z0-9:_*-]+$/, "Invalid pageType format")
+    .optional(),
+});
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,12 +26,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    const pageType = req.nextUrl.searchParams.get("pageType");
+    const query = reservedSlotsQuerySchema.safeParse({
+      pageType: req.nextUrl.searchParams.get("pageType") ?? undefined,
+    });
+
+    if (!query.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid query parameters",
+          details: query.error.flatten(),
+        },
+        { status: 400 },
+      );
+    }
+
+    const { pageType } = query.data;
 
     // Find active slots
-    const where: Record<string, unknown> = { isActive: true };
     const slots = await prisma.adSlot.findMany({
-      where,
+      where: { isActive: true },
       include: {
         placements: {
           where: {
@@ -40,13 +65,16 @@ export async function GET(req: NextRequest) {
         if (!pageType) return true;
         const types = (slot.pageTypes as string[]) ?? [];
         if (types.length === 0 || types.includes("*")) return true;
-        return types.includes(pageType) || types.some((t: string) => {
-          if (t.endsWith(":*")) {
-            const prefix = t.replace(":*", ":");
-            return pageType.startsWith(prefix);
-          }
-          return false;
-        });
+        return (
+          types.includes(pageType) ||
+          types.some((t: string) => {
+            if (t.endsWith(":*")) {
+              const prefix = t.replace(":*", ":");
+              return pageType.startsWith(prefix);
+            }
+            return false;
+          })
+        );
       })
       .map((slot) => ({
         id: slot.id,

@@ -1,11 +1,11 @@
 ﻿/* ─── TipTap Editor Styles ─────────────────────────────── */
 
-/* Toolbar */
+/* Toolbar — pinned at top of editor (never scrolls) */
 .rte-toolbar {
   background: var(--color-white, #fff);
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 10;
+  flex-shrink: 0;
 }
 
 :is(.dark) .rte-toolbar {
@@ -360,53 +360,7 @@
   letter-spacing: 0.5em;
 }
 
-/* ─── Bubble Menu ─────────────────────────────── */
-.rte-bubble-menu {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
 
-:is(.dark) .rte-bubble-menu {
-  background: #1f2937;
-  border-color: #374151;
-}
-
-.rte-bubble-menu-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  color: #4b5563;
-  transition: all 0.15s;
-}
-.rte-bubble-menu-btn:hover {
-  background: #f3f4f6;
-  color: #111827;
-}
-.rte-bubble-menu-btn.is-active {
-  background: #e0e7ff;
-  color: #4338ca;
-}
-
-:is(.dark) .rte-bubble-menu-btn {
-  color: #9ca3af;
-}
-:is(.dark) .rte-bubble-menu-btn:hover {
-  background: #374151;
-  color: #f9fafb;
-}
-:is(.dark) .rte-bubble-menu-btn.is-active {
-  background: #312e81;
-  color: #a5b4fc;
-}
 
 /* ─── Status Bar ─────────────────────────────── */
 .rte-status-bar {

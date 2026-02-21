@@ -22,7 +22,7 @@ function MediaManagerSkeleton() {
   return (
     <div className="flex h-[calc(100vh-12rem)] items-center justify-center rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Loading Media Manager…
         </p>

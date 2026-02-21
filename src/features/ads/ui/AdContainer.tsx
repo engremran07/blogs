@@ -25,21 +25,45 @@ import { ReservedAdSlot } from "./ReservedAdSlot";
 /** Raw DB placement with fields not on the client-facing AdPlacementData */
 interface RawAdPlacement extends AdPlacementData {
   endDate?: string | Date | null;
-  slot: AdPlacementData['slot'] & { pageTypes?: string[] };
+  slot: AdPlacementData["slot"] & { pageTypes?: string[] };
 }
 
 /** Typed ad-related Prisma tables not on the default client type */
 interface AdPrismaExt {
   adSettings: {
-    findFirst(args: Record<string, unknown>): Promise<{ positionKillSwitches?: unknown; requireConsent?: boolean } | null>;
+    findFirst(
+      args: Record<string, unknown>,
+    ): Promise<{
+      positionKillSwitches?: unknown;
+      requireConsent?: boolean;
+    } | null>;
   };
   adPlacement: {
-    findMany(args: Record<string, unknown>): Promise<RawAdPlacement[]>;
+    findMany(args: Record<string, unknown>): Promise<unknown[]>;
   };
   adSlot: {
-    findMany(args: Record<string, unknown>): Promise<Array<{ name: string; position: string; pageTypes: string[] }>>;
+    findMany(
+      args: Record<string, unknown>,
+    ): Promise<Array<{ name: string; position: string; pageTypes: string[] }>>;
   };
 }
+
+const adPrisma: AdPrismaExt = {
+  adSettings: {
+    findFirst: (args) => prisma.adSettings.findFirst(args as never),
+  },
+  adPlacement: {
+    findMany: (args) => prisma.adPlacement.findMany(args as never),
+  },
+  adSlot: {
+    findMany: (args) => prisma.adSlot.findMany(args as never),
+  },
+};
+
+const adProviderPrisma = {
+  count: (args: Record<string, unknown>) =>
+    prisma.adProvider.count(args as never),
+};
 
 interface AdContainerProps {
   /** Ad position — e.g. SIDEBAR, IN_CONTENT, HEADER, FOOTER */
@@ -91,21 +115,28 @@ export async function AdContainer({
     }
 
     // Check per-position kill switch from AdSettings
-    const adSettings = await (prisma as unknown as AdPrismaExt).adSettings.findFirst({
+    const adSettings = await adPrisma.adSettings.findFirst({
       select: { positionKillSwitches: true, requireConsent: true },
     });
-    const posKillSwitches = (adSettings?.positionKillSwitches as Record<string, boolean>) ?? {};
+    const posKillSwitches =
+      (adSettings?.positionKillSwitches as Record<string, boolean>) ?? {};
     const requireConsent: boolean = adSettings?.requireConsent ?? false;
     if (posKillSwitches[position] === true) {
       if (!showPlaceholder) return null;
-      return <ReservedAdSlot position={position} label="Position disabled" className={className} />;
+      return (
+        <ReservedAdSlot
+          position={position}
+          label="Position disabled"
+          className={className}
+        />
+      );
     }
 
     const now = new Date();
 
     // Fetch ALL active placements for this position, then filter by pageType
     // in JS to support prefix-wildcard patterns like "tag:*", "category:*"
-    const placements = await (prisma as unknown as AdPrismaExt).adPlacement.findMany({
+    const placements = (await adPrisma.adPlacement.findMany({
       where: {
         isActive: true,
         provider: { isActive: true, killSwitch: false },
@@ -113,10 +144,7 @@ export async function AdContainer({
           isActive: true,
           position,
         },
-        OR: [
-          { startDate: null },
-          { startDate: { lte: now } },
-        ],
+        OR: [{ startDate: null }, { startDate: { lte: now } }],
       },
       include: {
         provider: {
@@ -124,14 +152,18 @@ export async function AdContainer({
         },
         slot: {
           select: {
-            name: true, position: true, format: true,
-            maxWidth: true, maxHeight: true, responsive: true,
+            name: true,
+            position: true,
+            format: true,
+            maxWidth: true,
+            maxHeight: true,
+            responsive: true,
             pageTypes: true,
           },
         },
       },
       orderBy: { slot: { renderPriority: "desc" } },
-    });
+    })) as RawAdPlacement[];
 
     // Post-filter: pageType matching (exact, "*", empty, prefix-wildcard) + endDate
     let activePlacements: AdPlacementData[] = placements.filter(
@@ -143,7 +175,10 @@ export async function AdContainer({
     // Ad rotation: shuffle eligible placements so different ads show on each load
     for (let i = activePlacements.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [activePlacements[i], activePlacements[j]] = [activePlacements[j], activePlacements[i]];
+      [activePlacements[i], activePlacements[j]] = [
+        activePlacements[j],
+        activePlacements[i],
+      ];
     }
     activePlacements = activePlacements.slice(0, 3); // limit ads per position
 
@@ -153,7 +188,7 @@ export async function AdContainer({
       //  2. No real ad providers exist (Google Ads, Ezoic, MediaVine, etc.)
       // If real providers ARE configured, the slot is simply empty (no visual noise).
       if (showPlaceholder) {
-        const realProviderCount = await (prisma as unknown as { adProvider: { count(args: Record<string, unknown>): Promise<number> } }).adProvider.count({
+        const realProviderCount = await adProviderPrisma.count({
           where: { isActive: true, killSwitch: false },
         });
 
@@ -161,7 +196,7 @@ export async function AdContainer({
         if (realProviderCount > 0) return null;
 
         // No providers at all — show placeholder so admin knows where to set up ads
-        const allSlots = await (prisma as unknown as AdPrismaExt).adSlot.findMany({
+        const allSlots = await adPrisma.adSlot.findMany({
           where: {
             isActive: true,
             position,
@@ -174,18 +209,37 @@ export async function AdContainer({
         );
 
         if (reservedSlot) {
-          return <ReservedAdSlot position={position} label={reservedSlot.name} className={className} />;
+          return (
+            <ReservedAdSlot
+              position={position}
+              label={reservedSlot.name}
+              className={className}
+            />
+          );
         }
-        return <ReservedAdSlot position={position} label="Ads will display here" className={className} />;
+        return (
+          <ReservedAdSlot
+            position={position}
+            label="Ads will display here"
+            className={className}
+          />
+        );
       }
       return null;
     }
 
     // Real ads exist — render them
     return (
-      <div className={`ad-slot-container ${className}`} data-position={position}>
+      <div
+        className={`ad-slot-container ${className}`}
+        data-position={position}
+      >
         {activePlacements.map((p) => (
-          <AdRenderer key={p.id} placement={p} requireConsent={requireConsent} />
+          <AdRenderer
+            key={p.id}
+            placement={p}
+            requireConsent={requireConsent}
+          />
         ))}
       </div>
     );

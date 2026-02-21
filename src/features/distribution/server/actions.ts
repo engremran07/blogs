@@ -6,6 +6,7 @@ import { hasCapability } from "@/features/auth/server/capabilities";
 import { distributionService } from "@/server/wiring";
 import type { UserRole } from "@/features/auth/types";
 import type { Capability } from "@/features/auth/server/capabilities";
+import { SocialPlatform } from "@/features/distribution/types";
 import { z } from "zod";
 
 /* ─── Schemas ─── */
@@ -15,6 +16,9 @@ const createChannelSchema = z.object({
   type: z.string().min(1),
   config: z.record(z.string(), z.unknown()).optional(),
   isActive: z.boolean().optional().default(true),
+  url: z.string().url().optional(),
+  autoPublish: z.boolean().optional(),
+  renewIntervalDays: z.coerce.number().int().positive().optional(),
 });
 
 const updateChannelSchema = createChannelSchema.partial();
@@ -42,7 +46,16 @@ export async function createChannel(data: unknown) {
     return { success: false as const, error: parsed.error.message };
 
   try {
-    const channel = await distributionService.createChannel(parsed.data);
+    const platform = parsed.data.type as SocialPlatform;
+    const channel = await distributionService.createChannel({
+      name: parsed.data.name,
+      platform,
+      url: parsed.data.url,
+      enabled: parsed.data.isActive,
+      autoPublish: parsed.data.autoPublish,
+      renewIntervalDays: parsed.data.renewIntervalDays,
+      credentials: parsed.data.config,
+    });
     revalidatePath("/admin/distribution");
     return { success: true as const, data: channel };
   } catch (err: unknown) {
@@ -62,7 +75,14 @@ export async function updateChannel(id: string, data: unknown) {
     return { success: false as const, error: parsed.error.message };
 
   try {
-    const channel = await distributionService.updateChannel(id, parsed.data);
+    const channel = await distributionService.updateChannel(id, {
+      name: parsed.data.name,
+      url: parsed.data.url,
+      enabled: parsed.data.isActive,
+      autoPublish: parsed.data.autoPublish,
+      renewIntervalDays: parsed.data.renewIntervalDays,
+      credentials: parsed.data.config,
+    });
     revalidatePath("/admin/distribution");
     return { success: true as const, data: channel };
   } catch (err: unknown) {

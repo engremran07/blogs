@@ -47,7 +47,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/FormFields";
 import { toast } from "@/components/ui/Toast";
 import Image from "next/image";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, Home } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 /* ── Curated Color Presets ── */
@@ -366,7 +366,7 @@ function ToggleCard({
           onChange={(e) => onChange(e.target.checked)}
           className="peer sr-only"
         />
-        <div className="h-5 w-9 rounded-full bg-gray-300 transition-colors peer-checked:bg-blue-600 dark:bg-gray-600 peer-checked:dark:bg-blue-500" />
+        <div className="h-5 w-9 rounded-full bg-gray-300 transition-colors peer-checked:bg-primary dark:bg-gray-600 peer-checked:dark:bg-primary" />
         <div className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
       </div>
       <div className="flex-1 min-w-0">
@@ -486,7 +486,7 @@ function FileDropZone({
         onClick={() => !uploading && inputRef.current?.click()}
         className={`relative cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition-all ${
           dragging
-            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+            ? "border-primary bg-primary/5 dark:bg-primary/10"
             : "border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500"
         }`}
       >
@@ -503,7 +503,7 @@ function FileDropZone({
         />
         {uploading ? (
           <div className="flex flex-col items-center gap-2 py-3">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <p className="text-xs text-gray-500">Uploading…</p>
           </div>
         ) : value ? (
@@ -541,7 +541,7 @@ function FileDropZone({
           <div className="flex flex-col items-center gap-2 py-3">
             <Upload className="h-8 w-8 text-gray-400" />
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              <span className="font-medium text-blue-600 dark:text-blue-400">
+              <span className="font-medium text-primary dark:text-primary">
                 Click to upload
               </span>{" "}
               or drag and drop
@@ -571,9 +571,59 @@ export default function AdminSettingsPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const originalRef = useRef<string>("");
 
+  // Home page selector state
+  const [homePageId, setHomePageId] = useState<string | null>(null);
+  const [homePages, setHomePages] = useState<{ id: string; title: string; slug: string; isHomePage: boolean }[]>([]);
+  const [homePagesLoaded, setHomePagesLoaded] = useState(false);
+  const [savingHomePage, setSavingHomePage] = useState(false);
+
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  // Load pages list when Content tab is active
+  useEffect(() => {
+    if (activeTab === "content" && !homePagesLoaded) {
+      fetchHomePageConfig();
+    }
+  }, [activeTab, homePagesLoaded]);
+
+  async function fetchHomePageConfig() {
+    try {
+      const res = await fetch("/api/pages/homepage");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success) {
+        setHomePageId(data.data.currentHomePageId);
+        setHomePages(data.data.pages);
+        setHomePagesLoaded(true);
+      }
+    } catch {
+      // silently fail — non-critical
+    }
+  }
+
+  async function handleSetHomePage(pageId: string | null) {
+    setSavingHomePage(true);
+    try {
+      const res = await fetch("/api/pages/homepage", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setHomePageId(data.data.currentHomePageId);
+        toast(data.message || "Home page updated", "success");
+      } else {
+        toast(data.error || "Failed to update home page", "error");
+      }
+    } catch {
+      toast("Failed to update home page", "error");
+    } finally {
+      setSavingHomePage(false);
+    }
+  }
 
   async function fetchSettings() {
     try {
@@ -636,7 +686,7 @@ export default function AdminSettingsPage() {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           <p className="text-sm text-gray-500">Loading settings…</p>
         </div>
       </div>
@@ -731,7 +781,7 @@ export default function AdminSettingsPage() {
           <>
             <Section
               title="Site Identity"
-              icon={<Globe className="h-5 w-5 text-blue-500" />}
+              icon={<Globe className="h-5 w-5 text-primary" />}
               description="Basic information about your site"
             >
               <div className="grid gap-5 sm:grid-cols-2">
@@ -858,7 +908,7 @@ export default function AdminSettingsPage() {
                         }}
                         className={`group relative rounded-lg border-2 p-2 transition-all hover:scale-105 ${
                           isActive
-                            ? "border-blue-500 shadow-md shadow-blue-500/20"
+                            ? "border-primary shadow-md shadow-primary/20"
                             : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
                         }`}
                         title={`${preset.name} — ${preset.tags.join(", ")}`}
@@ -884,7 +934,7 @@ export default function AdminSettingsPage() {
                           {preset.tags.join(" · ")}
                         </p>
                         {isActive && (
-                          <div className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white shadow">
+                          <div className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white shadow">
                             <Check className="h-3 w-3" />
                           </div>
                         )}
@@ -1438,6 +1488,56 @@ export default function AdminSettingsPage() {
         {activeTab === "content" && (
           <>
             <Section
+              title="Home Page"
+              icon={<Home className="h-5 w-5 text-primary" />}
+              description="Choose which page loads as your site's landing page. Leave as Default to show the blog-style home with latest posts."
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Landing Page
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={homePageId || ""}
+                      onChange={(e) => {
+                        const val = e.target.value || null;
+                        setHomePageId(val);
+                      }}
+                      className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">Default (Blog Home)</option>
+                      {homePages.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.title} — /{p.slug}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      onClick={() => handleSetHomePage(homePageId)}
+                      loading={savingHomePage}
+                      disabled={savingHomePage}
+                      size="sm"
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                  <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    {homePageId
+                      ? `Visitors will see the selected page when they visit your site root (/)`
+                      : "Visitors will see the default blog layout with latest posts, featured content, and tag cloud"}
+                  </p>
+                </div>
+
+                {homePages.length === 0 && homePagesLoaded && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                    <AlertCircle className="mb-1 inline h-4 w-4" /> No published pages found. Create and publish a page first to use it as your home page.
+                  </div>
+                )}
+              </div>
+            </Section>
+
+            <Section
               title="Blog Layout"
               icon={<LayoutGrid className="h-5 w-5 text-purple-500" />}
               description="How posts appear on listing pages"
@@ -1467,7 +1567,7 @@ export default function AdminSettingsPage() {
                     <button
                       key={opt.value}
                       onClick={() => update("blogLayout", opt.value)}
-                      className={`flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4 text-sm font-medium transition-all ${(settings.blogLayout || "grid") === opt.value ? "border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300" : "border-gray-200 text-gray-500 hover:border-gray-300 dark:border-gray-600 dark:text-gray-400"}`}
+                      className={`flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4 text-sm font-medium transition-all ${(settings.blogLayout || "grid") === opt.value ? "border-primary bg-primary/5 text-primary dark:border-primary dark:bg-primary/10 dark:text-primary" : "border-gray-200 text-gray-500 hover:border-gray-300 dark:border-gray-600 dark:text-gray-400"}`}
                     >
                       {opt.icon}
                       {opt.label}
@@ -1489,14 +1589,14 @@ export default function AdminSettingsPage() {
                       onChange={(e) =>
                         update("blogColumns", parseInt(e.target.value, 10))
                       }
-                      className="flex-1 accent-blue-600"
+                      className="flex-1 accent-primary"
                     />
                     <div className="flex gap-1">
                       {[1, 2, 3, 4].map((n) => (
                         <button
                           key={n}
                           onClick={() => update("blogColumns", n)}
-                          className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${(settings.blogColumns || 2) === n ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"}`}
+                          className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${(settings.blogColumns || 2) === n ? "bg-primary text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"}`}
                         >
                           {n}
                         </button>
@@ -1576,7 +1676,7 @@ export default function AdminSettingsPage() {
                       type="checkbox"
                       checked={(settings[item.key] as boolean) ?? true}
                       onChange={(e) => update(item.key, e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600"
+                      className="rounded border-gray-300 text-primary"
                     />
                     <span className="text-gray-400">{item.icon}</span>
                     {item.label}
@@ -1669,7 +1769,7 @@ export default function AdminSettingsPage() {
                           type="checkbox"
                           checked={(settings[w.key] as boolean) ?? false}
                           onChange={(e) => update(w.key, e.target.checked)}
-                          className="rounded border-gray-300 text-blue-600"
+                          className="rounded border-gray-300 text-primary"
                         />
                         {w.label}
                       </label>
@@ -1741,7 +1841,7 @@ export default function AdminSettingsPage() {
           <>
             <Section
               title="Comment System"
-              icon={<MessageSquare className="h-5 w-5 text-blue-500" />}
+              icon={<MessageSquare className="h-5 w-5 text-primary" />}
               description="Configure how comments work on your site"
             >
               <div className="grid gap-3 sm:grid-cols-2">
@@ -1837,7 +1937,7 @@ export default function AdminSettingsPage() {
           <>
             <Section
               title="Social Links"
-              icon={<ExternalLink className="h-5 w-5 text-blue-500" />}
+              icon={<ExternalLink className="h-5 w-5 text-primary" />}
               description="Social media profile URLs shown in top bar and footer"
             >
               <div className="grid gap-4 sm:grid-cols-2">
@@ -1955,7 +2055,7 @@ export default function AdminSettingsPage() {
           <>
             <Section
               title="Analytics"
-              icon={<BarChart3 className="h-5 w-5 text-blue-500" />}
+              icon={<BarChart3 className="h-5 w-5 text-primary" />}
               description="Configure analytics tracking"
             >
               <Input
@@ -2049,7 +2149,7 @@ export default function AdminSettingsPage() {
           <>
             <Section
               title="SMTP Server"
-              icon={<Server className="h-5 w-5 text-blue-500" />}
+              icon={<Server className="h-5 w-5 text-primary" />}
               description="Mail server for transactional emails"
             >
               <div className="grid gap-4 sm:grid-cols-2">
@@ -2310,7 +2410,7 @@ export default function AdminSettingsPage() {
 
                 <Section
                   title="Provider Site Keys"
-                  icon={<Lock className="h-5 w-5 text-blue-500" />}
+                  icon={<Lock className="h-5 w-5 text-primary" />}
                   description="Enter the public site key for each provider"
                 >
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -2474,7 +2574,7 @@ export default function AdminSettingsPage() {
 
             <Section
               title="GDPR Compliance"
-              icon={<Scale className="h-5 w-5 text-blue-500" />}
+              icon={<Scale className="h-5 w-5 text-primary" />}
               description="European privacy regulation settings"
             >
               <ToggleCard

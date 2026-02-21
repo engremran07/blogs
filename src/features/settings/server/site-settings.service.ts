@@ -120,7 +120,7 @@ export class SiteSettingsService {
         data,
       });
 
-      this.cached = updated as unknown as SiteSystemSettings;
+      this.cached = updated as SiteSystemSettings;
       this.propagateToConsumers();
 
       return {
@@ -1042,7 +1042,7 @@ export class SiteSettingsService {
     const existing = await this.prisma.siteSettings.findFirst();
 
     if (existing) {
-      this.cached = existing as unknown as SiteSystemSettings;
+      this.cached = existing as SiteSystemSettings;
       return this.cached;
     }
 
@@ -1054,7 +1054,7 @@ export class SiteSettingsService {
       } as Record<string, unknown>,
     });
 
-    this.cached = created as unknown as SiteSystemSettings;
+    this.cached = created as SiteSystemSettings;
     return this.cached;
   }
 

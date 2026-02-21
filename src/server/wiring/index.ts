@@ -12,6 +12,7 @@ import { prisma } from "@/server/db/prisma";
 import { redis } from "@/server/cache/redis";
 import { env } from "@/server/env";
 import { createLogger } from "@/server/observability/logger";
+import { parseJsonUnknown } from "@/shared/safe-json.util";
 
 // ─── Feature Service Imports ────────────────────────────────────────────────
 // Auth
@@ -72,11 +73,8 @@ import { DistributionEventBus } from "@/features/distribution/server/events";
 
 // ─── Unified Prisma Client Type ──────────────────────────────────────────────
 import type { AppPrismaClient } from "@/server/db/prisma-types";
-import type {
-  PrismaPostDelegate,
-  PrismaTransactionFn,
-  PrismaRawQueryFn,
-} from "@/features/seo/types";
+import type { PrismaPostDelegate } from "@/features/seo/types";
+import type { z } from "zod";
 
 // ─── Loggers ────────────────────────────────────────────────────────────────
 const authLogger = createLogger("auth");
@@ -89,20 +87,31 @@ const mediaLogger = createLogger("media");
 
 // ─── Cache Provider (wraps Redis for features that need it) ─────────────────
 const cacheProvider = {
-  async get<T>(key: string): Promise<T | null> {
+  async get<T>(key: string, schema?: z.ZodType<T>): Promise<T | null> {
     try {
       const val = await redis.get(key);
       if (val === null || val === undefined) return null;
       // Upstash auto-deserialises JSON, but if we stored with JSON.stringify
       // and it comes back as a string, parse it manually.
       if (typeof val === "string") {
-        try {
-          return JSON.parse(val) as T;
-        } catch {
-          return val as T;
+        const parsed = parseJsonUnknown(val);
+        if (!parsed.success) {
+          return null;
         }
+        if (!schema) {
+          return parsed.data as T;
+        }
+        const validated = schema.safeParse(parsed.data);
+        if (!validated.success) {
+          return null;
+        }
+        return validated.data;
       }
-      return val as T;
+      if (!schema) {
+        return val as T;
+      }
+      const validated = schema.safeParse(val);
+      return validated.success ? validated.data : null;
     } catch {
       return null;
     }
@@ -175,7 +184,7 @@ function getMailProvider(): NodemailerMailProvider {
 
 const commentEventBus = new CommentEventBus();
 
-// ─── Typed Prisma client (single cast eliminates all per-service casts) ─────
+// ─── Typed Prisma client ───────────────────────────────────────────────────
 const db = prisma as unknown as AppPrismaClient;
 
 // ─── Service Instances ──────────────────────────────────────────────────────
@@ -237,11 +246,11 @@ export const commentService = new CommentService(
 );
 
 export const tagService = new TagService(db);
-const autocompleteService = new AutocompleteService(db);
+export const autocompleteService = new AutocompleteService(db);
 const autoTaggingService = new AutoTaggingService(db, tagService);
 
 export const seoService = new SeoService({
-  post: db.post as unknown as PrismaPostDelegate,
+  post: db.post as PrismaPostDelegate,
   page: db.page,
   category: db.category,
   tag: db.tag,
@@ -250,10 +259,8 @@ export const seoService = new SeoService({
   seoEntity: db.seoEntity,
   seoEntityEdge: db.seoEntityEdge,
   batchOperation: db.batchOperation,
-  transaction: prisma.$transaction.bind(
-    prisma,
-  ) as unknown as PrismaTransactionFn,
-  rawQuery: prisma.$queryRawUnsafe.bind(prisma) as unknown as PrismaRawQueryFn,
+  transaction: async (fn) => prisma.$transaction((tx) => fn(tx)),
+  rawQuery: (query, ...params) => prisma.$queryRawUnsafe(query, ...params),
   cache: cacheProvider,
   logger: seoLogger,
 });

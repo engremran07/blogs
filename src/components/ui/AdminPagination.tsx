@@ -51,7 +51,7 @@ export function AdminPagination({ page, totalPages, total, pageSize = ADMIN_PAGE
               onClick={() => onPageChange(p)}
               className={`rounded px-3 py-1.5 text-sm font-medium ${
                 page === p
-                  ? "bg-blue-600 text-white"
+                  ? "bg-primary text-white"
                   : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               }`}
             >

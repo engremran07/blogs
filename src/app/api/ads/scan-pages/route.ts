@@ -27,16 +27,30 @@ import {
 } from "@/features/ads/server/scan-pages";
 import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 
+const scanPrisma: ScanPrisma = {
+  category: { findMany: (args) => prisma.category.findMany(args as never) },
+  tag: { findMany: (args) => prisma.tag.findMany(args as never) },
+  page: { findMany: (args) => prisma.page.findMany(args as never) },
+  post: {
+    count: (args) => prisma.post.count(args as never),
+    findMany: (args) => prisma.post.findMany(args as never),
+  },
+  adSlot: {
+    findMany: (args) => prisma.adSlot.findMany(args as never),
+    update: (args) => prisma.adSlot.update(args as never),
+  },
+};
+
 // ─── GET — read-only scan with health report ───────────────────────────────
 
 export async function GET() {
   try {
-    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    const { errorResponse } = await requireAuth({ level: "moderator" });
     if (errorResponse) return errorResponse;
 
     const [pageTypes, healthReport] = await Promise.all([
-      discoverPageTypes(prisma as unknown as ScanPrisma),
-      generateScanHealthReport(prisma as unknown as ScanPrisma),
+      discoverPageTypes(scanPrisma),
+      generateScanHealthReport(scanPrisma),
     ]);
 
     return NextResponse.json({
@@ -59,10 +73,10 @@ export async function GET() {
 
 export async function POST() {
   try {
-    const { errorResponse } = await requireAuth({ level: 'admin' });
+    const { errorResponse } = await requireAuth({ level: "admin" });
     if (errorResponse) return errorResponse;
 
-    const result = await syncAdSlotPageTypes(prisma as unknown as ScanPrisma);
+    const result = await syncAdSlotPageTypes(scanPrisma);
 
     return NextResponse.json({
       success: true,

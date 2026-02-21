@@ -130,8 +130,13 @@ export interface AutocompleteResult {
   path: string | null;
   color: string | null;
   icon: string | null;
+  description: string | null;
   usageCount: number;
+  trending: boolean;
+  featured: boolean;
   isExisting: true;
+  /** Set when the match was found via fuzzy/Levenshtein similarity. */
+  fuzzy?: boolean;
 }
 
 export interface AutocompleteResponse {
@@ -447,7 +452,7 @@ export type { PrismaDelegate };
 export interface TagsPrismaClient {
   tag: PrismaDelegate<TagData>;
   tagFollow: PrismaDelegate<TagFollowData>;
-  tagSettings: PrismaDelegate;
+  tagSettings: PrismaDelegate<TagSystemSettings>;
   post: PrismaDelegate;
   $transaction<T>(fn: (tx: TagsPrismaClient) => Promise<T>): Promise<T>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -8,7 +8,6 @@ import {
   Eye,
   ArrowLeft,
   Image as ImageIcon,
-  Tag,
   Calendar,
   Globe,
   Users,
@@ -21,6 +20,7 @@ import { Input, Textarea, Select } from "@/components/ui/FormFields";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { EditorStatusProvider } from "@/components/admin/EditorContext";
+import TagAutocomplete from "@/components/admin/TagAutocomplete";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import type { MediaItem } from "@/features/media/types";
@@ -120,7 +120,7 @@ export default function PostEditor({
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [autoSlug, setAutoSlug] = useState(isNew);
-  const [tags, setTags] = useState<TagOption[]>([]);
+  const [selectedTags, setSelectedTags] = useState<TagOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [seoOpen, setSeoOpen] = useState(false);
@@ -160,11 +160,11 @@ export default function PostEditor({
     readingTime: 0,
   });
 
-  useEffect(() => {
-    fetch("/api/tags")
-      .then((r) => r.json())
-      .then((d) => setTags(d.data || []));
+  // Ref always points to the latest form so async handlers never see stale state
+  const formRef = useRef(form);
+  formRef.current = form;
 
+  useEffect(() => {
     fetch("/api/categories")
       .then((r) => r.json())
       .then((d) => setCategories(d.data || []));
@@ -175,6 +175,12 @@ export default function PostEditor({
         .then((d) => {
           if (d.success && d.data) {
             const p = d.data;
+            const postTags = (p.tags || []).map((t: TagOption) => ({
+              id: t.id,
+              name: t.name,
+              slug: t.slug,
+            }));
+            setSelectedTags(postTags);
             setForm({
               title: p.title || "",
               slug: p.slug || "",
@@ -228,15 +234,6 @@ export default function PostEditor({
     });
   }
 
-  function toggleTag(id: string) {
-    setForm((prev) => ({
-      ...prev,
-      tagIds: prev.tagIds.includes(id)
-        ? prev.tagIds.filter((t) => t !== id)
-        : [...prev.tagIds, id],
-    }));
-  }
-
   function toggleCategory(id: string) {
     setForm((prev) => ({
       ...prev,
@@ -247,61 +244,64 @@ export default function PostEditor({
   }
 
   async function handleSave(status?: string) {
-    if (!form.title.trim()) {
+    // Read from ref to guarantee latest state (avoids stale closures from
+    // React-Compiler auto-memoisation or batched state updates).
+    const f = formRef.current;
+    if (!f.title.trim()) {
       toast("Title is required", "error");
       return;
     }
     setSaving(true);
     try {
       const body: Record<string, unknown> = {
-        title: form.title,
-        isGuestPost: form.isGuestPost,
-        ...(form.isGuestPost && {
-          guestAuthorName: form.guestAuthorName || undefined,
-          guestAuthorEmail: form.guestAuthorEmail || undefined,
-          guestAuthorBio: form.guestAuthorBio || undefined,
-          guestAuthorAvatar: form.guestAuthorAvatar || undefined,
-          guestAuthorUrl: form.guestAuthorUrl || undefined,
+        title: f.title,
+        isGuestPost: f.isGuestPost,
+        ...(f.isGuestPost && {
+          guestAuthorName: f.guestAuthorName || undefined,
+          guestAuthorEmail: f.guestAuthorEmail || undefined,
+          guestAuthorBio: f.guestAuthorBio || undefined,
+          guestAuthorAvatar: f.guestAuthorAvatar || undefined,
+          guestAuthorUrl: f.guestAuthorUrl || undefined,
         }),
-        slug: form.slug || slugify(form.title),
-        content: form.content,
-        excerpt: form.excerpt || undefined,
-        status: status || form.status,
-        featuredImage: form.featuredImage || undefined,
-        featuredImageAlt: form.featuredImageAlt || undefined,
-        seoTitle: form.seoTitle || undefined,
-        seoDescription: form.seoDescription || undefined,
-        seoKeywords: form.seoKeywords
-          ? form.seoKeywords
+        slug: f.slug || slugify(f.title),
+        content: f.content,
+        excerpt: f.excerpt || undefined,
+        status: status || f.status,
+        featuredImage: f.featuredImage || undefined,
+        featuredImageAlt: f.featuredImageAlt || undefined,
+        seoTitle: f.seoTitle || undefined,
+        seoDescription: f.seoDescription || undefined,
+        seoKeywords: f.seoKeywords
+          ? f.seoKeywords
               .split(",")
               .map((k: string) => k.trim())
               .filter(Boolean)
           : [],
-        allowComments: form.allowComments,
-        isFeatured: form.isFeatured,
-        isPinned: form.isPinned,
-        tagIds: form.tagIds,
-        categoryIds: form.categoryIds,
+        allowComments: f.allowComments,
+        isFeatured: f.isFeatured,
+        isPinned: f.isPinned,
+        tagIds: f.tagIds,
+        categoryIds: f.categoryIds,
         // OG fields
-        ogTitle: form.ogTitle || null,
-        ogDescription: form.ogDescription || null,
-        ogImage: form.ogImage || null,
+        ogTitle: f.ogTitle || null,
+        ogDescription: f.ogDescription || null,
+        ogImage: f.ogImage || null,
         // SEO directives
-        noIndex: form.noIndex,
-        noFollow: form.noFollow,
-        canonicalUrl: form.canonicalUrl || null,
+        noIndex: f.noIndex,
+        noFollow: f.noFollow,
+        canonicalUrl: f.canonicalUrl || null,
         // Access control
-        password: form.password || null,
+        password: f.password || null,
         // Metrics
-        wordCount: form.wordCount,
-        readingTime: form.readingTime,
+        wordCount: f.wordCount,
+        readingTime: f.readingTime,
       };
 
-      if (form.scheduledFor) {
-        body.scheduledFor = new Date(form.scheduledFor).toISOString();
+      if (f.scheduledFor) {
+        body.scheduledFor = new Date(f.scheduledFor).toISOString();
       }
 
-      if (status === "PUBLISHED" && !form.content.trim()) {
+      if (status === "PUBLISHED" && !f.content.trim()) {
         toast("Content is required to publish", "error");
         setSaving(false);
         return;
@@ -638,27 +638,17 @@ export default function PostEditor({
             {/* Tags */}
             <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
               <h3 className="mb-3 font-semibold text-gray-900 dark:text-white">
-                <Tag className="mr-1 inline h-4 w-4" /> Tags
+                Tags
               </h3>
-              <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto">
-                {tags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => toggleTag(tag.id)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                      form.tagIds.includes(tag.id)
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
-                {tags.length === 0 && (
-                  <p className="text-sm text-gray-400">No tags available</p>
-                )}
-              </div>
+              <TagAutocomplete
+                selectedTagIds={form.tagIds}
+                selectedTags={selectedTags}
+                onTagsChange={(tagIds, tags) => {
+                  setForm((prev) => ({ ...prev, tagIds }));
+                  setSelectedTags(tags);
+                }}
+                placeholder="Search tags..."
+              />
             </div>
 
             {/* Categories */}

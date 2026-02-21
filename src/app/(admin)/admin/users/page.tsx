@@ -448,7 +448,7 @@ export default function AdminUsersPage() {
             defaultValue={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search users..."
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
         </div>
         <select
@@ -493,7 +493,7 @@ export default function AdminUsersPage() {
                     }
                     className="mt-2 flex w-full items-center gap-2 rounded px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                   >
-                    <Shield className="h-4 w-4 text-blue-500" /> Apply Role
+                    <Shield className="h-4 w-4 text-primary" /> Apply Role
                   </button>
                 </div>
                 <hr className="my-1 border-gray-200 dark:border-gray-700" />
@@ -523,7 +523,7 @@ export default function AdminUsersPage() {
                     className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     {allSelected ? (
-                      <CheckSquare className="h-4 w-4 text-blue-600" />
+                      <CheckSquare className="h-4 w-4 text-primary" />
                     ) : (
                       <Square className="h-4 w-4" />
                     )}
@@ -566,7 +566,7 @@ export default function AdminUsersPage() {
                 : paginatedUsers.map((user) => (
                     <tr
                       key={user.id}
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-700/30 ${selected.has(user.id) ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-700/30 ${selected.has(user.id) ? "bg-primary/5 dark:bg-primary/10" : ""}`}
                     >
                       <td className="px-3 py-3">
                         <button
@@ -574,7 +574,7 @@ export default function AdminUsersPage() {
                           className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                         >
                           {selected.has(user.id) ? (
-                            <CheckSquare className="h-4 w-4 text-blue-600" />
+                            <CheckSquare className="h-4 w-4 text-primary" />
                           ) : (
                             <Square className="h-4 w-4" />
                           )}
@@ -585,12 +585,12 @@ export default function AdminUsersPage() {
                           onClick={() => openEditUser(user)}
                           className="flex items-center gap-3 text-left hover:opacity-80"
                         >
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary dark:bg-primary/20 dark:text-primary">
                             {(user.displayName ||
                               user.username)[0].toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400">
+                            <p className="font-medium text-gray-900 dark:text-white hover:text-primary dark:hover:text-primary">
                               {user.displayName || user.username}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">

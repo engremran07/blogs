@@ -179,7 +179,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                 name="q"
                 defaultValue={params.q}
                 placeholder="Search articles..."
-                className="rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                className="rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               />
             </div>
           </form>
@@ -199,7 +199,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
               </p>
               <Link
                 href="/blog"
-                className="mt-4 inline-block text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                className="mt-4 inline-block text-sm font-medium text-primary hover:text-primary/80"
               >
                 View all articles
               </Link>
@@ -240,7 +240,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                         ))}
                       </div>
                     )}
-                    <h2 className="line-clamp-2 text-lg font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                    <h2 className="line-clamp-2 text-lg font-semibold text-gray-900 group-hover:text-primary dark:text-white">
                       {post.title}
                     </h2>
                     {showExcerpt && post.excerpt && (
@@ -326,7 +326,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                         ))}
                       </div>
                     )}
-                    <h2 className="line-clamp-2 text-lg font-semibold text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                    <h2 className="line-clamp-2 text-lg font-semibold text-gray-900 group-hover:text-primary dark:text-white">
                       {post.title}
                     </h2>
                     {showExcerpt && post.excerpt && (

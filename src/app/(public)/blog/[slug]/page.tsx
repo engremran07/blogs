@@ -379,7 +379,7 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
             pageType="blog"
             className="prose prose-lg prose-blue dark:prose-invert max-w-none
               prose-headings:scroll-mt-20
-              prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
+              prose-a:text-primary prose-a:no-underline hover:prose-a:underline
               prose-img:rounded-xl
               prose-pre:overflow-x-auto prose-pre:rounded-xl
               prose-code:rounded prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-sm prose-code:font-normal dark:prose-code:bg-gray-800"
@@ -391,13 +391,12 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
               <div className="flex flex-wrap items-center gap-2">
                 <Tag className="h-4 w-4 text-gray-400" />
                 {post.tags.map((tag) => (
-                  <Link
+                  <span
                     key={tag.id}
-                    href={`/tags/${tag.slug}`}
-                    className="rounded-full border border-gray-200 px-3 py-1 text-sm text-gray-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-blue-600 dark:hover:text-blue-400"
+                    className="rounded-full border border-gray-200 px-3 py-1 text-sm text-gray-600 dark:border-gray-700 dark:text-gray-400"
                   >
                     {tag.name}
-                  </Link>
+                  </span>
                 ))}
               </div>
             </div>

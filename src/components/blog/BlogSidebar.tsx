@@ -69,7 +69,7 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
               <input
                 name="q"
                 placeholder="Search articles..."
-                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
           </form>
@@ -95,7 +95,7 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-sm font-medium text-gray-900 group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+                  <p className="line-clamp-2 text-sm font-medium text-gray-900 group-hover:text-primary dark:text-white">
                     {post.title}
                   </p>
                   {post.publishedAt && (
@@ -124,7 +124,7 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
               <Link
                 key={tag.id}
                 href={`/blog?tag=${tag.slug}`}
-                className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2.5 py-1 text-xs text-gray-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-blue-500 dark:hover:text-blue-400"
+                className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2.5 py-1 text-xs text-gray-600 transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-gray-600 dark:text-gray-400"
               >
                 {tag.name}
                 <span className="text-gray-400 dark:text-gray-500">{tag.usageCount}</span>

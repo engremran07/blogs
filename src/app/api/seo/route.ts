@@ -15,7 +15,48 @@ import { createLogger } from "@/server/observability/logger";
 
 const logger = createLogger("api/seo");
 
-function toAuditableContent(post: Record<string, unknown>): AuditableContent {
+function toRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+const interlinkPrisma: InterlinkPrisma = {
+  post: {
+    findMany: (args) => prisma.post.findMany(args as never),
+    findUnique: (args) => prisma.post.findUnique(args as never),
+    update: (args) => prisma.post.update(args as never),
+    count: (args) => prisma.post.count(args as never),
+  },
+  page: {
+    findMany: (args) => prisma.page.findMany(args as never),
+    findUnique: (args) => prisma.page.findUnique(args as never),
+    update: (args) => prisma.page.update(args as never),
+    count: (args) => prisma.page.count(args as never),
+  },
+  internalLink: {
+    findMany: (args) => prisma.internalLink.findMany(args as never),
+    findFirst: (args) => prisma.internalLink.findFirst(args as never),
+    findUnique: (args) => prisma.internalLink.findUnique(args as never),
+    create: (args) => prisma.internalLink.create(args as never),
+    update: (args) => prisma.internalLink.update(args as never),
+    updateMany: (args) => prisma.internalLink.updateMany(args as never),
+    delete: (args) => prisma.internalLink.delete(args as never),
+    deleteMany: (args) => prisma.internalLink.deleteMany(args as never),
+    count: (args) => prisma.internalLink.count(args as never),
+    upsert: (args) => prisma.internalLink.upsert(args as never),
+  },
+  interlinkExclusion: {
+    findMany: (args) => prisma.interlinkExclusion.findMany(args as never),
+    create: (args) => prisma.interlinkExclusion.create(args as never),
+    delete: (args) => prisma.interlinkExclusion.delete(args as never),
+    deleteMany: (args) => prisma.interlinkExclusion.deleteMany(args as never),
+    count: (args) => prisma.interlinkExclusion.count(args as never),
+  },
+};
+
+function toAuditableContent(postInput: unknown): AuditableContent {
+  const post = toRecord(postInput);
   return {
     id: post.id as string,
     title: post.title as string,
@@ -43,30 +84,23 @@ function toAuditableContent(post: Record<string, unknown>): AuditableContent {
   };
 }
 
-function pageToAuditableContent(
-  page: Record<string, unknown>,
-): AuditableContent {
+function pageToAuditableContent(pageInput: unknown): AuditableContent {
+  const page = toRecord(pageInput);
   return {
     id: page.id as string,
     title: page.title as string,
     slug: page.slug as string,
     content: (page.content as string) || "",
-    seoTitle: (page as Record<string, unknown>).metaTitle as string | null,
-    seoDescription: (page as Record<string, unknown>).metaDescription as
-      | string
-      | null,
+    seoTitle: page.metaTitle as string | null,
+    seoDescription: page.metaDescription as string | null,
     seoKeywords: [],
     excerpt: (page.excerpt as string) || null,
     featuredImage: (page.featuredImage as string) || null,
-    ogTitle: (page as Record<string, unknown>).ogTitle as string | null,
-    ogDescription: (page as Record<string, unknown>).ogDescription as
-      | string
-      | null,
-    ogImage: (page as Record<string, unknown>).ogImage as string | null,
+    ogTitle: page.ogTitle as string | null,
+    ogDescription: page.ogDescription as string | null,
+    ogImage: page.ogImage as string | null,
     twitterCard: null,
-    canonicalUrl: (page as Record<string, unknown>).canonicalUrl as
-      | string
-      | null,
+    canonicalUrl: page.canonicalUrl as string | null,
     wordCount: page.wordCount as number,
     readingTime: page.readingTime as number,
     categories: [],
@@ -86,7 +120,7 @@ export async function GET(request: NextRequest) {
   const action = searchParams.get("action") || "overview";
 
   try {
-    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    const { errorResponse } = await requireAuth({ level: "moderator" });
     if (errorResponse) return errorResponse;
     if (action === "overview") {
       // Aggregate site-wide SEO stats
@@ -148,16 +182,10 @@ export async function GET(request: NextRequest) {
       ]);
 
       const postAudits: AuditResult[] = posts.map((p) =>
-        auditContent(
-          toAuditableContent(p as unknown as Record<string, unknown>),
-          "POST",
-        ),
+        auditContent(toAuditableContent(p), "POST"),
       );
       const pageAudits: AuditResult[] = pages.map((p) =>
-        auditContent(
-          pageToAuditableContent(p as unknown as Record<string, unknown>),
-          "PAGE",
-        ),
+        auditContent(pageToAuditableContent(p), "PAGE"),
       );
 
       const allAudits = [...postAudits, ...pageAudits];
@@ -277,10 +305,7 @@ export async function GET(request: NextRequest) {
           { status: 404 },
         );
 
-      const result = auditContent(
-        toAuditableContent(post as unknown as Record<string, unknown>),
-        "POST",
-      );
+      const result = auditContent(toAuditableContent(post), "POST");
       const titleQuality = scoreTitleQuality(post.title);
       const keywords = extractKeywords(post.content, 10);
 
@@ -308,10 +333,7 @@ export async function GET(request: NextRequest) {
           { status: 404 },
         );
 
-      const result = auditContent(
-        pageToAuditableContent(page as unknown as Record<string, unknown>),
-        "PAGE",
-      );
+      const result = auditContent(pageToAuditableContent(page), "PAGE");
       return NextResponse.json({ success: true, data: { audit: result } });
     }
 
@@ -329,12 +351,7 @@ export async function GET(request: NextRequest) {
           },
         });
         for (const p of posts) {
-          results.push(
-            auditContent(
-              toAuditableContent(p as unknown as Record<string, unknown>),
-              "POST",
-            ),
-          );
+          results.push(auditContent(toAuditableContent(p), "POST"));
         }
       }
       if (type === "all" || type === "pages") {
@@ -342,12 +359,7 @@ export async function GET(request: NextRequest) {
           where: { deletedAt: null },
         });
         for (const p of pages) {
-          results.push(
-            auditContent(
-              pageToAuditableContent(p as unknown as Record<string, unknown>),
-              "PAGE",
-            ),
-          );
+          results.push(auditContent(pageToAuditableContent(p), "PAGE"));
         }
       }
 
@@ -442,9 +454,7 @@ export async function GET(request: NextRequest) {
           { status: 400 },
         );
 
-      const interlinkSvc = new InterlinkService(
-        prisma as unknown as InterlinkPrisma,
-      );
+      const interlinkSvc = new InterlinkService(interlinkPrisma);
       const result = await interlinkSvc.scanSingle(id, type);
       return NextResponse.json({ success: true, data: result });
     }
@@ -460,34 +470,26 @@ export async function GET(request: NextRequest) {
           { status: 400 },
         );
 
-      const interlinkSvc = new InterlinkService(
-        prisma as unknown as InterlinkPrisma,
-      );
+      const interlinkSvc = new InterlinkService(interlinkPrisma);
       const result = await interlinkSvc.autoLinkContent(id, type);
       return NextResponse.json({ success: true, data: result });
     }
 
     if (action === "interlink-all") {
       const limitParam = parseInt(searchParams.get("limit") || "50", 10);
-      const interlinkSvc = new InterlinkService(
-        prisma as unknown as InterlinkPrisma,
-      );
+      const interlinkSvc = new InterlinkService(interlinkPrisma);
       const result = await interlinkSvc.autoLinkAll(limitParam);
       return NextResponse.json({ success: true, data: result });
     }
 
     if (action === "interlink-report") {
-      const interlinkSvc = new InterlinkService(
-        prisma as unknown as InterlinkPrisma,
-      );
+      const interlinkSvc = new InterlinkService(interlinkPrisma);
       const report = await interlinkSvc.generateReport();
       return NextResponse.json({ success: true, data: report });
     }
 
     if (action === "interlink-list-links") {
-      const interlinkSvc = new InterlinkService(
-        prisma as unknown as InterlinkPrisma,
-      );
+      const interlinkSvc = new InterlinkService(interlinkPrisma);
       const sourceId = searchParams.get("sourceId") || undefined;
       const targetId = searchParams.get("targetId") || undefined;
       const status = searchParams.get("status") || undefined;
@@ -506,9 +508,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === "interlink-list-exclusions") {
-      const interlinkSvc = new InterlinkService(
-        prisma as unknown as InterlinkPrisma,
-      );
+      const interlinkSvc = new InterlinkService(interlinkPrisma);
       const exclusions = await interlinkSvc.listExclusions();
       return NextResponse.json({ success: true, data: exclusions });
     }
@@ -529,14 +529,12 @@ export async function GET(request: NextRequest) {
 // POST /api/seo — Mutating interlink operations
 export async function POST(request: NextRequest) {
   try {
-    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    const { errorResponse } = await requireAuth({ level: "moderator" });
     if (errorResponse) return errorResponse;
 
     const body = await request.json();
     const action = body.action as string;
-    const interlinkSvc = new InterlinkService(
-      prisma as unknown as InterlinkPrisma,
-    );
+    const interlinkSvc = new InterlinkService(interlinkPrisma);
 
     if (action === "interlink-manual-link") {
       const { sourceId, sourceType, targetId, targetType, anchorText } = body;

@@ -238,6 +238,9 @@ export interface CreatePageInput {
 
   // Scheduling
   scheduledFor?: Date | null;
+
+  // Tags
+  tagIds?: string[];
 }
 
 export interface UpdatePageInput {
@@ -277,6 +280,9 @@ export interface UpdatePageInput {
 
   // Scheduling
   scheduledFor?: Date | null;
+
+  // Tags
+  tagIds?: string[];
 
   // Revision note
   changeNote?: string | null;
@@ -485,14 +491,14 @@ export interface PagesPrismaClient {
   pageSettings: {
     findFirst(
       args?: Record<string, unknown>,
-    ): Promise<Record<string, unknown> | null>;
+    ): Promise<PagesSystemSettings | null>;
     create(args: {
       data: Record<string, unknown>;
-    }): Promise<Record<string, unknown>>;
+    }): Promise<PagesSystemSettings>;
     update(args: {
       where: { id: string };
       data: Record<string, unknown>;
-    }): Promise<Record<string, unknown>>;
+    }): Promise<PagesSystemSettings>;
   };
   $transaction<T>(fn: (tx: PagesPrismaClient) => Promise<T>): Promise<T>;
   $transaction(args: unknown[]): Promise<unknown[]>;

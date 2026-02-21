@@ -13,154 +13,155 @@
 
 /** Suggestion categories for SEO improvements. */
 export const SEO_SUGGESTION_CATEGORIES = [
-  'META',
-  'CONTENT',
-  'TECHNICAL',
-  'IMAGE',
-  'LINKING',
-  'STRUCTURED_DATA',
-  'SOCIAL',
-  'PERFORMANCE',
+  "META",
+  "CONTENT",
+  "TECHNICAL",
+  "IMAGE",
+  "LINKING",
+  "STRUCTURED_DATA",
+  "SOCIAL",
+  "PERFORMANCE",
 ] as const;
 export type SeoSuggestionCategory = (typeof SEO_SUGGESTION_CATEGORIES)[number];
 
 /** Sources that generate SEO suggestions. */
 export const SEO_SUGGESTION_SOURCES = [
-  'AUDIT',
-  'AI',
-  'MANUAL',
-  'RULE_ENGINE',
+  "AUDIT",
+  "AI",
+  "MANUAL",
+  "RULE_ENGINE",
 ] as const;
 export type SeoSuggestionSource = (typeof SEO_SUGGESTION_SOURCES)[number];
 
 /** Lifecycle statuses for SEO suggestions. */
 export const SEO_SUGGESTION_STATUSES = [
-  'NEW',
-  'APPROVED',
-  'REJECTED',
-  'SCHEDULED',
-  'APPLIED',
-  'EXPIRED',
+  "NEW",
+  "APPROVED",
+  "REJECTED",
+  "SCHEDULED",
+  "APPLIED",
+  "EXPIRED",
 ] as const;
 export type SeoSuggestionStatus = (typeof SEO_SUGGESTION_STATUSES)[number];
 
 /** Target types for SEO operations. */
 export const SEO_TARGET_TYPES = [
-  'POST',
-  'PAGE',
-  'CATEGORY',
-  'TAG',
-  'SITE',
+  "POST",
+  "PAGE",
+  "CATEGORY",
+  "TAG",
+  "SITE",
 ] as const;
 export type SeoTargetType = (typeof SEO_TARGET_TYPES)[number];
 
 /** Keyword search intents (expanded from source). */
 export const SEO_KEYWORD_INTENTS = [
-  'INFORMATIONAL',
-  'COMMERCIAL',
-  'TRANSACTIONAL',
-  'LOCAL',
-  'NAVIGATIONAL',
-  'OTHER',
+  "INFORMATIONAL",
+  "COMMERCIAL",
+  "TRANSACTIONAL",
+  "LOCAL",
+  "NAVIGATIONAL",
+  "OTHER",
 ] as const;
 export type SeoKeywordIntent = (typeof SEO_KEYWORD_INTENTS)[number];
 
 /** Audit check severity tiers. */
 export const AUDIT_SEVERITIES = [
-  'CRITICAL',
-  'IMPORTANT',
-  'OPTIONAL',
-  'INFO',
+  "CRITICAL",
+  "IMPORTANT",
+  "OPTIONAL",
+  "INFO",
 ] as const;
 export type AuditSeverity = (typeof AUDIT_SEVERITIES)[number];
 
 /** Audit check result status. */
-export const AUDIT_STATUSES = ['pass', 'warn', 'fail', 'info'] as const;
+export const AUDIT_STATUSES = ["pass", "warn", "fail", "info"] as const;
 export type AuditStatus = (typeof AUDIT_STATUSES)[number];
 
 /** Sitemap change frequencies per the Sitemaps protocol. */
 export const SITEMAP_CHANGE_FREQUENCIES = [
-  'always',
-  'hourly',
-  'daily',
-  'weekly',
-  'monthly',
-  'yearly',
-  'never',
+  "always",
+  "hourly",
+  "daily",
+  "weekly",
+  "monthly",
+  "yearly",
+  "never",
 ] as const;
-export type SitemapChangeFrequency = (typeof SITEMAP_CHANGE_FREQUENCIES)[number];
+export type SitemapChangeFrequency =
+  (typeof SITEMAP_CHANGE_FREQUENCIES)[number];
 
 /** SEO entity classification types. */
 export const SEO_ENTITY_TYPES = [
-  'CATEGORY',
-  'TAG',
-  'AUTO_TAG',
-  'TOPIC',
-  'BRAND',
-  'PERSON',
-  'LOCATION',
+  "CATEGORY",
+  "TAG",
+  "AUTO_TAG",
+  "TOPIC",
+  "BRAND",
+  "PERSON",
+  "LOCATION",
 ] as const;
 export type SeoEntityType = (typeof SEO_ENTITY_TYPES)[number];
 
 /** Relation types between SEO entities in the knowledge graph. */
 export const SEO_ENTITY_RELATIONS = [
-  'CO_OCCURRENCE',
-  'HIERARCHY',
-  'SYNONYM',
-  'RELATED',
-  'PARENT_CHILD',
+  "CO_OCCURRENCE",
+  "HIERARCHY",
+  "SYNONYM",
+  "RELATED",
+  "PARENT_CHILD",
 ] as const;
 export type SeoEntityRelation = (typeof SEO_ENTITY_RELATIONS)[number];
 
 /** Batch operation statuses. */
 export const BATCH_STATUSES = [
-  'PENDING',
-  'IN_PROGRESS',
-  'COMPLETED',
-  'FAILED',
-  'CANCELLED',
+  "PENDING",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
 ] as const;
 export type BatchStatus = (typeof BATCH_STATUSES)[number];
 
 /** Volume trend directions. */
-export const TREND_DIRECTIONS = ['RISING', 'FALLING', 'STABLE'] as const;
+export const TREND_DIRECTIONS = ["RISING", "FALLING", "STABLE"] as const;
 export type TrendDirection = (typeof TREND_DIRECTIONS)[number];
 
 /** JSON-LD Schema.org types supported by the module. */
 export const JSON_LD_TYPES = [
-  'Article',
-  'BlogPosting',
-  'NewsArticle',
-  'Event',
-  'WebSite',
-  'WebPage',
-  'BreadcrumbList',
-  'FAQPage',
-  'HowTo',
-  'Organization',
-  'Person',
-  'Product',
-  'LocalBusiness',
-  'VideoObject',
-  'ImageObject',
-  'SearchAction',
+  "Article",
+  "BlogPosting",
+  "NewsArticle",
+  "Event",
+  "WebSite",
+  "WebPage",
+  "BreadcrumbList",
+  "FAQPage",
+  "HowTo",
+  "Organization",
+  "Person",
+  "Product",
+  "LocalBusiness",
+  "VideoObject",
+  "ImageObject",
+  "SearchAction",
 ] as const;
 export type JsonLdType = (typeof JSON_LD_TYPES)[number];
 
 /** Robots meta directives. */
 export const ROBOTS_DIRECTIVES = [
-  'index',
-  'noindex',
-  'follow',
-  'nofollow',
-  'noarchive',
-  'nosnippet',
-  'noimageindex',
-  'max-snippet',
-  'max-image-preview',
-  'max-video-preview',
-  'notranslate',
-  'noodp',
+  "index",
+  "noindex",
+  "follow",
+  "nofollow",
+  "noarchive",
+  "nosnippet",
+  "noimageindex",
+  "max-snippet",
+  "max-image-preview",
+  "max-video-preview",
+  "notranslate",
+  "noodp",
 ] as const;
 export type RobotsDirective = (typeof ROBOTS_DIRECTIVES)[number];
 
@@ -258,7 +259,7 @@ export interface SeoSuggestion {
 }
 
 export interface SuggestionDecision {
-  status: 'APPROVED' | 'REJECTED';
+  status: "APPROVED" | "REJECTED";
   note?: string;
   decidedBy?: string;
 }
@@ -410,7 +411,11 @@ export interface SitemapConfig {
   maxEntriesPerSitemap?: number;
   defaultChangeFreq?: SitemapChangeFrequency;
   defaultPriority?: number;
-  staticUrls?: { path: string; priority?: number; changefreq?: SitemapChangeFrequency }[];
+  staticUrls?: {
+    path: string;
+    priority?: number;
+    changefreq?: SitemapChangeFrequency;
+  }[];
 }
 
 export interface SitemapStats {
@@ -472,7 +477,7 @@ export interface EventJsonLdInput {
   isOnline?: boolean;
   price?: number;
   currency?: string;
-  availability?: 'InStock' | 'SoldOut' | 'PreOrder';
+  availability?: "InStock" | "SoldOut" | "PreOrder";
 }
 
 export interface WebSiteJsonLdInput {
@@ -549,7 +554,7 @@ export interface ProductJsonLdInput {
   sku?: string;
   price?: number;
   currency?: string;
-  availability?: 'InStock' | 'OutOfStock' | 'PreOrder' | 'Discontinued';
+  availability?: "InStock" | "OutOfStock" | "PreOrder" | "Discontinued";
   ratingValue?: number;
   ratingCount?: number;
   reviewCount?: number;
@@ -618,7 +623,7 @@ export interface OpenGraphMeta {
   imageHeight?: number;
   imageAlt?: string;
   url?: string;
-  type?: 'website' | 'article' | 'profile' | 'book';
+  type?: "website" | "article" | "profile" | "book";
   siteName?: string;
   locale?: string;
   publishedTime?: string;
@@ -629,7 +634,7 @@ export interface OpenGraphMeta {
 }
 
 export interface TwitterCardMeta {
-  card?: 'summary' | 'summary_large_image' | 'app' | 'player';
+  card?: "summary" | "summary_large_image" | "app" | "player";
   site?: string;
   creator?: string;
   title?: string;
@@ -678,7 +683,7 @@ export interface BulkEnhancementStats {
 
 export interface BulkEnhancementResult {
   contentId: string;
-  contentType: 'POST' | 'PAGE';
+  contentType: "POST" | "PAGE";
   success: boolean;
   fieldsUpdated: string[];
   error?: string;
@@ -753,24 +758,20 @@ export interface PrismaPageDelegate {
 export interface PrismaCategoryDelegate {
   findMany(
     args?: Record<string, unknown>,
-  ): Promise<
-    { id: string; name: string; slug: string; updatedAt: Date }[]
-  >;
+  ): Promise<{ id: string; name: string; slug: string; updatedAt: Date }[]>;
 }
 
 export interface PrismaTagDelegate {
   findMany(
     args?: Record<string, unknown>,
-  ): Promise<
-    { id: string; name: string; slug: string; updatedAt: Date }[]
-  >;
+  ): Promise<{ id: string; name: string; slug: string; updatedAt: Date }[]>;
 }
 
 export interface PrismaSeoSuggestionDelegate {
   findMany(args?: Record<string, unknown>): Promise<SeoSuggestion[]>;
   count(args?: Record<string, unknown>): Promise<number>;
   create(args: {
-    data: Omit<SeoSuggestion, 'id' | 'createdAt'>;
+    data: Omit<SeoSuggestion, "id" | "createdAt">;
   }): Promise<SeoSuggestion>;
   update(args: {
     where: { id: string };
@@ -783,7 +784,7 @@ export interface PrismaSeoKeywordDelegate {
   findMany(args?: Record<string, unknown>): Promise<SeoKeyword[]>;
   upsert(args: {
     where: { slug: string };
-    create: Omit<SeoKeyword, 'lastSeenAt'>;
+    create: Omit<SeoKeyword, "lastSeenAt">;
     update: Partial<SeoKeyword>;
   }): Promise<SeoKeyword>;
   deleteMany(args?: Record<string, unknown>): Promise<{ count: number }>;
@@ -793,7 +794,7 @@ export interface PrismaSeoEntityDelegate {
   findMany(args?: Record<string, unknown>): Promise<SeoEntity[]>;
   upsert(args: {
     where: Record<string, unknown>;
-    create: Omit<SeoEntity, 'id' | 'updatedAt'>;
+    create: Omit<SeoEntity, "id" | "updatedAt">;
     update: Partial<SeoEntity>;
   }): Promise<SeoEntity>;
   deleteMany(args?: Record<string, unknown>): Promise<{ count: number }>;
@@ -803,19 +804,17 @@ export interface PrismaSeoEntityEdgeDelegate {
   findMany(args?: Record<string, unknown>): Promise<SeoEntityEdge[]>;
   upsert(args: {
     where: Record<string, unknown>;
-    create: Omit<SeoEntityEdge, 'id'>;
-    update: Partial<SeoEntityEdge>;
+    create: Omit<SeoEntityEdge, "id">;
+    update: Partial<SeoEntityEdge> | Record<string, unknown>;
   }): Promise<SeoEntityEdge>;
   deleteMany(args?: Record<string, unknown>): Promise<{ count: number }>;
 }
 
 export interface PrismaBatchOperationDelegate {
-  findUnique(args: {
-    where: { id: string };
-  }): Promise<BatchOperation | null>;
+  findUnique(args: { where: { id: string } }): Promise<BatchOperation | null>;
   findMany(args?: Record<string, unknown>): Promise<BatchOperation[]>;
   create(args: {
-    data: Omit<BatchOperation, 'id' | 'createdAt'>;
+    data: Omit<BatchOperation, "id" | "createdAt">;
   }): Promise<BatchOperation>;
   update(args: {
     where: { id: string };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Plus,
   Edit2,
@@ -82,6 +82,7 @@ export default function AdminTagsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const perPage = ADMIN_PAGE_SIZE;
+  const [totalCount, setTotalCount] = useState(0);
   const [form, setForm] = useState({
     name: "",
     slug: "",
@@ -127,26 +128,32 @@ export default function AdminTagsPage() {
   const [merging, setMerging] = useState(false);
   const [excludedGroups, setExcludedGroups] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    fetchTags();
-  }, []);
-
-  async function fetchTags() {
+  const fetchTags = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/tags");
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(perPage),
+      });
+      if (search) params.set("search", search);
+      const res = await fetch(`/api/tags?${params.toString()}`);
       if (!res.ok) {
         toast("Failed to load tags", "error");
         return;
       }
       const data = await res.json();
       setTags(data.data || []);
+      setTotalCount(data.total ?? 0);
     } catch {
       toast("Failed to fetch tags", "error");
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, perPage, search]);
+
+  useEffect(() => {
+    void fetchTags();
+  }, [fetchTags]);
 
   function openCreate() {
     setEditTag(null);
@@ -278,18 +285,8 @@ export default function AdminTagsPage() {
     }
   }
 
-  const filteredTags = tags.filter(
-    (t) =>
-      !search ||
-      t.name.toLowerCase().includes(search.toLowerCase()) ||
-      t.slug.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const totalPages = Math.ceil(filteredTags.length / perPage);
-  const paginatedTags = filteredTags.slice(
-    (page - 1) * perPage,
-    page * perPage,
-  );
+  const totalPages = Math.ceil(totalCount / perPage);
+  const paginatedTags = tags;
 
   // Reset page when search changes
   useEffect(() => {
@@ -307,9 +304,9 @@ export default function AdminTagsPage() {
 
   function toggleSelectAll() {
     setSelected(
-      selected.size === filteredTags.length
+      selected.size === paginatedTags.length
         ? new Set()
-        : new Set(filteredTags.map((t) => t.id)),
+        : new Set(paginatedTags.map((t) => t.id)),
     );
   }
 
@@ -438,7 +435,7 @@ export default function AdminTagsPage() {
   }
 
   const allSelected =
-    filteredTags.length > 0 && selected.size === filteredTags.length;
+    paginatedTags.length > 0 && selected.size === paginatedTags.length;
   const activeGroups = dupGroups.filter((_, i) => !excludedGroups.has(i));
 
   return (
@@ -477,7 +474,7 @@ export default function AdminTagsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tags..."
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
         </div>
 
@@ -551,7 +548,7 @@ export default function AdminTagsPage() {
                     className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     {allSelected ? (
-                      <CheckSquare className="h-4 w-4 text-blue-600" />
+                      <CheckSquare className="h-4 w-4 text-primary" />
                     ) : (
                       <Square className="h-4 w-4" />
                     )}
@@ -591,7 +588,7 @@ export default function AdminTagsPage() {
                 : paginatedTags.map((tag) => (
                     <tr
                       key={tag.id}
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-700/30 ${selected.has(tag.id) ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-700/30 ${selected.has(tag.id) ? "bg-primary/5 dark:bg-primary/10" : ""}`}
                     >
                       <td className="px-3 py-3">
                         <button
@@ -599,7 +596,7 @@ export default function AdminTagsPage() {
                           className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                         >
                           {selected.has(tag.id) ? (
-                            <CheckSquare className="h-4 w-4 text-blue-600" />
+                            <CheckSquare className="h-4 w-4 text-primary" />
                           ) : (
                             <Square className="h-4 w-4" />
                           )}
@@ -687,7 +684,7 @@ export default function AdminTagsPage() {
                   ))}
             </tbody>
           </table>
-          {!loading && filteredTags.length === 0 && (
+          {!loading && paginatedTags.length === 0 && (
             <p className="py-8 text-center text-sm text-gray-500">
               No tags found
             </p>
@@ -696,7 +693,7 @@ export default function AdminTagsPage() {
         <AdminPagination
           page={page}
           totalPages={totalPages}
-          total={filteredTags.length}
+          total={totalCount}
           onPageChange={setPage}
         />
       </div>
@@ -706,82 +703,107 @@ export default function AdminTagsPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editTag ? "Edit Tag" : "Create Tag"}
+        size="xl"
       >
-        <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
-          <Input
-            label="Name"
-            value={form.name}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                name: e.target.value,
-                slug: editTag ? form.slug : slugify(e.target.value),
-              })
-            }
-            placeholder="Tag name"
-          />
-          <Input
-            label="Slug"
-            value={form.slug}
-            onChange={(e) => setForm({ ...form, slug: e.target.value })}
-            placeholder="tag-slug"
-          />
-          <Textarea
-            label="Description"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="Tag description..."
-            rows={3}
-          />
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Color
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={form.color}
-                onChange={(e) => setForm({ ...form, color: e.target.value })}
-                className="h-10 w-10 cursor-pointer rounded border-0"
-              />
+        <div className="max-h-[70vh] overflow-y-auto pr-1">
+          {/* Row 1 — Basic info */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Name"
+              value={form.name}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  name: e.target.value,
+                  slug: editTag ? form.slug : slugify(e.target.value),
+                })
+              }
+              placeholder="Tag name"
+            />
+            <Input
+              label="Slug"
+              value={form.slug}
+              onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              placeholder="tag-slug"
+            />
+          </div>
+
+          {/* Row 2 — Description + Color/Icon side by side */}
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Textarea
+              label="Description"
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+              placeholder="Tag description..."
+              rows={3}
+            />
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Color
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={form.color}
+                    onChange={(e) =>
+                      setForm({ ...form, color: e.target.value })
+                    }
+                    className="h-10 w-10 cursor-pointer rounded border-0"
+                  />
+                  <Input
+                    value={form.color}
+                    onChange={(e) =>
+                      setForm({ ...form, color: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
               <Input
-                value={form.color}
-                onChange={(e) => setForm({ ...form, color: e.target.value })}
+                label="Icon"
+                value={form.icon}
+                onChange={(e) => setForm({ ...form, icon: e.target.value })}
+                placeholder="Icon name or emoji (e.g. 🏷️)"
               />
             </div>
           </div>
-          <Input
-            label="Icon"
-            value={form.icon}
-            onChange={(e) => setForm({ ...form, icon: e.target.value })}
-            placeholder="Icon name or emoji (e.g. 🏷️)"
-          />
 
-          <hr className="border-gray-200 dark:border-gray-700" />
-          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-            Hierarchy & Relations
+          {/* Divider — Hierarchy */}
+          <hr className="my-5 border-gray-200 dark:border-gray-700" />
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            Hierarchy &amp; Relations
           </p>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Parent Tag
-            </label>
-            <select
-              value={form.parentId}
-              onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            >
-              <option value="">None (top-level)</option>
-              {tags
-                .filter((t) => t.id !== editTag?.id)
-                .map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-            </select>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Parent Tag
+              </label>
+              <select
+                value={form.parentId}
+                onChange={(e) => setForm({ ...form, parentId: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              >
+                <option value="">None (top-level)</option>
+                {tags
+                  .filter((t) => t.id !== editTag?.id)
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <Input
+              label="Synonyms"
+              value={form.synonyms}
+              onChange={(e) => setForm({ ...form, synonyms: e.target.value })}
+              placeholder="Comma-separated: react, reactjs, react.js"
+            />
           </div>
           {editTag && (editTag.children?.length ?? 0) > 0 && (
-            <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900">
+            <div className="mt-3 rounded-lg bg-gray-50 p-3 dark:bg-gray-900">
               <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
                 Child Tags
               </p>
@@ -789,7 +811,7 @@ export default function AdminTagsPage() {
                 {editTag.children.map((c) => (
                   <span
                     key={c.id}
-                    className="inline-block rounded-full bg-blue-100 px-2.5 py-0.5 text-xs text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                    className="inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary dark:bg-primary/20 dark:text-primary"
                   >
                     {c.name}
                   </span>
@@ -797,17 +819,9 @@ export default function AdminTagsPage() {
               </div>
             </div>
           )}
-          <Input
-            label="Synonyms"
-            value={form.synonyms}
-            onChange={(e) => setForm({ ...form, synonyms: e.target.value })}
-            placeholder="Comma-separated: react, reactjs, react.js"
-          />
 
-          <hr className="border-gray-200 dark:border-gray-700" />
-          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-            Protection
-          </p>
+          {/* Divider — Protection */}
+          <hr className="my-5 border-gray-200 dark:border-gray-700" />
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -815,38 +829,43 @@ export default function AdminTagsPage() {
               onChange={(e) =>
                 setForm({ ...form, protected: e.target.checked })
               }
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
+              className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
             />
             <span className="text-sm text-gray-700 dark:text-gray-300">
               Protected tag (cannot be deleted by non-admins)
             </span>
           </label>
 
-          <hr className="border-gray-200 dark:border-gray-700" />
-          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+          {/* Divider — SEO */}
+          <hr className="my-5 border-gray-200 dark:border-gray-700" />
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             SEO (optional)
           </p>
-          <Input
-            label="Meta Title"
-            value={form.metaTitle}
-            onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
-            placeholder="Custom SEO title"
-          />
-          <Textarea
-            label="Meta Description"
-            value={form.metaDescription}
-            onChange={(e) =>
-              setForm({ ...form, metaDescription: e.target.value })
-            }
-            placeholder="Custom SEO description"
-            rows={2}
-          />
-          <Input
-            label="OG Image URL"
-            value={form.ogImage}
-            onChange={(e) => setForm({ ...form, ogImage: e.target.value })}
-            placeholder="https://example.com/image.jpg"
-          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Meta Title"
+              value={form.metaTitle}
+              onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
+              placeholder="Custom SEO title"
+            />
+            <Input
+              label="OG Image URL"
+              value={form.ogImage}
+              onChange={(e) => setForm({ ...form, ogImage: e.target.value })}
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+          <div className="mt-4">
+            <Textarea
+              label="Meta Description"
+              value={form.metaDescription}
+              onChange={(e) =>
+                setForm({ ...form, metaDescription: e.target.value })
+              }
+              placeholder="Custom SEO description"
+              rows={2}
+            />
+          </div>
         </div>
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setModalOpen(false)}>
@@ -916,7 +935,7 @@ export default function AdminTagsPage() {
 
           {dupLoading && (
             <div className="py-8 text-center text-gray-500">
-              <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+              <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
               <p>Scanning for duplicates...</p>
             </div>
           )}
@@ -925,7 +944,7 @@ export default function AdminTagsPage() {
             {dupGroups.map((group, gi) => (
               <div
                 key={group.survivor.id}
-                className={`rounded-lg border p-3 transition-opacity ${excludedGroups.has(gi) ? "opacity-40 border-gray-200 dark:border-gray-700" : "border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10"}`}
+                className={`rounded-lg border p-3 transition-opacity ${excludedGroups.has(gi) ? "opacity-40 border-gray-200 dark:border-gray-700" : "border-primary/20 bg-primary/5 dark:border-primary/30 dark:bg-primary/10"}`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -954,7 +973,7 @@ export default function AdminTagsPage() {
                       <button
                         onClick={() => mergeGroup(group)}
                         disabled={merging}
-                        className="inline-flex items-center gap-1 rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-50"
                       >
                         <GitMerge className="h-3 w-3" /> Merge
                       </button>

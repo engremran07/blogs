@@ -623,7 +623,7 @@ export default function SeoAdminPage() {
                 : fetchInterlinkReport()
           }
           disabled={loading || interlinkLoading}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
         >
           <RefreshCw
             className={clsx(
@@ -718,7 +718,7 @@ export default function SeoAdminPage() {
             {/* Posts */}
             <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
               <div className="flex items-center gap-2 mb-2">
-                <FileText className="h-5 w-5 text-blue-500" />
+                <FileText className="h-5 w-5 text-primary" />
                 <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   Posts Analyzed
                 </span>
@@ -888,7 +888,7 @@ export default function SeoAdminPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               {item.type === "POST" ? (
-                                <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                                <FileText className="h-4 w-4 text-primary shrink-0" />
                               ) : (
                                 <File className="h-4 w-4 text-purple-500 shrink-0" />
                               )}
@@ -911,7 +911,7 @@ export default function SeoAdminPage() {
                           </div>
                           <Link
                             href={`/admin/seo/fix/${item.id}?type=${item.type}`}
-                            className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-blue-600 dark:hover:bg-gray-700"
+                            className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-primary dark:hover:bg-gray-700"
                             title="Fix SEO"
                           >
                             <ExternalLink className="h-4 w-4" />
@@ -966,7 +966,7 @@ export default function SeoAdminPage() {
                 value={auditSearch}
                 onChange={(e) => setAuditSearch(e.target.value)}
                 placeholder="Search content..."
-                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
             </div>
 
@@ -1024,7 +1024,7 @@ export default function SeoAdminPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       {item.targetType === "POST" ? (
-                        <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                        <FileText className="h-4 w-4 text-primary shrink-0" />
                       ) : (
                         <File className="h-4 w-4 text-purple-500 shrink-0" />
                       )}
@@ -1123,7 +1123,7 @@ export default function SeoAdminPage() {
                     <div className="flex gap-2">
                       <Link
                         href={`/admin/seo/fix/${item.targetId}?type=${item.targetType}`}
-                        className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+                        className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
                       >
                         <Eye className="h-3.5 w-3.5" /> Fix SEO
                       </Link>
@@ -1183,7 +1183,7 @@ export default function SeoAdminPage() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
                   <div className="flex items-center gap-2 mb-2">
-                    <Globe className="h-5 w-5 text-blue-500" />
+                    <Globe className="h-5 w-5 text-primary" />
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                       Total Content
                     </span>
@@ -1267,7 +1267,7 @@ export default function SeoAdminPage() {
                       label: "Suggested",
                       value: interlinkReport.persistedLinks.suggested,
                       icon: Info,
-                      color: "text-blue-500",
+                      color: "text-primary",
                     },
                     {
                       label: "Approved",
@@ -1380,7 +1380,7 @@ export default function SeoAdminPage() {
                           }
                         }}
                         disabled={autoLinkRunning}
-                        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
                       >
                         {autoLinkRunning ? (
                           <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1409,7 +1409,7 @@ export default function SeoAdminPage() {
                   {/* Scan Individual Content */}
                   <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                     <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                      <Search className="h-5 w-5 text-blue-500" /> Scan
+                      <Search className="h-5 w-5 text-primary" /> Scan
                       Individual Content
                     </h2>
                     <div className="flex flex-wrap items-end gap-3">
@@ -1422,7 +1422,7 @@ export default function SeoAdminPage() {
                           value={scanContentId}
                           onChange={(e) => setScanContentId(e.target.value)}
                           placeholder="Paste post or page ID…"
-                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                         />
                       </div>
                       <div>
@@ -1676,7 +1676,7 @@ export default function SeoAdminPage() {
                               className="flex items-center gap-2 px-5 py-3"
                             >
                               {c.type === "POST" ? (
-                                <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                                <FileText className="h-4 w-4 text-primary shrink-0" />
                               ) : (
                                 <File className="h-4 w-4 text-purple-500 shrink-0" />
                               )}
@@ -1720,7 +1720,7 @@ export default function SeoAdminPage() {
                               className="flex items-center gap-2 px-5 py-3"
                             >
                               {c.type === "POST" ? (
-                                <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                                <FileText className="h-4 w-4 text-primary shrink-0" />
                               ) : (
                                 <File className="h-4 w-4 text-purple-500 shrink-0" />
                               )}
@@ -1797,7 +1797,7 @@ export default function SeoAdminPage() {
                   <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Database className="h-5 w-5 text-blue-500" /> Persisted
+                        <Database className="h-5 w-5 text-primary" /> Persisted
                         Links
                         <span className="text-sm font-normal text-gray-400">
                           ({persistedTotal})
@@ -1897,7 +1897,7 @@ export default function SeoAdminPage() {
                                           onClick={() =>
                                             handleApplyManualLink(link.id)
                                           }
-                                          className="rounded p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                                          className="rounded p-1 text-primary hover:bg-primary/5 dark:hover:bg-primary/10"
                                           title="Apply now"
                                         >
                                           <Zap className="h-3.5 w-3.5" />
@@ -2022,7 +2022,7 @@ export default function SeoAdminPage() {
                           value={newExclPhrase}
                           onChange={(e) => setNewExclPhrase(e.target.value)}
                           placeholder="e.g. WordPress, CSS, API…"
-                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                         />
                       </div>
                       <div className="flex-1 min-w-40">
@@ -2034,7 +2034,7 @@ export default function SeoAdminPage() {
                           value={newExclReason}
                           onChange={(e) => setNewExclReason(e.target.value)}
                           placeholder="Why exclude this?"
-                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                         />
                       </div>
                       <button
@@ -2166,7 +2166,7 @@ export default function SeoAdminPage() {
                     !redirectForm.fromPath ||
                     !redirectForm.toPath
                   }
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
                 >
                   {redirectSaving
                     ? "Saving..."
@@ -2223,7 +2223,7 @@ export default function SeoAdminPage() {
                         {r.fromPath}
                       </span>
                       <span className="text-gray-400">→</span>
-                      <span className="truncate text-sm font-mono text-blue-600 dark:text-blue-400">
+                      <span className="truncate text-sm font-mono text-primary dark:text-primary">
                         {r.toPath}
                       </span>
                       {r.hitCount > 0 && (

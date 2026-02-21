@@ -1,5 +1,17 @@
 import { prisma } from "@/server/db/prisma";
-import { FileText, MessageSquare, Users, Eye, TrendingUp, Clock, Image } from "lucide-react";
+import {
+  FileText,
+  MessageSquare,
+  Users,
+  Eye,
+  TrendingUp,
+  Clock,
+  Image,
+  Search,
+  AlertTriangle,
+  CheckCircle,
+  Link2,
+} from "lucide-react";
 import Link from "next/link";
 import type { AdminPostItem, AdminCommentItem } from "@/types/prisma-helpers";
 
@@ -16,6 +28,18 @@ export default async function AdminDashboard() {
     userCount,
     totalViews,
     mediaCount,
+    // SEO health stats
+    postsNoSeoTitle,
+    postsNoSeoDesc,
+    postsNoImage,
+    pagesNoMetaTitle,
+    pagesNoMetaDesc,
+    seoSuggestionsNew,
+    seoKeywords,
+    seoRedirects,
+    redirectHits,
+    tagCount,
+    pageCount,
   ] = await Promise.all([
     prisma.post.count({ where: { deletedAt: null } }),
     prisma.post.count({ where: { status: "PUBLISHED", deletedAt: null } }),
@@ -23,50 +47,153 @@ export default async function AdminDashboard() {
     prisma.comment.count({ where: { deletedAt: null } }),
     prisma.comment.count({ where: { status: "PENDING", deletedAt: null } }),
     prisma.user.count(),
-    prisma.post.aggregate({ _sum: { viewCount: true }, where: { deletedAt: null } }),
+    prisma.post.aggregate({
+      _sum: { viewCount: true },
+      where: { deletedAt: null },
+    }),
     prisma.media.count({ where: { deletedAt: null } }).catch(() => 0),
+    // SEO health queries
+    prisma.post
+      .count({
+        where: {
+          status: "PUBLISHED",
+          deletedAt: null,
+          OR: [{ seoTitle: null }, { seoTitle: "" }],
+        },
+      })
+      .catch(() => 0),
+    prisma.post
+      .count({
+        where: {
+          status: "PUBLISHED",
+          deletedAt: null,
+          OR: [{ seoDescription: null }, { seoDescription: "" }],
+        },
+      })
+      .catch(() => 0),
+    prisma.post
+      .count({
+        where: { status: "PUBLISHED", deletedAt: null, featuredImage: null },
+      })
+      .catch(() => 0),
+    prisma.page
+      .count({
+        where: {
+          status: "PUBLISHED",
+          deletedAt: null,
+          OR: [{ metaTitle: null }, { metaTitle: "" }],
+        },
+      })
+      .catch(() => 0),
+    prisma.page
+      .count({
+        where: {
+          status: "PUBLISHED",
+          deletedAt: null,
+          OR: [{ metaDescription: null }, { metaDescription: "" }],
+        },
+      })
+      .catch(() => 0),
+    prisma.seoSuggestion.count({ where: { status: "NEW" } }).catch(() => 0),
+    prisma.seoKeyword.count().catch(() => 0),
+    prisma.seoRedirect.count({ where: { isActive: true } }).catch(() => 0),
+    prisma.seoRedirect
+      .aggregate({ _sum: { hitCount: true }, where: { isActive: true } })
+      .catch(() => ({ _sum: { hitCount: 0 } })),
+    prisma.tag.count().catch(() => 0),
+    prisma.page.count({ where: { deletedAt: null } }).catch(() => 0),
   ]);
 
-  const recentPosts = await prisma.post.findMany({
-    where: { deletedAt: null },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-    select: { id: true, postNumber: true, title: true, slug: true, status: true, createdAt: true, viewCount: true },
-  }) as AdminPostItem[];
-
-  const recentComments = await prisma.comment.findMany({
+  const recentPosts = (await prisma.post.findMany({
     where: { deletedAt: null },
     orderBy: { createdAt: "desc" },
     take: 5,
     select: {
-      id: true, content: true, authorName: true, status: true, createdAt: true,
+      id: true,
+      postNumber: true,
+      title: true,
+      slug: true,
+      status: true,
+      createdAt: true,
+      viewCount: true,
+    },
+  })) as AdminPostItem[];
+
+  const recentComments = (await prisma.comment.findMany({
+    where: { deletedAt: null },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: {
+      id: true,
+      content: true,
+      authorName: true,
+      status: true,
+      createdAt: true,
       post: { select: { title: true, slug: true } },
     },
-  }) as AdminCommentItem[];
+  })) as AdminCommentItem[];
 
   const stats = [
-    { label: "Total Posts", value: postCount, icon: FileText, color: "blue", sub: `${publishedCount} published, ${draftCount} drafts` },
-    { label: "Comments", value: commentCount, icon: MessageSquare, color: "green", sub: `${pendingComments} pending` },
-    { label: "Users", value: userCount, icon: Users, color: "purple", sub: "registered" },
-    { label: "Total Views", value: totalViews._sum.viewCount || 0, icon: Eye, color: "amber", sub: "all time" },
-    { label: "Media Files", value: mediaCount, icon: Image, color: "cyan", sub: "in library" },
+    {
+      label: "Total Posts",
+      value: postCount,
+      icon: FileText,
+      color: "blue",
+      sub: `${publishedCount} published, ${draftCount} drafts`,
+    },
+    {
+      label: "Comments",
+      value: commentCount,
+      icon: MessageSquare,
+      color: "green",
+      sub: `${pendingComments} pending`,
+    },
+    {
+      label: "Users",
+      value: userCount,
+      icon: Users,
+      color: "purple",
+      sub: "registered",
+    },
+    {
+      label: "Total Views",
+      value: totalViews._sum.viewCount || 0,
+      icon: Eye,
+      color: "amber",
+      sub: "all time",
+    },
+    {
+      label: "Media Files",
+      value: mediaCount,
+      icon: Image,
+      color: "cyan",
+      sub: "in library",
+    },
   ];
 
   const colorMap: Record<string, string> = {
-    blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
-    green: "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-    purple: "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
-    amber: "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+    blue: "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary",
+    green:
+      "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+    purple:
+      "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
+    amber:
+      "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
     cyan: "bg-cyan-50 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400",
   };
 
   const statusColors: Record<string, string> = {
-    PUBLISHED: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+    PUBLISHED:
+      "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
     DRAFT: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
-    SCHEDULED: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-    ARCHIVED: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
-    PENDING: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
-    APPROVED: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+    SCHEDULED:
+      "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary",
+    ARCHIVED:
+      "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
+    PENDING:
+      "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
+    APPROVED:
+      "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
     SPAM: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
     REJECTED: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   };
@@ -74,8 +201,12 @@ export default async function AdminDashboard() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-400">Overview of your blog</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Dashboard
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Overview of your blog
+        </p>
       </div>
 
       {/* Stats Grid */}
@@ -91,24 +222,155 @@ export default async function AdminDashboard() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {typeof stat.value === "number" ? stat.value.toLocaleString() : stat.value}
+                  {typeof stat.value === "number"
+                    ? stat.value.toLocaleString()
+                    : stat.value}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {stat.label}
+                </p>
               </div>
             </div>
-            <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">{stat.sub}</p>
+            <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+              {stat.sub}
+            </p>
           </div>
         ))}
+      </div>
+
+      {/* SEO Health */}
+      <div className="mb-8 rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            <h2 className="font-semibold text-gray-900 dark:text-white">
+              SEO Health
+            </h2>
+          </div>
+          <Link
+            href="/admin/seo"
+            className="text-sm text-primary hover:underline dark:text-primary"
+          >
+            Full audit
+          </Link>
+        </div>
+        <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Missing SEO Titles */}
+          <div className="flex items-start gap-3">
+            <div
+              className={`mt-0.5 rounded-lg p-2 ${postsNoSeoTitle + pagesNoMetaTitle > 0 ? "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" : "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400"}`}
+            >
+              {postsNoSeoTitle + pagesNoMetaTitle > 0 ? (
+                <AlertTriangle className="h-4 w-4" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                SEO Titles
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {postsNoSeoTitle + pagesNoMetaTitle > 0
+                  ? `${postsNoSeoTitle} posts, ${pagesNoMetaTitle} pages missing`
+                  : "All content has SEO titles"}
+              </p>
+            </div>
+          </div>
+          {/* Missing SEO Descriptions */}
+          <div className="flex items-start gap-3">
+            <div
+              className={`mt-0.5 rounded-lg p-2 ${postsNoSeoDesc + pagesNoMetaDesc > 0 ? "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" : "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400"}`}
+            >
+              {postsNoSeoDesc + pagesNoMetaDesc > 0 ? (
+                <AlertTriangle className="h-4 w-4" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                Meta Descriptions
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {postsNoSeoDesc + pagesNoMetaDesc > 0
+                  ? `${postsNoSeoDesc} posts, ${pagesNoMetaDesc} pages missing`
+                  : "All content has descriptions"}
+              </p>
+            </div>
+          </div>
+          {/* Missing Featured Images */}
+          <div className="flex items-start gap-3">
+            <div
+              className={`mt-0.5 rounded-lg p-2 ${postsNoImage > 0 ? "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" : "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400"}`}
+            >
+              {postsNoImage > 0 ? (
+                <AlertTriangle className="h-4 w-4" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                Featured Images
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {postsNoImage > 0
+                  ? `${postsNoImage} published posts missing`
+                  : "All posts have images"}
+              </p>
+            </div>
+          </div>
+          {/* SEO Suggestions */}
+          <div className="flex items-start gap-3">
+            <div
+              className={`mt-0.5 rounded-lg p-2 ${seoSuggestionsNew > 0 ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" : "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400"}`}
+            >
+              {seoSuggestionsNew > 0 ? (
+                <AlertTriangle className="h-4 w-4" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                Suggestions
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {seoSuggestionsNew > 0
+                  ? `${seoSuggestionsNew} new suggestions`
+                  : "No pending suggestions"}
+              </p>
+            </div>
+          </div>
+        </div>
+        {/* SEO Quick Stats Bar */}
+        <div className="flex items-center gap-6 border-t border-gray-200 px-5 py-3 dark:border-gray-700">
+          <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <Link2 className="h-3.5 w-3.5" /> {seoRedirects} active redirects (
+            {(redirectHits as { _sum: { hitCount: number | null } })._sum
+              .hitCount ?? 0}{" "}
+            hits)
+          </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {seoKeywords} tracked keywords
+          </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {tagCount} tags &middot; {pageCount} pages
+          </span>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Recent Posts */}
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-900 dark:text-white">Recent Posts</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-white">
+              Recent Posts
+            </h2>
             <Link
               href="/admin/posts"
-              className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+              className="text-sm text-primary hover:underline dark:text-primary"
             >
               View all
             </Link>
@@ -141,7 +403,9 @@ export default async function AdminDashboard() {
               </Link>
             ))}
             {recentPosts.length === 0 && (
-              <p className="px-5 py-8 text-center text-sm text-gray-500">No posts yet</p>
+              <p className="px-5 py-8 text-center text-sm text-gray-500">
+                No posts yet
+              </p>
             )}
           </div>
         </div>
@@ -149,20 +413,19 @@ export default async function AdminDashboard() {
         {/* Recent Comments */}
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-900 dark:text-white">Recent Comments</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-white">
+              Recent Comments
+            </h2>
             <Link
               href="/admin/comments"
-              className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+              className="text-sm text-primary hover:underline dark:text-primary"
             >
               View all
             </Link>
           </div>
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {recentComments.map((comment) => (
-              <div
-                key={comment.id}
-                className="px-5 py-3"
-              >
+              <div key={comment.id} className="px-5 py-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {comment.authorName || "Anonymous"}
@@ -183,7 +446,9 @@ export default async function AdminDashboard() {
               </div>
             ))}
             {recentComments.length === 0 && (
-              <p className="px-5 py-8 text-center text-sm text-gray-500">No comments yet</p>
+              <p className="px-5 py-8 text-center text-sm text-gray-500">
+                No comments yet
+              </p>
             )}
           </div>
         </div>
@@ -191,21 +456,35 @@ export default async function AdminDashboard() {
 
       {/* Quick Actions */}
       <div className="mt-8">
-        <h2 className="mb-4 font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
+        <h2 className="mb-4 font-semibold text-gray-900 dark:text-white">
+          Quick Actions
+        </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { href: "/admin/posts/new", label: "Write New Post", icon: FileText },
+            {
+              href: "/admin/posts/new",
+              label: "Write New Post",
+              icon: FileText,
+            },
             { href: "/admin/media", label: "Media Library", icon: Image },
-            { href: "/admin/comments", label: `Moderate Comments (${pendingComments})`, icon: MessageSquare },
-            { href: "/admin/pages/new", label: "Create New Page", icon: TrendingUp },
+            {
+              href: "/admin/comments",
+              label: `Moderate Comments (${pendingComments})`,
+              icon: MessageSquare,
+            },
+            {
+              href: "/admin/pages/new",
+              label: "Create New Page",
+              icon: TrendingUp,
+            },
             { href: "/admin/settings", label: "Site Settings", icon: Clock },
           ].map((action) => (
             <Link
               key={action.href}
               href={action.href}
-              className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-blue-300 hover:bg-blue-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600 dark:hover:bg-blue-900/20"
+              className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-primary/30 hover:bg-primary/5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-primary/60 dark:hover:bg-primary/10"
             >
-              <action.icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <action.icon className="h-5 w-5 text-primary dark:text-primary" />
               <span className="text-sm font-medium text-gray-900 dark:text-white">
                 {action.label}
               </span>

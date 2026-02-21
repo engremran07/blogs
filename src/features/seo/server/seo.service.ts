@@ -14,7 +14,6 @@ import type {
   SeoSuggestion,
   SeoKeyword,
   SeoEntity,
-  SeoEntityEdge,
   SeoTargetType,
   SeoSuggestionCategory,
   AuditableContent,
@@ -478,8 +477,12 @@ export class SeoService {
 
       // --- Process pages (Page model has no seoKeywords field) ---
       for (const page of pages) {
-        const pageSeoKeywords = (page as unknown as Record<string, unknown>)
-          .seoKeywords as string[] | undefined;
+        const pageWithSeoKeywords = page as { seoKeywords?: unknown };
+        const pageSeoKeywords = Array.isArray(pageWithSeoKeywords.seoKeywords)
+          ? pageWithSeoKeywords.seoKeywords.filter(
+              (value): value is string => typeof value === "string",
+            )
+          : undefined;
         if (pageSeoKeywords && Array.isArray(pageSeoKeywords)) {
           for (const kw of pageSeoKeywords) {
             const s = slugify(kw);
@@ -687,7 +690,7 @@ export class SeoService {
                 },
                 update: {
                   weight: { increment: 1 },
-                } as unknown as Partial<SeoEntityEdge>,
+                },
               });
               edgeCount++;
             } catch (err) {
@@ -1027,7 +1030,7 @@ export class SeoService {
       const batch = await this.deps.batchOperation.create({
         data: {
           name,
-          suggestions: suggestions as unknown as SeoSuggestion[],
+          suggestions: suggestions as SeoSuggestion[],
           status: "PENDING",
         },
       });
@@ -1187,10 +1190,10 @@ export class SeoService {
 
       // ── Build content index for auto-interlinking ──
       const { InterlinkService } = await import("./interlink.service");
-      const depsExt = this.deps as unknown as Record<string, unknown>;
+      const depsExt: Record<string, unknown> = { ...this.deps };
       const interlinkSvc = new InterlinkService({
-        post: this.deps.post as unknown as InterlinkPrisma["post"],
-        page: this.deps.page as unknown as InterlinkPrisma["page"],
+        post: this.deps.post as InterlinkPrisma["post"],
+        page: this.deps.page as InterlinkPrisma["page"],
         internalLink: (depsExt.internalLink ?? {
           findMany: async () => [],
           count: async () => 0,
@@ -1460,7 +1463,7 @@ export class SeoService {
         });
         allEntries.push(
           ...buildPostEntries(
-            posts as unknown as Parameters<typeof buildPostEntries>[0],
+            posts as Parameters<typeof buildPostEntries>[0],
             normalizedConfig,
           ),
         );
@@ -1486,7 +1489,7 @@ export class SeoService {
         });
         allEntries.push(
           ...buildPageEntries(
-            pages as unknown as Parameters<typeof buildPageEntries>[0],
+            pages as Parameters<typeof buildPageEntries>[0],
             normalizedConfig,
           ),
         );

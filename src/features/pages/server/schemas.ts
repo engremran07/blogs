@@ -73,6 +73,9 @@ export const CreatePageSchema = z.object({
 
   // Scheduling
   scheduledFor: z.coerce.date().nullish(),
+
+  // Tags
+  tagIds: z.array(z.string().min(1)).default([]),
 });
 export type CreatePagePayload = z.infer<typeof CreatePageSchema>;
 
@@ -117,6 +120,9 @@ export const UpdatePageSchema = z.object({
 
   // Scheduling
   scheduledFor: z.coerce.date().nullish(),
+
+  // Tags
+  tagIds: z.array(z.string().min(1)).optional(),
 
   // Revision note
   changeNote: z.string().max(PAGE_LIMITS.CHANGE_NOTE_MAX).nullish(),

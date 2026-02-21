@@ -40,8 +40,57 @@ import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 import { InterlinkService } from "@/features/seo/server/interlink.service";
 import type { InterlinkPrisma } from "@/features/seo/server/interlink.service";
 import { processJobBatch } from "@/features/jobs/server/runner";
+import type { Prisma } from "@prisma/client";
 
 const logger = createLogger("cron");
+
+const scanPrisma: ScanPrisma = {
+  category: { findMany: (args) => prisma.category.findMany(args as never) },
+  tag: { findMany: (args) => prisma.tag.findMany(args as never) },
+  page: { findMany: (args) => prisma.page.findMany(args as never) },
+  post: {
+    count: (args) => prisma.post.count(args as never),
+    findMany: (args) => prisma.post.findMany(args as never),
+  },
+  adSlot: {
+    findMany: (args) => prisma.adSlot.findMany(args as never),
+    update: (args) => prisma.adSlot.update(args as never),
+  },
+};
+
+const interlinkPrisma: InterlinkPrisma = {
+  post: {
+    findMany: (args) => prisma.post.findMany(args as never),
+    findUnique: (args) => prisma.post.findUnique(args as never),
+    update: (args) => prisma.post.update(args as never),
+    count: (args) => prisma.post.count(args as never),
+  },
+  page: {
+    findMany: (args) => prisma.page.findMany(args as never),
+    findUnique: (args) => prisma.page.findUnique(args as never),
+    update: (args) => prisma.page.update(args as never),
+    count: (args) => prisma.page.count(args as never),
+  },
+  internalLink: {
+    findMany: (args) => prisma.internalLink.findMany(args as never),
+    findFirst: (args) => prisma.internalLink.findFirst(args as never),
+    findUnique: (args) => prisma.internalLink.findUnique(args as never),
+    create: (args) => prisma.internalLink.create(args as never),
+    update: (args) => prisma.internalLink.update(args as never),
+    updateMany: (args) => prisma.internalLink.updateMany(args as never),
+    delete: (args) => prisma.internalLink.delete(args as never),
+    deleteMany: (args) => prisma.internalLink.deleteMany(args as never),
+    count: (args) => prisma.internalLink.count(args as never),
+    upsert: (args) => prisma.internalLink.upsert(args as never),
+  },
+  interlinkExclusion: {
+    findMany: (args) => prisma.interlinkExclusion.findMany(args as never),
+    create: (args) => prisma.interlinkExclusion.create(args as never),
+    delete: (args) => prisma.interlinkExclusion.delete(args as never),
+    deleteMany: (args) => prisma.interlinkExclusion.deleteMany(args as never),
+    count: (args) => prisma.interlinkExclusion.count(args as never),
+  },
+};
 
 // ─── HTML escape for digest emails ──────────────────────────────────────────
 function escapeHtmlForDigest(s: string): string {
@@ -163,12 +212,17 @@ async function persistLog(
   try {
     const status =
       summary.errors === 0 ? "ok" : summary.ok > 0 ? "partial" : "error";
+    const jsonResults = results.map((result) => ({
+      task: result.task,
+      status: result.status,
+      ...(result.reason !== undefined ? { reason: result.reason } : {}),
+      ...(result.duration !== undefined ? { duration: result.duration } : {}),
+    }));
     await prisma.cronLog.create({
       data: {
         status,
         summary,
-        results:
-          results as unknown as import("@prisma/client").Prisma.InputJsonValue,
+        results: jsonResults as Prisma.InputJsonValue,
         durationMs,
         triggeredBy,
       },
@@ -363,7 +417,7 @@ export async function GET(request: NextRequest) {
     // 5p. Ads: sync ad slot page types
     results.push(
       await runTask("sync-ad-slot-page-types", adsEnabled, async () => {
-        await syncAdSlotPageTypes(prisma as unknown as ScanPrisma);
+        await syncAdSlotPageTypes(scanPrisma);
       }),
     );
 
@@ -379,9 +433,7 @@ export async function GET(request: NextRequest) {
     // 5r-seo. Auto-interlink content (scan & inject internal links)
     results.push(
       await runTask("seo-auto-interlink", true, async () => {
-        const interlinkSvc = new InterlinkService(
-          prisma as unknown as InterlinkPrisma,
-        );
+        const interlinkSvc = new InterlinkService(interlinkPrisma);
         await interlinkSvc.autoLinkAll(50);
       }),
     );
@@ -530,6 +582,14 @@ export async function GET(request: NextRequest) {
           succeeded: batch.succeeded,
           failed: batch.failed,
         });
+      }),
+    );
+
+    // ── 5v. Update trending tags ───────────────────────────────────────────
+    results.push(
+      await runTask("update-trending-tags", true, async () => {
+        const count = await tagService.updateTrendingTags();
+        logger.info("Trending tags updated", { count });
       }),
     );
 

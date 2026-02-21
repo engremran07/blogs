@@ -68,7 +68,7 @@ export class CommentAdminSettingsService {
       },
     });
 
-    this.cached = updated as unknown as CommentSystemSettings;
+    this.cached = updated;
     await this.propagateConfig(this.cached);
     return this.cached;
   }
@@ -349,7 +349,7 @@ export class CommentAdminSettingsService {
       });
     }
 
-    this.cached = row as unknown as CommentSystemSettings;
+    this.cached = row;
     return this.cached;
   }
 

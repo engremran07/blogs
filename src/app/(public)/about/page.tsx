@@ -75,7 +75,7 @@ export default async function AboutPage() {
             key={stat.label}
             className="rounded-xl border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800"
           >
-            <stat.icon className="mx-auto mb-2 h-8 w-8 text-blue-600 dark:text-blue-400" />
+            <stat.icon className="mx-auto mb-2 h-8 w-8 text-primary" />
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
             <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>
           </div>

@@ -68,7 +68,7 @@ export function VignetteAd({
       {autoDismissSeconds > 0 && (
         <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700">
           <div
-            className="h-full bg-blue-500 transition-all duration-75 ease-linear"
+            className="h-full bg-primary transition-all duration-75 ease-linear"
             style={{ width: `${progress}%` }}
           />
         </div>

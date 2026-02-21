@@ -398,7 +398,7 @@ export interface UsersPrismaClient {
   userSession: PrismaDelegate;
   emailVerificationToken: PrismaDelegate;
   emailChangeRequest: PrismaDelegate<EmailChangeRequestRecord>;
-  userSettings: PrismaDelegate;
+  userSettings: PrismaDelegate<UserSystemSettings>;
   $transaction(operations: unknown[]): Promise<unknown[]>;
 }
 

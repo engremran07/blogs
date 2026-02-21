@@ -152,7 +152,7 @@ export class AdminSettingsService {
       data,
     });
 
-    this.cached = updated as unknown as TagSystemSettings;
+    this.cached = updated;
 
     // Propagate to all registered services
     this.propagateConfig();
@@ -353,7 +353,7 @@ export class AdminSettingsService {
       });
     }
 
-    this.cached = settings as unknown as TagSystemSettings;
+    this.cached = settings;
     return this.cached;
   }
 

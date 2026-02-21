@@ -21,6 +21,54 @@ import {
 
 const logger = createLogger("api/posts");
 
+const interlinkPrisma: InterlinkPrisma = {
+  post: {
+    findMany: (args) => prisma.post.findMany(args as never),
+    findUnique: (args) => prisma.post.findUnique(args as never),
+    update: (args) => prisma.post.update(args as never),
+    count: (args) => prisma.post.count(args as never),
+  },
+  page: {
+    findMany: (args) => prisma.page.findMany(args as never),
+    findUnique: (args) => prisma.page.findUnique(args as never),
+    update: (args) => prisma.page.update(args as never),
+    count: (args) => prisma.page.count(args as never),
+  },
+  internalLink: {
+    findMany: (args) => prisma.internalLink.findMany(args as never),
+    findFirst: (args) => prisma.internalLink.findFirst(args as never),
+    findUnique: (args) => prisma.internalLink.findUnique(args as never),
+    create: (args) => prisma.internalLink.create(args as never),
+    update: (args) => prisma.internalLink.update(args as never),
+    updateMany: (args) => prisma.internalLink.updateMany(args as never),
+    delete: (args) => prisma.internalLink.delete(args as never),
+    deleteMany: (args) => prisma.internalLink.deleteMany(args as never),
+    count: (args) => prisma.internalLink.count(args as never),
+    upsert: (args) => prisma.internalLink.upsert(args as never),
+  },
+  interlinkExclusion: {
+    findMany: (args) => prisma.interlinkExclusion.findMany(args as never),
+    create: (args) => prisma.interlinkExclusion.create(args as never),
+    delete: (args) => prisma.interlinkExclusion.delete(args as never),
+    deleteMany: (args) => prisma.interlinkExclusion.deleteMany(args as never),
+    count: (args) => prisma.interlinkExclusion.count(args as never),
+  },
+};
+
+const scanPrisma: ScanPrisma = {
+  category: { findMany: (args) => prisma.category.findMany(args as never) },
+  tag: { findMany: (args) => prisma.tag.findMany(args as never) },
+  page: { findMany: (args) => prisma.page.findMany(args as never) },
+  post: {
+    count: (args) => prisma.post.count(args as never),
+    findMany: (args) => prisma.post.findMany(args as never),
+  },
+  adSlot: {
+    findMany: (args) => prisma.adSlot.findMany(args as never),
+    update: (args) => prisma.adSlot.update(args as never),
+  },
+};
+
 const POST_INCLUDE = {
   author: { select: { id: true, username: true, displayName: true } },
   categories: { select: { id: true, name: true, slug: true, color: true } },
@@ -98,7 +146,9 @@ export async function PATCH(
         { status: 404 },
       );
     }
-    const { userId, userRole, errorResponse } = await requireAuth({ level: 'author' });
+    const { userId, userRole, errorResponse } = await requireAuth({
+      level: "author",
+    });
     if (errorResponse) return errorResponse;
 
     // AUTHORs can only edit their own posts
@@ -247,7 +297,7 @@ export async function PATCH(
         existingPost.status === "PUBLISHED" &&
         safeData.status !== "PUBLISHED"
       ) {
-        new InterlinkService(prisma as unknown as InterlinkPrisma)
+        new InterlinkService(interlinkPrisma)
           .onContentUnpublished(id, "POST", existingPost.slug)
           .catch((err: unknown) =>
             logger.error(
@@ -259,7 +309,7 @@ export async function PATCH(
     }
     if (safeData.content) interlinkChanges.contentChanged = true;
     if (Object.keys(interlinkChanges).length > 0) {
-      new InterlinkService(prisma as unknown as InterlinkPrisma)
+      new InterlinkService(interlinkPrisma)
         .onContentUpdated(id, "POST", interlinkChanges)
         .catch((err: unknown) =>
           logger.error("[api/posts/[id]] Interlink onContentUpdated error:", {
@@ -291,7 +341,7 @@ export async function DELETE(
         { status: 404 },
       );
     }
-    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    const { errorResponse } = await requireAuth({ level: "moderator" });
     if (errorResponse) return errorResponse;
 
     // Fetch the post's categories before soft-deleting
@@ -324,7 +374,7 @@ export async function DELETE(
         select: { slug: true },
       });
       if (deletedPost) {
-        new InterlinkService(prisma as unknown as InterlinkPrisma)
+        new InterlinkService(interlinkPrisma)
           .onContentDeleted(id, "POST", deletedPost.slug)
           .catch((err: unknown) =>
             logger.error("[api/posts/[id]] Interlink onContentDeleted error:", {
@@ -351,10 +401,7 @@ export async function DELETE(
         }
       }
       if (orphanKeys.length > 0) {
-        await removePageTypesFromSlots(
-          prisma as unknown as ScanPrisma,
-          orphanKeys,
-        );
+        await removePageTypesFromSlots(scanPrisma, orphanKeys);
         logger.info(
           `Auto-excluded orphan category pageTypes from ad slots: ${orphanKeys.join(", ")}`,
         );

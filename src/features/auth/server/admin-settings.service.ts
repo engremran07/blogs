@@ -19,9 +19,9 @@ import type {
   UserConfigConsumer,
   UsersPrismaClient,
   ApiResponse,
-} from '../types';
-import { DEFAULT_USER_CONFIG } from './constants';
-import { updateUserSettingsSchema } from './schemas';
+} from "../types";
+import { DEFAULT_USER_CONFIG } from "./constants";
+import { updateUserSettingsSchema } from "./schemas";
 
 // ─── Service ────────────────────────────────────────────────────────────────
 
@@ -68,8 +68,8 @@ export class UserAdminSettingsService {
       return {
         success: false,
         error: {
-          code: 'SETTINGS_READ_ERROR',
-          message: 'Failed to read settings',
+          code: "SETTINGS_READ_ERROR",
+          message: "Failed to read settings",
           statusCode: 500,
         },
         timestamp: new Date().toISOString(),
@@ -99,7 +99,7 @@ export class UserAdminSettingsService {
         data,
       });
 
-      this.cached = updated as unknown as UserSystemSettings;
+      this.cached = updated;
       this.propagateToConsumers();
 
       return {
@@ -111,8 +111,8 @@ export class UserAdminSettingsService {
       return {
         success: false,
         error: {
-          code: 'SETTINGS_UPDATE_ERROR',
-          message: 'Failed to update settings',
+          code: "SETTINGS_UPDATE_ERROR",
+          message: "Failed to update settings",
           statusCode: 400,
         },
         timestamp: new Date().toISOString(),
@@ -121,39 +121,48 @@ export class UserAdminSettingsService {
   }
 
   /** Reset all settings to defaults. */
-  async resetToDefaults(updatedBy?: string): Promise<ApiResponse<UserSystemSettings>> {
-    return this.updateSettings(
-      { ...DEFAULT_USER_CONFIG } as unknown as Record<string, unknown>,
-      updatedBy,
-    );
+  async resetToDefaults(
+    updatedBy?: string,
+  ): Promise<ApiResponse<UserSystemSettings>> {
+    return this.updateSettings({ ...DEFAULT_USER_CONFIG }, updatedBy);
   }
 
   // ─── Kill Switches ──────────────────────────────────────────────────────
 
   /** Disable all registration — emergency kill switch. */
-  async disableRegistration(updatedBy?: string): Promise<ApiResponse<UserSystemSettings>> {
+  async disableRegistration(
+    updatedBy?: string,
+  ): Promise<ApiResponse<UserSystemSettings>> {
     return this.updateSettings({ registrationEnabled: false }, updatedBy);
   }
 
   /** Re-enable registration. */
-  async enableRegistration(updatedBy?: string): Promise<ApiResponse<UserSystemSettings>> {
+  async enableRegistration(
+    updatedBy?: string,
+  ): Promise<ApiResponse<UserSystemSettings>> {
     return this.updateSettings({ registrationEnabled: true }, updatedBy);
   }
 
   /** Disable login — emergency lockdown. */
-  async disableLogin(updatedBy?: string): Promise<ApiResponse<UserSystemSettings>> {
+  async disableLogin(
+    updatedBy?: string,
+  ): Promise<ApiResponse<UserSystemSettings>> {
     return this.updateSettings({ loginEnabled: false }, updatedBy);
   }
 
   /** Re-enable login. */
-  async enableLogin(updatedBy?: string): Promise<ApiResponse<UserSystemSettings>> {
+  async enableLogin(
+    updatedBy?: string,
+  ): Promise<ApiResponse<UserSystemSettings>> {
     return this.updateSettings({ loginEnabled: true }, updatedBy);
   }
 
   // ─── Presets ──────────────────────────────────────────────────────────────
 
   /** Strict security preset — stronger passwords, shorter sessions, CAPTCHA on. */
-  async applyStrictPreset(updatedBy?: string): Promise<ApiResponse<UserSystemSettings>> {
+  async applyStrictPreset(
+    updatedBy?: string,
+  ): Promise<ApiResponse<UserSystemSettings>> {
     return this.updateSettings(
       {
         passwordMinLength: 16,
@@ -179,7 +188,9 @@ export class UserAdminSettingsService {
   }
 
   /** Relaxed preset — for development or low-risk environments. */
-  async applyRelaxedPreset(updatedBy?: string): Promise<ApiResponse<UserSystemSettings>> {
+  async applyRelaxedPreset(
+    updatedBy?: string,
+  ): Promise<ApiResponse<UserSystemSettings>> {
     return this.updateSettings(
       {
         passwordMinLength: 8,
@@ -213,7 +224,7 @@ export class UserAdminSettingsService {
     const existing = await this.prisma.userSettings.findFirst();
 
     if (existing) {
-      this.cached = existing as unknown as UserSystemSettings;
+      this.cached = existing;
       return this.cached;
     }
 
@@ -225,7 +236,7 @@ export class UserAdminSettingsService {
       } as Record<string, unknown>,
     });
 
-    this.cached = created as unknown as UserSystemSettings;
+    this.cached = created;
     return this.cached;
   }
 

@@ -7,31 +7,71 @@
 // Framework-agnostic with constructor dependency injection.
 
 import type {
-  BlogPrismaClient, BlogCacheProvider, BlogLogger, RevalidationCallback, BlogConfig,
-  Post, PostWithRelations, PostStatus,
-  Category, CategoryWithChildren,
-  Series, SeriesWithPosts, SeriesStatus,
-  PostRevision, PostQuote,
-  CreatePostInput, UpdatePostInput,
-  CreateCategoryInput, UpdateCategoryInput,
-  CreateSeriesInput, UpdateSeriesInput,
-  CreateQuoteInput, UpdateQuoteInput,
-  PostListOptions, PaginatedResult,
+  BlogPrismaClient,
+  BlogCacheProvider,
+  BlogLogger,
+  RevalidationCallback,
+  BlogConfig,
+  Post,
+  PostWithRelations,
+  PostStatus,
+  Category,
+  CategoryWithChildren,
+  Series,
+  SeriesWithPosts,
+  SeriesStatus,
+  PostRevision,
+  PostQuote,
+  CreatePostInput,
+  UpdatePostInput,
+  CreateCategoryInput,
+  UpdateCategoryInput,
+  CreateSeriesInput,
+  UpdateSeriesInput,
+  CreateQuoteInput,
+  UpdateQuoteInput,
+  PostListOptions,
+  PaginatedResult,
   ViewIncrementResult,
-  RelatedPost, ScheduledPost, ScheduleProcessResult,
-  PostLockInfo, PostStats,
-  AdjacentPosts, CategoryBreadcrumb, SearchSuggestion,
-  TocEntry, RssFeedItem, RssFeed, SitemapEntry,
-  RevisionDiff, DiffChange,
-} from '../types';
-import { BlogError } from '../types';
+  RelatedPost,
+  ScheduledPost,
+  ScheduleProcessResult,
+  PostLockInfo,
+  PostStats,
+  AdjacentPosts,
+  CategoryBreadcrumb,
+  SearchSuggestion,
+  TocEntry,
+  RssFeedItem,
+  RssFeed,
+  SitemapEntry,
+  RevisionDiff,
+  DiffChange,
+} from "../types";
+import { BlogError } from "../types";
 import {
-  CACHE_KEYS, CACHE_TTL, BLOG_DEFAULTS, BLOG_LIMITS,
-  generateSlug, countWords, calculateReadingTime, normalizeIds,
-  generateExcerpt, isPast, hashListOptions,
-  extractHeadings, buildTocTree, toRfc822, toW3CDate,
-} from './constants';
-import { sanitizeContent, sanitizeText, sanitizeCategoryName, escapeHtml } from './sanitization.util';
+  CACHE_KEYS,
+  CACHE_TTL,
+  BLOG_DEFAULTS,
+  BLOG_LIMITS,
+  generateSlug,
+  countWords,
+  calculateReadingTime,
+  normalizeIds,
+  generateExcerpt,
+  isPast,
+  hashListOptions,
+  extractHeadings,
+  buildTocTree,
+  toRfc822,
+  toW3CDate,
+} from "./constants";
+import {
+  sanitizeContent,
+  sanitizeText,
+  sanitizeCategoryName,
+  escapeHtml,
+} from "./sanitization.util";
 
 /* ========================================================================== */
 /*  DEPENDENCY INTERFACE                                                      */
@@ -82,38 +122,56 @@ export class BlogService {
     const config = await this.getConfig();
     const readingTime = calculateReadingTime(wordCount, config.readingSpeedWpm);
     const slug = await this.generateUniqueSlug(title);
-    const excerpt = input.excerpt ? sanitizeText(input.excerpt) : generateExcerpt(content, config.excerptLength);
+    const excerpt = input.excerpt
+      ? sanitizeText(input.excerpt)
+      : generateExcerpt(content, config.excerptLength);
 
     const categoryIds = normalizeIds(input.categoryIds);
     if (categoryIds.length > config.maxCategoriesPerPost) {
-      throw new BlogError(`Maximum ${config.maxCategoriesPerPost} categories per post`, 'CATEGORY_LIMIT', 400);
+      throw new BlogError(
+        `Maximum ${config.maxCategoriesPerPost} categories per post`,
+        "CATEGORY_LIMIT",
+        400,
+      );
     }
 
     // Enforce minimum word count
     if (config.minWordCount > 0 && wordCount < config.minWordCount) {
-      throw new BlogError(`Post must be at least ${config.minWordCount} words (currently ${wordCount})`, 'WORD_COUNT', 400);
+      throw new BlogError(
+        `Post must be at least ${config.minWordCount} words (currently ${wordCount})`,
+        "WORD_COUNT",
+        400,
+      );
     }
 
     // Validate guest posting fields
     if (input.isGuestPost && !input.guestAuthorName) {
-      throw new BlogError('Guest author name is required for guest posts', 'VALIDATION', 400);
+      throw new BlogError(
+        "Guest author name is required for guest posts",
+        "VALIDATION",
+        400,
+      );
     }
 
     const now = new Date();
-    const isPublishing = input.status === 'PUBLISHED';
-    const isScheduling = input.status === 'SCHEDULED';
+    const isPublishing = input.status === "PUBLISHED";
+    const isScheduling = input.status === "SCHEDULED";
 
     if (isScheduling && !input.scheduledFor) {
-      throw new BlogError('scheduledFor is required when status is SCHEDULED', 'VALIDATION', 400);
+      throw new BlogError(
+        "scheduledFor is required when status is SCHEDULED",
+        "VALIDATION",
+        400,
+      );
     }
 
-    const post = await this.prisma.post.create({
+    const post = (await this.prisma.post.create({
       data: {
         title,
         content,
         slug,
         excerpt,
-        status: input.status ?? 'DRAFT',
+        status: input.status ?? "DRAFT",
         authorId: input.authorId,
         wordCount,
         readingTime,
@@ -142,7 +200,9 @@ export class BlogService {
 
         // Guest posting
         isGuestPost: input.isGuestPost ?? false,
-        guestAuthorName: input.isGuestPost ? sanitizeText(input.guestAuthorName!) : null,
+        guestAuthorName: input.isGuestPost
+          ? sanitizeText(input.guestAuthorName!)
+          : null,
         guestAuthorEmail: input.guestAuthorEmail ?? null,
         guestAuthorBio: input.guestAuthorBio ?? null,
         guestAuthorAvatar: input.guestAuthorAvatar ?? null,
@@ -163,13 +223,21 @@ export class BlogService {
 
         // Relations
         ...(categoryIds.length > 0
-          ? { categories: { connect: categoryIds.map(id => ({ id })) } }
+          ? { categories: { connect: categoryIds.map((id) => ({ id })) } }
           : {}),
       },
-    }) as PostWithRelations;
+    })) as PostWithRelations;
 
     // Create initial revision
-    await this.createRevisionSnapshot(post.id, title, content, excerpt, 1, input.authorId, 'Initial version');
+    await this.createRevisionSnapshot(
+      post.id,
+      title,
+      content,
+      excerpt,
+      1,
+      input.authorId,
+      "Initial version",
+    );
 
     // Update series post count if applicable
     if (input.seriesId) {
@@ -207,7 +275,9 @@ export class BlogService {
 
   /** Find a post by ID (cached). */
   async findById(id: string): Promise<PostWithRelations | null> {
-    const cached = await this.cache.get<PostWithRelations>(CACHE_KEYS.postById(id));
+    const cached = await this.cache.get<PostWithRelations>(
+      CACHE_KEYS.postById(id),
+    );
     if (cached) return cached;
 
     const post = await this.prisma.post.findUnique({
@@ -215,7 +285,9 @@ export class BlogService {
       include: {
         categories: true,
         series: true,
-        author: { select: { id: true, username: true, displayName: true, email: true } },
+        author: {
+          select: { id: true, username: true, displayName: true, email: true },
+        },
       },
     });
 
@@ -227,33 +299,49 @@ export class BlogService {
 
   /** Find a post by slug (cached). Returns null for soft-deleted posts. */
   async findBySlug(slug: string): Promise<PostWithRelations | null> {
-    const cached = await this.cache.get<PostWithRelations>(CACHE_KEYS.postBySlug(slug));
+    const cached = await this.cache.get<PostWithRelations>(
+      CACHE_KEYS.postBySlug(slug),
+    );
     if (cached) return cached;
 
-    const post = await this.prisma.post.findFirst({
+    const post = (await this.prisma.post.findFirst({
       where: { slug, deletedAt: null },
       include: {
         categories: true,
         series: true,
-        author: { select: { id: true, username: true, displayName: true, email: true } },
+        author: {
+          select: { id: true, username: true, displayName: true, email: true },
+        },
       },
-    }) as PostWithRelations | null;
+    })) as PostWithRelations | null;
 
     if (post) {
-      await this.cache.set(CACHE_KEYS.postBySlug(slug), post, CACHE_TTL.postDetail);
+      await this.cache.set(
+        CACHE_KEYS.postBySlug(slug),
+        post,
+        CACHE_TTL.postDetail,
+      );
     }
     return post;
   }
 
   /** Paginated listing with filtering, search, and sorting. */
-  async findAll(options: PostListOptions = {}): Promise<PaginatedResult<PostWithRelations>> {
+  async findAll(
+    options: PostListOptions = {},
+  ): Promise<PaginatedResult<PostWithRelations>> {
     const page = Math.max(1, options.page ?? 1);
-    const limit = Math.min(BLOG_LIMITS.MAX_POSTS_PER_PAGE, Math.max(1, options.limit ?? BLOG_DEFAULTS.postsPerPage));
+    const limit = Math.min(
+      BLOG_LIMITS.MAX_POSTS_PER_PAGE,
+      Math.max(1, options.limit ?? BLOG_DEFAULTS.postsPerPage),
+    );
     const skip = (page - 1) * limit;
 
     // Cache check
-    const cacheKey = CACHE_KEYS.postList(hashListOptions({ ...options, page, limit }));
-    const cached = await this.cache.get<PaginatedResult<PostWithRelations>>(cacheKey);
+    const cacheKey = CACHE_KEYS.postList(
+      hashListOptions({ ...options, page, limit }),
+    );
+    const cached =
+      await this.cache.get<PaginatedResult<PostWithRelations>>(cacheKey);
     if (cached) return cached;
 
     const where: Record<string, unknown> = { deletedAt: null };
@@ -276,14 +364,14 @@ export class BlogService {
     if (options.search) {
       const s = options.search.trim();
       where.OR = [
-        { title: { contains: s, mode: 'insensitive' } },
-        { content: { contains: s, mode: 'insensitive' } },
-        { excerpt: { contains: s, mode: 'insensitive' } },
+        { title: { contains: s, mode: "insensitive" } },
+        { content: { contains: s, mode: "insensitive" } },
+        { excerpt: { contains: s, mode: "insensitive" } },
       ];
     }
 
     const orderBy: Record<string, string> = {};
-    orderBy[options.sortBy ?? 'createdAt'] = options.sortOrder ?? 'desc';
+    orderBy[options.sortBy ?? "createdAt"] = options.sortOrder ?? "desc";
 
     const [data, total] = await Promise.all([
       this.prisma.post.findMany({
@@ -294,7 +382,14 @@ export class BlogService {
         include: {
           categories: true,
           series: true,
-          author: { select: { id: true, username: true, displayName: true, email: true } },
+          author: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              email: true,
+            },
+          },
         },
       }) as Promise<PostWithRelations[]>,
       this.prisma.post.count({ where }),
@@ -313,17 +408,21 @@ export class BlogService {
   }
 
   /** Update a post. Creates a revision snapshot automatically. */
-  async updatePost(id: string, input: UpdatePostInput): Promise<PostWithRelations> {
+  async updatePost(
+    id: string,
+    input: UpdatePostInput,
+  ): Promise<PostWithRelations> {
     const existing = await this.prisma.post.findUnique({ where: { id } });
     if (!existing || existing.deletedAt) {
-      throw new BlogError('Post not found', 'NOT_FOUND', 404);
+      throw new BlogError("Post not found", "NOT_FOUND", 404);
     }
 
     // Check lock
     if (existing.isLocked && existing.lockedBy) {
       throw new BlogError(
         `Post is locked for editing by another user`,
-        'POST_LOCKED', 423,
+        "POST_LOCKED",
+        423,
       );
     }
 
@@ -344,29 +443,44 @@ export class BlogService {
     }
     if (input.status !== undefined) {
       data.status = input.status;
-      if (input.status === 'PUBLISHED' && !existing.publishedAt) {
+      if (input.status === "PUBLISHED" && !existing.publishedAt) {
         data.publishedAt = new Date();
       }
-      if (input.status === 'ARCHIVED') {
+      if (input.status === "ARCHIVED") {
         data.archivedAt = new Date();
       }
-      if (input.status === 'SCHEDULED' && !input.scheduledFor && !existing.scheduledFor) {
-        throw new BlogError('scheduledFor is required when status is SCHEDULED', 'VALIDATION', 400);
+      if (
+        input.status === "SCHEDULED" &&
+        !input.scheduledFor &&
+        !existing.scheduledFor
+      ) {
+        throw new BlogError(
+          "scheduledFor is required when status is SCHEDULED",
+          "VALIDATION",
+          400,
+        );
       }
     }
 
     // Media / Social
-    if (input.featuredImage !== undefined) data.featuredImage = input.featuredImage;
-    if (input.featuredImageAlt !== undefined) data.featuredImageAlt = input.featuredImageAlt;
+    if (input.featuredImage !== undefined)
+      data.featuredImage = input.featuredImage;
+    if (input.featuredImageAlt !== undefined)
+      data.featuredImageAlt = input.featuredImageAlt;
     if (input.ogTitle !== undefined) data.ogTitle = input.ogTitle;
-    if (input.ogDescription !== undefined) data.ogDescription = input.ogDescription;
+    if (input.ogDescription !== undefined)
+      data.ogDescription = input.ogDescription;
     if (input.ogImage !== undefined) data.ogImage = input.ogImage;
-    if (input.twitterTitle !== undefined) data.twitterTitle = input.twitterTitle;
-    if (input.twitterDescription !== undefined) data.twitterDescription = input.twitterDescription;
-    if (input.twitterImage !== undefined) data.twitterImage = input.twitterImage;
+    if (input.twitterTitle !== undefined)
+      data.twitterTitle = input.twitterTitle;
+    if (input.twitterDescription !== undefined)
+      data.twitterDescription = input.twitterDescription;
+    if (input.twitterImage !== undefined)
+      data.twitterImage = input.twitterImage;
 
     // Scheduling
-    if (input.scheduledFor !== undefined) data.scheduledFor = input.scheduledFor;
+    if (input.scheduledFor !== undefined)
+      data.scheduledFor = input.scheduledFor;
     if (input.publishedAt !== undefined) data.publishedAt = input.publishedAt;
 
     // Series
@@ -375,40 +489,53 @@ export class BlogService {
 
     // Access
     if (input.password !== undefined) data.password = input.password;
-    if (input.allowComments !== undefined) data.allowComments = input.allowComments;
+    if (input.allowComments !== undefined)
+      data.allowComments = input.allowComments;
 
     // Guest posting
     if (input.isGuestPost !== undefined) data.isGuestPost = input.isGuestPost;
-    if (input.guestAuthorName !== undefined) data.guestAuthorName = input.guestAuthorName ? sanitizeText(input.guestAuthorName) : null;
-    if (input.guestAuthorEmail !== undefined) data.guestAuthorEmail = input.guestAuthorEmail;
-    if (input.guestAuthorBio !== undefined) data.guestAuthorBio = input.guestAuthorBio;
-    if (input.guestAuthorAvatar !== undefined) data.guestAuthorAvatar = input.guestAuthorAvatar;
-    if (input.guestAuthorUrl !== undefined) data.guestAuthorUrl = input.guestAuthorUrl;
+    if (input.guestAuthorName !== undefined)
+      data.guestAuthorName = input.guestAuthorName
+        ? sanitizeText(input.guestAuthorName)
+        : null;
+    if (input.guestAuthorEmail !== undefined)
+      data.guestAuthorEmail = input.guestAuthorEmail;
+    if (input.guestAuthorBio !== undefined)
+      data.guestAuthorBio = input.guestAuthorBio;
+    if (input.guestAuthorAvatar !== undefined)
+      data.guestAuthorAvatar = input.guestAuthorAvatar;
+    if (input.guestAuthorUrl !== undefined)
+      data.guestAuthorUrl = input.guestAuthorUrl;
 
     // Meta
-    if (input.canonicalUrl !== undefined) data.canonicalUrl = input.canonicalUrl;
+    if (input.canonicalUrl !== undefined)
+      data.canonicalUrl = input.canonicalUrl;
     if (input.language !== undefined) data.language = input.language;
     if (input.region !== undefined) data.region = input.region;
 
     // Categories
-    const categoryIds = input.categoryIds ? normalizeIds(input.categoryIds) : undefined;
+    const categoryIds = input.categoryIds
+      ? normalizeIds(input.categoryIds)
+      : undefined;
     if (categoryIds) {
-      data.categories = { set: categoryIds.map(cid => ({ id: cid })) };
+      data.categories = { set: categoryIds.map((cid) => ({ id: cid })) };
     }
 
     // Bump revision
     const newRevision = (existing.revision ?? 0) + 1;
     data.revision = newRevision;
 
-    const post = await this.prisma.post.update({
+    const post = (await this.prisma.post.update({
       where: { id },
       data,
       include: {
         categories: true,
         series: true,
-        author: { select: { id: true, username: true, displayName: true, email: true } },
+        author: {
+          select: { id: true, username: true, displayName: true, email: true },
+        },
       },
-    }) as PostWithRelations;
+    })) as PostWithRelations;
 
     // Create revision snapshot if content or title changed
     if (contentChanged || titleChanged) {
@@ -425,7 +552,8 @@ export class BlogService {
 
     // Recalculate series if changed
     if (input.seriesId !== undefined) {
-      if (existing.seriesId) await this.recalculateSeriesPostCount(existing.seriesId);
+      if (existing.seriesId)
+        await this.recalculateSeriesPostCount(existing.seriesId);
       if (input.seriesId) await this.recalculateSeriesPostCount(input.seriesId);
     }
 
@@ -462,7 +590,7 @@ export class BlogService {
     ]);
 
     // Trigger revalidation for published posts
-    if (post.status === 'PUBLISHED' || existing.status === 'PUBLISHED') {
+    if (post.status === "PUBLISHED" || existing.status === "PUBLISHED") {
       await this.triggerRevalidation([`/blog/${post.slug}`]);
     }
 
@@ -473,11 +601,15 @@ export class BlogService {
   /** Soft-delete a post (moves to ARCHIVED + sets deletedAt). */
   async deletePost(id: string): Promise<void> {
     const post = await this.prisma.post.findUnique({ where: { id } });
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
 
     await this.prisma.post.update({
       where: { id },
-      data: { deletedAt: new Date(), status: 'ARCHIVED' as PostStatus, archivedAt: new Date() },
+      data: {
+        deletedAt: new Date(),
+        status: "ARCHIVED" as PostStatus,
+        archivedAt: new Date(),
+      },
     });
 
     await Promise.all([
@@ -486,7 +618,7 @@ export class BlogService {
       this.invalidatePostCaches(),
     ]);
 
-    if (post.status === 'PUBLISHED') {
+    if (post.status === "PUBLISHED") {
       await this.triggerRevalidation([`/blog/${post.slug}`]);
     }
     if (post.seriesId) {
@@ -499,7 +631,7 @@ export class BlogService {
   /** Permanently delete a post and all its revisions. */
   async hardDeletePost(id: string): Promise<void> {
     const post = await this.prisma.post.findUnique({ where: { id } });
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
 
     await this.prisma.postRevision.deleteMany({ where: { postId: id } });
     await this.prisma.post.delete({ where: { id } });
@@ -520,18 +652,25 @@ export class BlogService {
   /** Restore a soft-deleted post back to DRAFT. */
   async restorePost(id: string): Promise<PostWithRelations> {
     const post = await this.prisma.post.findUnique({ where: { id } });
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
-    if (!post.deletedAt) throw new BlogError('Post is not deleted', 'VALIDATION', 400);
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
+    if (!post.deletedAt)
+      throw new BlogError("Post is not deleted", "VALIDATION", 400);
 
-    const restored = await this.prisma.post.update({
+    const restored = (await this.prisma.post.update({
       where: { id },
-      data: { deletedAt: null, status: 'DRAFT' as PostStatus, archivedAt: null },
+      data: {
+        deletedAt: null,
+        status: "DRAFT" as PostStatus,
+        archivedAt: null,
+      },
       include: {
         categories: true,
         series: true,
-        author: { select: { id: true, username: true, displayName: true, email: true } },
+        author: {
+          select: { id: true, username: true, displayName: true, email: true },
+        },
       },
-    }) as PostWithRelations;
+    })) as PostWithRelations;
 
     await this.invalidatePostCaches();
     if (post.seriesId) await this.recalculateSeriesPostCount(post.seriesId);
@@ -544,12 +683,15 @@ export class BlogService {
   /*  BULK OPERATIONS                                                        */
   /* ──────────────────────────────────────────────────────────────────────── */
 
-  async bulkUpdateStatus(postIds: string[], status: PostStatus): Promise<number> {
+  async bulkUpdateStatus(
+    postIds: string[],
+    status: PostStatus,
+  ): Promise<number> {
     this.assertBulkLimit(postIds);
 
     const data: Record<string, unknown> = { status };
-    if (status === 'PUBLISHED') data.publishedAt = new Date();
-    if (status === 'ARCHIVED') data.archivedAt = new Date();
+    if (status === "PUBLISHED") data.publishedAt = new Date();
+    if (status === "ARCHIVED") data.archivedAt = new Date();
 
     const result = await this.prisma.post.updateMany({
       where: { id: { in: postIds } },
@@ -566,7 +708,11 @@ export class BlogService {
     const now = new Date();
     const result = await this.prisma.post.updateMany({
       where: { id: { in: postIds } },
-      data: { deletedAt: now, status: 'ARCHIVED' as PostStatus, archivedAt: now },
+      data: {
+        deletedAt: now,
+        status: "ARCHIVED" as PostStatus,
+        archivedAt: now,
+      },
     });
     await this.invalidatePostCaches();
     this.logger.log(`Bulk soft-delete: ${result.count} posts`);
@@ -576,14 +722,20 @@ export class BlogService {
   async bulkSchedule(postIds: string[], scheduledFor: Date): Promise<number> {
     this.assertBulkLimit(postIds);
     if (isPast(scheduledFor)) {
-      throw new BlogError('Scheduled date must be in the future', 'VALIDATION', 400);
+      throw new BlogError(
+        "Scheduled date must be in the future",
+        "VALIDATION",
+        400,
+      );
     }
     const result = await this.prisma.post.updateMany({
       where: { id: { in: postIds } },
-      data: { scheduledFor, status: 'SCHEDULED' as PostStatus },
+      data: { scheduledFor, status: "SCHEDULED" as PostStatus },
     });
     await this.invalidatePostCaches();
-    this.logger.log(`Bulk schedule: ${result.count} posts → ${scheduledFor.toISOString()}`);
+    this.logger.log(
+      `Bulk schedule: ${result.count} posts → ${scheduledFor.toISOString()}`,
+    );
     return result.count;
   }
 
@@ -599,7 +751,10 @@ export class BlogService {
     return result.count;
   }
 
-  async bulkSetCategories(postIds: string[], categoryIds: string[]): Promise<number> {
+  async bulkSetCategories(
+    postIds: string[],
+    categoryIds: string[],
+  ): Promise<number> {
     this.assertBulkLimit(postIds);
     // Must update individually due to relation set
     let updated = 0;
@@ -607,7 +762,7 @@ export class BlogService {
       try {
         await this.prisma.post.update({
           where: { id: postId },
-          data: { categories: { set: categoryIds.map(id => ({ id })) } },
+          data: { categories: { set: categoryIds.map((id) => ({ id })) } },
         });
         updated++;
       } catch {
@@ -624,25 +779,29 @@ export class BlogService {
 
   /** Publish a post immediately. */
   async publish(id: string): Promise<PostWithRelations> {
-    return this.updatePost(id, { status: 'PUBLISHED' });
+    return this.updatePost(id, { status: "PUBLISHED" });
   }
 
   /** Unpublish a post (revert to DRAFT). */
   async unpublish(id: string): Promise<PostWithRelations> {
-    return this.updatePost(id, { status: 'DRAFT' });
+    return this.updatePost(id, { status: "DRAFT" });
   }
 
   /** Archive a post. */
   async archive(id: string): Promise<PostWithRelations> {
-    return this.updatePost(id, { status: 'ARCHIVED' });
+    return this.updatePost(id, { status: "ARCHIVED" });
   }
 
   /** Schedule a post for future publication. */
   async schedule(id: string, scheduledFor: Date): Promise<PostWithRelations> {
     if (isPast(scheduledFor)) {
-      throw new BlogError('Scheduled date must be in the future', 'VALIDATION', 400);
+      throw new BlogError(
+        "Scheduled date must be in the future",
+        "VALIDATION",
+        400,
+      );
     }
-    return this.updatePost(id, { status: 'SCHEDULED', scheduledFor });
+    return this.updatePost(id, { status: "SCHEDULED", scheduledFor });
   }
 
   /* ──────────────────────────────────────────────────────────────────────── */
@@ -652,7 +811,7 @@ export class BlogService {
   /** Toggle the featured flag on a post. */
   async toggleFeatured(id: string): Promise<Post> {
     const post = await this.prisma.post.findUnique({ where: { id } });
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
 
     const updated = await this.prisma.post.update({
       where: { id },
@@ -666,7 +825,7 @@ export class BlogService {
   /** Toggle the pinned flag on a post. Sets pinOrder to 0 when unpinning. */
   async togglePinned(id: string, pinOrder = 0): Promise<Post> {
     const post = await this.prisma.post.findUnique({ where: { id } });
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
 
     const nowPinned = !post.isPinned;
     const updated = await this.prisma.post.update({
@@ -684,8 +843,12 @@ export class BlogService {
     if (cached) return cached;
 
     const posts = await this.prisma.post.findMany({
-      where: { isFeatured: true, status: 'PUBLISHED' as PostStatus, deletedAt: null },
-      orderBy: { publishedAt: 'desc' },
+      where: {
+        isFeatured: true,
+        status: "PUBLISHED" as PostStatus,
+        deletedAt: null,
+      },
+      orderBy: { publishedAt: "desc" },
       take: maxItems,
     });
 
@@ -699,8 +862,12 @@ export class BlogService {
     if (cached) return cached;
 
     const posts = await this.prisma.post.findMany({
-      where: { isPinned: true, status: 'PUBLISHED' as PostStatus, deletedAt: null },
-      orderBy: { pinOrder: 'asc' },
+      where: {
+        isPinned: true,
+        status: "PUBLISHED" as PostStatus,
+        deletedAt: null,
+      },
+      orderBy: { pinOrder: "asc" },
     });
 
     await this.cache.set(CACHE_KEYS.pinnedPosts(), posts, CACHE_TTL.pinned);
@@ -727,7 +894,7 @@ export class BlogService {
   async incrementViewCount(postId: string): Promise<ViewIncrementResult> {
     const post = await this.prisma.post.update({
       where: { id: postId },
-      data: { viewCount: { increment: 1 } as unknown as number },
+      data: { viewCount: { increment: 1 } },
     });
     // Don't invalidate full cache for a view count bump — stale-while-revalidate
     return { postId: post.id, viewCount: post.viewCount };
@@ -740,8 +907,8 @@ export class BlogService {
     if (cached) return cached;
 
     const posts = await this.prisma.post.findMany({
-      where: { status: 'PUBLISHED' as PostStatus, deletedAt: null },
-      orderBy: { viewCount: 'desc' },
+      where: { status: "PUBLISHED" as PostStatus, deletedAt: null },
+      orderBy: { viewCount: "desc" },
       take: limit,
     });
 
@@ -756,10 +923,10 @@ export class BlogService {
   /** Get all posts currently scheduled for future publication. */
   async getScheduledPosts(): Promise<ScheduledPost[]> {
     const posts = await this.prisma.post.findMany({
-      where: { status: 'SCHEDULED' as PostStatus, deletedAt: null },
-      orderBy: { scheduledFor: 'asc' },
+      where: { status: "SCHEDULED" as PostStatus, deletedAt: null },
+      orderBy: { scheduledFor: "asc" },
     });
-    return posts.map(p => ({
+    return posts.map((p) => ({
       id: p.id,
       title: p.title,
       slug: p.slug,
@@ -777,19 +944,23 @@ export class BlogService {
     const now = new Date();
     const due = await this.prisma.post.findMany({
       where: {
-        status: 'SCHEDULED' as PostStatus,
-        scheduledFor: { lte: now } as unknown as Date,
+        status: "SCHEDULED" as PostStatus,
+        scheduledFor: { lte: now },
         deletedAt: null,
       },
     });
 
-    const result: ScheduleProcessResult = { processed: 0, published: [], errors: [] };
+    const result: ScheduleProcessResult = {
+      processed: 0,
+      published: [],
+      errors: [],
+    };
 
     for (const post of due) {
       try {
         await this.prisma.post.update({
           where: { id: post.id },
-          data: { status: 'PUBLISHED' as PostStatus, publishedAt: now },
+          data: { status: "PUBLISHED" as PostStatus, publishedAt: now },
         });
         result.published.push(post.id);
         result.processed++;
@@ -797,14 +968,16 @@ export class BlogService {
       } catch (err) {
         result.errors.push({
           postId: post.id,
-          error: err instanceof Error ? err.message : 'Unknown error',
+          error: err instanceof Error ? err.message : "Unknown error",
         });
       }
     }
 
     if (result.processed > 0) {
       await this.invalidatePostCaches();
-      this.logger.log(`Scheduled publishing: ${result.processed} posts published`);
+      this.logger.log(
+        `Scheduled publishing: ${result.processed} posts published`,
+      );
     }
 
     return result;
@@ -817,18 +990,21 @@ export class BlogService {
   /** Lock a post for editing by a specific user. */
   async lockPost(postId: string, userId: string): Promise<PostLockInfo> {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
 
     // Already locked by someone else?
     if (post.isLocked && post.lockedBy && post.lockedBy !== userId) {
       // Check if stale
       const config = await this.getConfig();
-      const lockAge = post.lockedAt ? Date.now() - new Date(post.lockedAt).getTime() : Infinity;
+      const lockAge = post.lockedAt
+        ? Date.now() - new Date(post.lockedAt).getTime()
+        : Infinity;
       const timeout = config.lockTimeoutMinutes * 60 * 1000;
       if (lockAge < timeout) {
         throw new BlogError(
           `Post is locked by another user`,
-          'POST_LOCKED', 423,
+          "POST_LOCKED",
+          423,
         );
       }
       // Stale lock — take over
@@ -840,20 +1016,29 @@ export class BlogService {
     });
 
     await this.cache.del(CACHE_KEYS.postById(postId));
-    return { postId, isLocked: true, lockedBy: updated.lockedBy, lockedAt: updated.lockedAt };
+    return {
+      postId,
+      isLocked: true,
+      lockedBy: updated.lockedBy,
+      lockedAt: updated.lockedAt,
+    };
   }
 
   /** Unlock a post. Only the lock holder or forced unlock can do this. */
-  async unlockPost(postId: string, userId: string, force = false): Promise<PostLockInfo> {
+  async unlockPost(
+    postId: string,
+    userId: string,
+    force = false,
+  ): Promise<PostLockInfo> {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
 
     if (!post.isLocked) {
       return { postId, isLocked: false, lockedBy: null, lockedAt: null };
     }
 
     if (!force && post.lockedBy !== userId) {
-      throw new BlogError('Only the lock holder can unlock', 'FORBIDDEN', 403);
+      throw new BlogError("Only the lock holder can unlock", "FORBIDDEN", 403);
     }
 
     await this.prisma.post.update({
@@ -868,7 +1053,7 @@ export class BlogService {
   /** Check lock status of a post. */
   async getLockInfo(postId: string): Promise<PostLockInfo> {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
     return {
       postId,
       isLocked: post.isLocked,
@@ -884,7 +1069,7 @@ export class BlogService {
     const result = await this.prisma.post.updateMany({
       where: {
         isLocked: true,
-        lockedAt: { lt: cutoff } as unknown as Date,
+        lockedAt: { lt: cutoff },
       },
       data: { isLocked: false, lockedBy: null, lockedAt: null },
     });
@@ -902,7 +1087,7 @@ export class BlogService {
   async getRevisions(postId: string): Promise<PostRevision[]> {
     return this.prisma.postRevision.findMany({
       where: { postId },
-      orderBy: { revisionNumber: 'desc' },
+      orderBy: { revisionNumber: "desc" },
     }) as Promise<PostRevision[]>;
   }
 
@@ -912,25 +1097,37 @@ export class BlogService {
   }
 
   /** Restore a post to a specific revision. Creates a new revision for the current state first. */
-  async restoreRevision(revisionId: string, userId: string): Promise<PostWithRelations> {
-    const revision = await this.prisma.postRevision.findUnique({ where: { id: revisionId } });
-    if (!revision) throw new BlogError('Revision not found', 'NOT_FOUND', 404);
+  async restoreRevision(
+    revisionId: string,
+    userId: string,
+  ): Promise<PostWithRelations> {
+    const revision = await this.prisma.postRevision.findUnique({
+      where: { id: revisionId },
+    });
+    if (!revision) throw new BlogError("Revision not found", "NOT_FOUND", 404);
 
-    const post = await this.prisma.post.findUnique({ where: { id: revision.postId } });
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
+    const post = await this.prisma.post.findUnique({
+      where: { id: revision.postId },
+    });
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
 
     // Snapshot current state before overwriting
     const snapshotRev = (post.revision ?? 0) + 1;
     await this.createRevisionSnapshot(
-      post.id, post.title, post.content, post.excerpt,
-      snapshotRev, userId, `Snapshot before restoring revision #${revision.revisionNumber}`,
+      post.id,
+      post.title,
+      post.content,
+      post.excerpt,
+      snapshotRev,
+      userId,
+      `Snapshot before restoring revision #${revision.revisionNumber}`,
     );
 
     // Apply the old revision
     const restoredRev = snapshotRev + 1;
     const config = await this.getConfig();
     const wc = countWords(revision.content);
-    const updated = await this.prisma.post.update({
+    const updated = (await this.prisma.post.update({
       where: { id: post.id },
       data: {
         title: revision.title,
@@ -943,18 +1140,27 @@ export class BlogService {
       include: {
         categories: true,
         series: true,
-        author: { select: { id: true, username: true, displayName: true, email: true } },
+        author: {
+          select: { id: true, username: true, displayName: true, email: true },
+        },
       },
-    }) as PostWithRelations;
+    })) as PostWithRelations;
 
     await this.createRevisionSnapshot(
-      post.id, revision.title, revision.content, revision.excerpt,
-      restoredRev, userId, `Restored from revision #${revision.revisionNumber}`,
+      post.id,
+      revision.title,
+      revision.content,
+      revision.excerpt,
+      restoredRev,
+      userId,
+      `Restored from revision #${revision.revisionNumber}`,
     );
 
     await this.cache.del(CACHE_KEYS.postById(post.id));
     await this.cache.del(CACHE_KEYS.postBySlug(post.slug));
-    this.logger.log(`Post "${post.title}" restored to revision #${revision.revisionNumber}`);
+    this.logger.log(
+      `Post "${post.title}" restored to revision #${revision.revisionNumber}`,
+    );
 
     return updated;
   }
@@ -969,13 +1175,15 @@ export class BlogService {
 
     const existing = await this.prisma.category.findFirst({
       where: {
-        OR: [
-          { slug },
-          { name: { equals: name, mode: 'insensitive' } as unknown as string },
-        ],
+        OR: [{ slug }, { name: { equals: name, mode: "insensitive" } }],
       },
     });
-    if (existing) throw new BlogError(`Category "${name}" already exists`, 'DUPLICATE', 409);
+    if (existing)
+      throw new BlogError(
+        `Category "${name}" already exists`,
+        "DUPLICATE",
+        409,
+      );
 
     // Validate parent exists and prevent deep nesting
     if (input.parentId) {
@@ -1002,9 +1210,12 @@ export class BlogService {
     return cat;
   }
 
-  async updateCategory(id: string, input: UpdateCategoryInput): Promise<Category> {
+  async updateCategory(
+    id: string,
+    input: UpdateCategoryInput,
+  ): Promise<Category> {
     const existing = await this.prisma.category.findUnique({ where: { id } });
-    if (!existing) throw new BlogError('Category not found', 'NOT_FOUND', 404);
+    if (!existing) throw new BlogError("Category not found", "NOT_FOUND", 404);
 
     const data: Record<string, unknown> = {};
     if (input.name !== undefined) {
@@ -1021,12 +1232,15 @@ export class BlogService {
       if (slugConflict) {
         throw new BlogError(
           `A category with slug "${data.slug}" already exists`,
-          'DUPLICATE',
+          "DUPLICATE",
           409,
         );
       }
     }
-    if (input.description !== undefined) data.description = input.description ? sanitizeText(input.description) : null;
+    if (input.description !== undefined)
+      data.description = input.description
+        ? sanitizeText(input.description)
+        : null;
     if (input.color !== undefined) data.color = input.color;
     if (input.icon !== undefined) data.icon = input.icon;
     if (input.image !== undefined) data.image = input.image;
@@ -1034,13 +1248,21 @@ export class BlogService {
     if (input.sortOrder !== undefined) data.sortOrder = input.sortOrder;
     if (input.parentId !== undefined) {
       if (input.parentId === id) {
-        throw new BlogError('Category cannot be its own parent', 'VALIDATION', 400);
+        throw new BlogError(
+          "Category cannot be its own parent",
+          "VALIDATION",
+          400,
+        );
       }
       if (input.parentId) {
         await this.assertCategoryDepth(input.parentId);
         // Prevent circular reference
         if (await this.isCategoryDescendant(input.parentId, id)) {
-          throw new BlogError('Circular category hierarchy detected', 'VALIDATION', 400);
+          throw new BlogError(
+            "Circular category hierarchy detected",
+            "VALIDATION",
+            400,
+          );
         }
       }
       data.parentId = input.parentId;
@@ -1055,10 +1277,12 @@ export class BlogService {
 
   async deleteCategory(id: string): Promise<void> {
     const cat = await this.prisma.category.findUnique({ where: { id } });
-    if (!cat) throw new BlogError('Category not found', 'NOT_FOUND', 404);
+    if (!cat) throw new BlogError("Category not found", "NOT_FOUND", 404);
 
     // Move children to parent (or root)
-    const children = await this.prisma.category.findMany({ where: { parentId: id } });
+    const children = await this.prisma.category.findMany({
+      where: { parentId: id },
+    });
     for (const child of children) {
       await this.prisma.category.update({
         where: { id: child.id },
@@ -1083,7 +1307,7 @@ export class BlogService {
 
     const cats = await this.prisma.category.findMany({
       where,
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
     });
 
     await this.cache.set(cacheKey, cats, CACHE_TTL.categories);
@@ -1092,12 +1316,14 @@ export class BlogService {
 
   /** Build a tree of categories with parent→children relationships. */
   async getCategoryTree(): Promise<CategoryWithChildren[]> {
-    const cached = await this.cache.get<CategoryWithChildren[]>(CACHE_KEYS.categoryTree());
+    const cached = await this.cache.get<CategoryWithChildren[]>(
+      CACHE_KEYS.categoryTree(),
+    );
     if (cached) return cached;
 
-    const all = await this.prisma.category.findMany({
-      orderBy: { sortOrder: 'asc' },
-    }) as CategoryWithChildren[];
+    const all = (await this.prisma.category.findMany({
+      orderBy: { sortOrder: "asc" },
+    })) as CategoryWithChildren[];
 
     const map = new Map<string, CategoryWithChildren>();
     for (const cat of all) {
@@ -1116,7 +1342,11 @@ export class BlogService {
       }
     }
 
-    await this.cache.set(CACHE_KEYS.categoryTree(), roots, CACHE_TTL.categories);
+    await this.cache.set(
+      CACHE_KEYS.categoryTree(),
+      roots,
+      CACHE_TTL.categories,
+    );
     return roots;
   }
 
@@ -1131,7 +1361,9 @@ export class BlogService {
   }
 
   /** Get breadcrumb path from root to a specific category. */
-  async getCategoryBreadcrumb(categoryId: string): Promise<CategoryBreadcrumb[]> {
+  async getCategoryBreadcrumb(
+    categoryId: string,
+  ): Promise<CategoryBreadcrumb[]> {
     const cacheKey = CACHE_KEYS.categoryBreadcrumb(categoryId);
     const cached = await this.cache.get<CategoryBreadcrumb[]>(cacheKey);
     if (cached) return cached;
@@ -1141,7 +1373,9 @@ export class BlogService {
     let depth = 0;
 
     while (currentId && depth < BLOG_LIMITS.MAX_DEPTH_CATEGORY) {
-      const cat = await this.prisma.category.findUnique({ where: { id: currentId } });
+      const cat = await this.prisma.category.findUnique({
+        where: { id: currentId },
+      });
       if (!cat) break;
       trail.unshift({ id: cat.id, name: cat.name, slug: cat.slug });
       currentId = cat.parentId;
@@ -1166,7 +1400,7 @@ export class BlogService {
         slug,
         description: input.description ? sanitizeText(input.description) : null,
         coverImage: input.coverImage ?? null,
-        status: input.status ?? 'ACTIVE',
+        status: input.status ?? "ACTIVE",
         sortOrder: input.sortOrder ?? 0,
         postCount: 0,
       },
@@ -1179,14 +1413,17 @@ export class BlogService {
 
   async updateSeries(id: string, input: UpdateSeriesInput): Promise<Series> {
     const existing = await this.prisma.series.findUnique({ where: { id } });
-    if (!existing) throw new BlogError('Series not found', 'NOT_FOUND', 404);
+    if (!existing) throw new BlogError("Series not found", "NOT_FOUND", 404);
 
     const data: Record<string, unknown> = {};
     if (input.title !== undefined) {
       data.title = sanitizeText(input.title);
       data.slug = generateSlug(data.title as string);
     }
-    if (input.description !== undefined) data.description = input.description ? sanitizeText(input.description) : null;
+    if (input.description !== undefined)
+      data.description = input.description
+        ? sanitizeText(input.description)
+        : null;
     if (input.coverImage !== undefined) data.coverImage = input.coverImage;
     if (input.status !== undefined) data.status = input.status;
     if (input.sortOrder !== undefined) data.sortOrder = input.sortOrder;
@@ -1201,7 +1438,7 @@ export class BlogService {
 
   async deleteSeries(id: string): Promise<void> {
     const series = await this.prisma.series.findUnique({ where: { id } });
-    if (!series) throw new BlogError('Series not found', 'NOT_FOUND', 404);
+    if (!series) throw new BlogError("Series not found", "NOT_FOUND", 404);
 
     // Un-assign all posts in this series
     await this.prisma.post.updateMany({
@@ -1225,7 +1462,7 @@ export class BlogService {
 
     const list = await this.prisma.series.findMany({
       where,
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
     });
 
     if (!status) {
@@ -1236,28 +1473,38 @@ export class BlogService {
 
   /** Get a single series by ID with its posts. */
   async getSeriesWithPosts(seriesId: string): Promise<SeriesWithPosts | null> {
-    const cached = await this.cache.get<SeriesWithPosts>(CACHE_KEYS.series(seriesId));
+    const cached = await this.cache.get<SeriesWithPosts>(
+      CACHE_KEYS.series(seriesId),
+    );
     if (cached) return cached;
 
-    const series = await this.prisma.series.findUnique({
+    const series = (await this.prisma.series.findUnique({
       where: { id: seriesId },
-      include: { posts: { orderBy: { seriesOrder: 'asc' } } },
-    }) as SeriesWithPosts | null;
+      include: { posts: { orderBy: { seriesOrder: "asc" } } },
+    })) as SeriesWithPosts | null;
 
     if (series) {
-      await this.cache.set(CACHE_KEYS.series(seriesId), series, CACHE_TTL.series);
+      await this.cache.set(
+        CACHE_KEYS.series(seriesId),
+        series,
+        CACHE_TTL.series,
+      );
     }
     return series;
   }
 
   /** Add a post to a series at a given position. */
-  async addPostToSeries(postId: string, seriesId: string, order?: number): Promise<void> {
+  async addPostToSeries(
+    postId: string,
+    seriesId: string,
+    order?: number,
+  ): Promise<void> {
     const [post, series] = await Promise.all([
       this.prisma.post.findUnique({ where: { id: postId } }),
       this.prisma.series.findUnique({ where: { id: seriesId } }),
     ]);
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
-    if (!series) throw new BlogError('Series not found', 'NOT_FOUND', 404);
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
+    if (!series) throw new BlogError("Series not found", "NOT_FOUND", 404);
 
     const seriesOrder = order ?? series.postCount;
     await this.prisma.post.update({
@@ -1273,7 +1520,7 @@ export class BlogService {
   /** Remove a post from its series. */
   async removePostFromSeries(postId: string): Promise<void> {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
 
     const oldSeriesId = post.seriesId;
     await this.prisma.post.update({
@@ -1290,8 +1537,10 @@ export class BlogService {
 
   /** Reorder posts within a series. Array index → seriesOrder. */
   async reorderSeriesPosts(seriesId: string, postIds: string[]): Promise<void> {
-    const series = await this.prisma.series.findUnique({ where: { id: seriesId } });
-    if (!series) throw new BlogError('Series not found', 'NOT_FOUND', 404);
+    const series = await this.prisma.series.findUnique({
+      where: { id: seriesId },
+    });
+    if (!series) throw new BlogError("Series not found", "NOT_FOUND", 404);
 
     for (let i = 0; i < postIds.length; i++) {
       await this.prisma.post.update({
@@ -1301,7 +1550,9 @@ export class BlogService {
     }
 
     await this.cache.del(CACHE_KEYS.series(seriesId));
-    this.logger.log(`Reordered ${postIds.length} posts in series "${series.title}"`);
+    this.logger.log(
+      `Reordered ${postIds.length} posts in series "${series.title}"`,
+    );
   }
 
   /* ──────────────────────────────────────────────────────────────────────── */
@@ -1309,7 +1560,10 @@ export class BlogService {
   /* ──────────────────────────────────────────────────────────────────────── */
 
   /** Find related posts based on shared categories and recency. */
-  async findRelatedPosts(postId: string, maxResults?: number): Promise<RelatedPost[]> {
+  async findRelatedPosts(
+    postId: string,
+    maxResults?: number,
+  ): Promise<RelatedPost[]> {
     const config = await this.getConfig();
     const limit = maxResults ?? config.maxRelatedPosts;
 
@@ -1317,35 +1571,40 @@ export class BlogService {
     const cached = await this.cache.get<RelatedPost[]>(cacheKey);
     if (cached) return cached;
 
-    const post = await this.prisma.post.findUnique({
+    const post = (await this.prisma.post.findUnique({
       where: { id: postId },
       include: { categories: true },
-    }) as PostWithRelations | null;
+    })) as PostWithRelations | null;
     if (!post) return [];
 
-    const categoryIds = post.categories?.map(c => c.id) ?? [];
+    const categoryIds = post.categories?.map((c) => c.id) ?? [];
     if (categoryIds.length === 0) return [];
 
     // Get published posts sharing at least one category
-    const candidates = await this.prisma.post.findMany({
+    const candidates = (await this.prisma.post.findMany({
       where: {
-        id: { not: postId } as unknown as string,
-        status: 'PUBLISHED' as PostStatus,
+        id: { not: postId },
+        status: "PUBLISHED" as PostStatus,
         deletedAt: null,
         categories: { some: { id: { in: categoryIds } } },
       },
       include: { categories: true },
       take: limit * 3, // fetch extra for scoring
-    }) as PostWithRelations[];
+    })) as PostWithRelations[];
 
     // Score by category overlap + recency
     const now = Date.now();
-    const scored: RelatedPost[] = candidates.map(c => {
-      const sharedCats = c.categories?.filter(cat => categoryIds.includes(cat.id)).length ?? 0;
+    const scored: RelatedPost[] = candidates.map((c) => {
+      const sharedCats =
+        c.categories?.filter((cat) => categoryIds.includes(cat.id)).length ?? 0;
       const categoryScore = sharedCats / Math.max(categoryIds.length, 1);
 
       // Recency bonus: posts from last 30 days get up to 0.2 extra
-      const ageMs = now - (c.publishedAt ? new Date(c.publishedAt).getTime() : new Date(c.createdAt).getTime());
+      const ageMs =
+        now -
+        (c.publishedAt
+          ? new Date(c.publishedAt).getTime()
+          : new Date(c.createdAt).getTime());
       const ageDays = ageMs / (1000 * 60 * 60 * 24);
       const recencyBonus = Math.max(0, 0.2 * (1 - ageDays / 30));
 
@@ -1385,29 +1644,31 @@ export class BlogService {
     const [prevArr, nextArr] = await Promise.all([
       this.prisma.post.findMany({
         where: {
-          status: 'PUBLISHED' as PostStatus,
+          status: "PUBLISHED" as PostStatus,
           deletedAt: null,
           publishedAt: { lt: post.publishedAt },
         },
-        orderBy: { publishedAt: 'desc' },
+        orderBy: { publishedAt: "desc" },
         take: 1,
         select,
       } as Record<string, unknown>),
       this.prisma.post.findMany({
         where: {
-          status: 'PUBLISHED' as PostStatus,
+          status: "PUBLISHED" as PostStatus,
           deletedAt: null,
           publishedAt: { gt: post.publishedAt },
         },
-        orderBy: { publishedAt: 'asc' },
+        orderBy: { publishedAt: "asc" },
         take: 1,
         select,
       } as Record<string, unknown>),
     ]);
 
     const result: AdjacentPosts = {
-      previous: prevArr.length ? prevArr[0] as AdjacentPosts['previous'] : null,
-      next: nextArr.length ? nextArr[0] as AdjacentPosts['next'] : null,
+      previous: prevArr.length
+        ? (prevArr[0] as AdjacentPosts["previous"])
+        : null,
+      next: nextArr.length ? (nextArr[0] as AdjacentPosts["next"]) : null,
     };
 
     await this.cache.set(cacheKey, result, CACHE_TTL.adjacent);
@@ -1419,24 +1680,27 @@ export class BlogService {
   /* ──────────────────────────────────────────────────────────────────────── */
 
   /** Clone an existing post as a new DRAFT with a unique slug. */
-  async clonePost(postId: string, newAuthorId?: string): Promise<PostWithRelations> {
-    const source = await this.prisma.post.findUnique({
+  async clonePost(
+    postId: string,
+    newAuthorId?: string,
+  ): Promise<PostWithRelations> {
+    const source = (await this.prisma.post.findUnique({
       where: { id: postId },
       include: { categories: true },
-    }) as PostWithRelations | null;
-    if (!source) throw new BlogError('Source post not found', 'NOT_FOUND', 404);
+    })) as PostWithRelations | null;
+    if (!source) throw new BlogError("Source post not found", "NOT_FOUND", 404);
 
     // Also clone quotes
-    const sourceQuotes = await this.prisma.postQuote.findMany({
+    const sourceQuotes = (await this.prisma.postQuote.findMany({
       where: { postId },
-      orderBy: { sortOrder: 'asc' },
-    }) as PostQuote[];
+      orderBy: { sortOrder: "asc" },
+    })) as PostQuote[];
 
     const input: CreatePostInput = {
       title: `${source.title} (Copy)`,
       content: source.content,
       excerpt: source.excerpt,
-      status: 'DRAFT',
+      status: "DRAFT",
       authorId: newAuthorId ?? source.authorId,
       featuredImage: source.featuredImage,
       featuredImageAlt: source.featuredImageAlt,
@@ -1446,7 +1710,7 @@ export class BlogService {
       twitterTitle: source.twitterTitle,
       twitterDescription: source.twitterDescription,
       twitterImage: source.twitterImage,
-      categoryIds: source.categories?.map(c => c.id) ?? [],
+      categoryIds: source.categories?.map((c) => c.id) ?? [],
       seriesId: source.seriesId,
       password: source.password,
       allowComments: source.allowComments,
@@ -1459,7 +1723,7 @@ export class BlogService {
       canonicalUrl: null,
       language: source.language,
       region: source.region,
-      quotes: sourceQuotes.map(q => ({
+      quotes: sourceQuotes.map((q) => ({
         text: q.text,
         attribution: q.attribution,
         source: q.source,
@@ -1478,48 +1742,68 @@ export class BlogService {
   /*  SEARCH SUGGESTIONS (typeahead)                                         */
   /* ──────────────────────────────────────────────────────────────────────── */
 
-  async searchSuggestions(query: string, limit = 5): Promise<SearchSuggestion[]> {
+  async searchSuggestions(
+    query: string,
+    limit = 5,
+  ): Promise<SearchSuggestion[]> {
     const cacheKey = CACHE_KEYS.searchSuggestions(query.toLowerCase().trim());
     const cached = await this.cache.get<SearchSuggestion[]>(cacheKey);
     if (cached) return cached;
 
-    const safeQuery = sanitizeText(query).slice(0, BLOG_LIMITS.SEARCH_MAX_LENGTH);
+    const safeQuery = sanitizeText(query).slice(
+      0,
+      BLOG_LIMITS.SEARCH_MAX_LENGTH,
+    );
     const cap = Math.min(limit, BLOG_LIMITS.SEARCH_SUGGESTIONS_MAX);
     const results: SearchSuggestion[] = [];
 
     // Search posts
-    const posts = await this.prisma.post.findMany({
+    const posts = (await this.prisma.post.findMany({
       where: {
-        title: { contains: safeQuery, mode: 'insensitive' } as unknown as string,
-        status: 'PUBLISHED' as PostStatus,
+        title: { contains: safeQuery, mode: "insensitive" },
+        status: "PUBLISHED" as PostStatus,
         deletedAt: null,
       },
       take: cap,
       select: { id: true, title: true, slug: true },
-    } as Record<string, unknown>) as Array<{ id: string; title: string; slug: string }>;
+    } as Record<string, unknown>)) as Array<{
+      id: string;
+      title: string;
+      slug: string;
+    }>;
     for (const p of posts) {
-      results.push({ id: p.id, title: p.title, slug: p.slug, type: 'post' });
+      results.push({ id: p.id, title: p.title, slug: p.slug, type: "post" });
     }
 
     // Search categories
     if (results.length < cap) {
-      const cats = await this.prisma.category.findMany({
-        where: { name: { contains: safeQuery, mode: 'insensitive' } as unknown as string },
+      const cats = (await this.prisma.category.findMany({
+        where: { name: { contains: safeQuery, mode: "insensitive" } },
         take: cap - results.length,
-      }) as Category[];
+      })) as Category[];
       for (const c of cats) {
-        results.push({ id: c.id, title: c.name, slug: c.slug, type: 'category' });
+        results.push({
+          id: c.id,
+          title: c.name,
+          slug: c.slug,
+          type: "category",
+        });
       }
     }
 
     // Search series
     if (results.length < cap) {
-      const series = await this.prisma.series.findMany({
-        where: { title: { contains: safeQuery, mode: 'insensitive' } as unknown as string },
+      const series = (await this.prisma.series.findMany({
+        where: { title: { contains: safeQuery, mode: "insensitive" } },
         take: cap - results.length,
-      }) as Series[];
+      })) as Series[];
       for (const s of series) {
-        results.push({ id: s.id, title: s.title, slug: s.slug, type: 'series' });
+        results.push({
+          id: s.id,
+          title: s.title,
+          slug: s.slug,
+          type: "series",
+        });
       }
     }
 
@@ -1536,10 +1820,10 @@ export class BlogService {
     const cached = await this.cache.get<PostQuote[]>(cacheKey);
     if (cached) return cached;
 
-    const quotes = await this.prisma.postQuote.findMany({
+    const quotes = (await this.prisma.postQuote.findMany({
       where: { postId },
-      orderBy: { sortOrder: 'asc' },
-    }) as PostQuote[];
+      orderBy: { sortOrder: "asc" },
+    })) as PostQuote[];
 
     await this.cache.set(cacheKey, quotes, CACHE_TTL.quotes);
     return quotes;
@@ -1547,14 +1831,18 @@ export class BlogService {
 
   async addQuote(postId: string, input: CreateQuoteInput): Promise<PostQuote> {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
-    if (!post) throw new BlogError('Post not found', 'NOT_FOUND', 404);
+    if (!post) throw new BlogError("Post not found", "NOT_FOUND", 404);
 
     const count = await this.prisma.postQuote.count({ where: { postId } });
     if (count >= BLOG_LIMITS.MAX_QUOTES_PER_POST) {
-      throw new BlogError(`Maximum ${BLOG_LIMITS.MAX_QUOTES_PER_POST} quotes per post`, 'QUOTE_LIMIT', 400);
+      throw new BlogError(
+        `Maximum ${BLOG_LIMITS.MAX_QUOTES_PER_POST} quotes per post`,
+        "QUOTE_LIMIT",
+        400,
+      );
     }
 
-    const quote = await this.prisma.postQuote.create({
+    const quote = (await this.prisma.postQuote.create({
       data: {
         postId,
         text: sanitizeText(input.text),
@@ -1564,16 +1852,21 @@ export class BlogService {
         sortOrder: input.sortOrder ?? count,
         isPullQuote: input.isPullQuote ?? false,
       },
-    }) as PostQuote;
+    })) as PostQuote;
 
     await this.cache.del(CACHE_KEYS.postQuotes(postId));
     this.logger.log(`Quote added to post ${postId}`);
     return quote;
   }
 
-  async updateQuote(quoteId: string, input: UpdateQuoteInput): Promise<PostQuote> {
-    const existing = await this.prisma.postQuote.findUnique({ where: { id: quoteId } });
-    if (!existing) throw new BlogError('Quote not found', 'NOT_FOUND', 404);
+  async updateQuote(
+    quoteId: string,
+    input: UpdateQuoteInput,
+  ): Promise<PostQuote> {
+    const existing = await this.prisma.postQuote.findUnique({
+      where: { id: quoteId },
+    });
+    if (!existing) throw new BlogError("Quote not found", "NOT_FOUND", 404);
 
     const data: Record<string, unknown> = {};
     if (input.text !== undefined) data.text = sanitizeText(input.text);
@@ -1583,14 +1876,19 @@ export class BlogService {
     if (input.sortOrder !== undefined) data.sortOrder = input.sortOrder;
     if (input.isPullQuote !== undefined) data.isPullQuote = input.isPullQuote;
 
-    const updated = await this.prisma.postQuote.update({ where: { id: quoteId }, data }) as PostQuote;
+    const updated = (await this.prisma.postQuote.update({
+      where: { id: quoteId },
+      data,
+    })) as PostQuote;
     await this.cache.del(CACHE_KEYS.postQuotes(existing.postId));
     return updated;
   }
 
   async deleteQuote(quoteId: string): Promise<void> {
-    const existing = await this.prisma.postQuote.findUnique({ where: { id: quoteId } });
-    if (!existing) throw new BlogError('Quote not found', 'NOT_FOUND', 404);
+    const existing = await this.prisma.postQuote.findUnique({
+      where: { id: quoteId },
+    });
+    if (!existing) throw new BlogError("Quote not found", "NOT_FOUND", 404);
 
     await this.prisma.postQuote.delete({ where: { id: quoteId } });
     await this.cache.del(CACHE_KEYS.postQuotes(existing.postId));
@@ -1600,7 +1898,7 @@ export class BlogService {
   /** Get only pull-quotes (highlighted quotes for sidebar/feature display). */
   async getPullQuotes(postId: string): Promise<PostQuote[]> {
     const all = await this.getPostQuotes(postId);
-    return all.filter(q => q.isPullQuote);
+    return all.filter((q) => q.isPullQuote);
   }
 
   /* ──────────────────────────────────────────────────────────────────────── */
@@ -1627,15 +1925,22 @@ export class BlogService {
   /* ──────────────────────────────────────────────────────────────────────── */
 
   /** Compare two revisions of the same post field-by-field. */
-  async diffRevisions(revisionIdA: string, revisionIdB: string): Promise<RevisionDiff> {
+  async diffRevisions(
+    revisionIdA: string,
+    revisionIdB: string,
+  ): Promise<RevisionDiff> {
     const [revA, revB] = await Promise.all([
       this.prisma.postRevision.findUnique({ where: { id: revisionIdA } }),
       this.prisma.postRevision.findUnique({ where: { id: revisionIdB } }),
     ]);
-    if (!revA) throw new BlogError('Revision A not found', 'NOT_FOUND', 404);
-    if (!revB) throw new BlogError('Revision B not found', 'NOT_FOUND', 404);
+    if (!revA) throw new BlogError("Revision A not found", "NOT_FOUND", 404);
+    if (!revB) throw new BlogError("Revision B not found", "NOT_FOUND", 404);
     if (revA.postId !== revB.postId) {
-      throw new BlogError('Revisions belong to different posts', 'VALIDATION', 400);
+      throw new BlogError(
+        "Revisions belong to different posts",
+        "VALIDATION",
+        400,
+      );
     }
 
     const a = revA as PostRevision;
@@ -1644,11 +1949,18 @@ export class BlogService {
 
     const titleChanged = a.title !== b.title;
     const contentChanged = a.content !== b.content;
-    const excerptChanged = (a.excerpt ?? '') !== (b.excerpt ?? '');
+    const excerptChanged = (a.excerpt ?? "") !== (b.excerpt ?? "");
 
-    if (titleChanged) changes.push({ field: 'title', before: a.title, after: b.title });
-    if (contentChanged) changes.push({ field: 'content', before: a.content, after: b.content });
-    if (excerptChanged) changes.push({ field: 'excerpt', before: a.excerpt ?? '', after: b.excerpt ?? '' });
+    if (titleChanged)
+      changes.push({ field: "title", before: a.title, after: b.title });
+    if (contentChanged)
+      changes.push({ field: "content", before: a.content, after: b.content });
+    if (excerptChanged)
+      changes.push({
+        field: "excerpt",
+        before: a.excerpt ?? "",
+        after: b.excerpt ?? "",
+      });
 
     return {
       fromRevision: a.revisionNumber,
@@ -1671,23 +1983,29 @@ export class BlogService {
     if (cached) return cached;
 
     const config = await this.getConfig();
-    const limit = Math.min(maxItems ?? BLOG_LIMITS.RSS_MAX_ITEMS, BLOG_LIMITS.RSS_MAX_ITEMS);
+    const limit = Math.min(
+      maxItems ?? BLOG_LIMITS.RSS_MAX_ITEMS,
+      BLOG_LIMITS.RSS_MAX_ITEMS,
+    );
 
-    const posts = await this.prisma.post.findMany({
-      where: { status: 'PUBLISHED' as PostStatus, deletedAt: null },
-      orderBy: { publishedAt: 'desc' },
+    const posts = (await this.prisma.post.findMany({
+      where: { status: "PUBLISHED" as PostStatus, deletedAt: null },
+      orderBy: { publishedAt: "desc" },
       take: limit,
       include: { categories: true },
-    }) as PostWithRelations[];
+    })) as PostWithRelations[];
 
-    const items: RssFeedItem[] = posts.map(p => ({
+    const items: RssFeedItem[] = posts.map((p) => ({
       title: escapeHtml(p.title),
       link: `${config.blogBaseUrl}/${p.slug}`,
-      description: escapeHtml(p.excerpt ?? generateExcerpt(p.content, config.excerptLength)),
+      description: escapeHtml(
+        p.excerpt ?? generateExcerpt(p.content, config.excerptLength),
+      ),
       pubDate: toRfc822(p.publishedAt ?? p.createdAt),
       guid: p.id,
-      author: p.isGuestPost && p.guestAuthorName ? p.guestAuthorName : p.authorId,
-      categories: p.categories?.map(c => c.name) ?? [],
+      author:
+        p.isGuestPost && p.guestAuthorName ? p.guestAuthorName : p.authorId,
+      categories: p.categories?.map((c) => c.name) ?? [],
     }));
 
     const feed: RssFeed = {
@@ -1714,17 +2032,27 @@ export class BlogService {
     if (cached) return cached;
 
     const config = await this.getConfig();
-    const posts = await this.prisma.post.findMany({
-      where: { status: 'PUBLISHED' as PostStatus, deletedAt: null },
-      orderBy: { publishedAt: 'desc' },
+    const posts = (await this.prisma.post.findMany({
+      where: { status: "PUBLISHED" as PostStatus, deletedAt: null },
+      orderBy: { publishedAt: "desc" },
       take: BLOG_LIMITS.SITEMAP_MAX_ITEMS,
-      select: { slug: true, updatedAt: true, publishedAt: true, isFeatured: true },
-    } as Record<string, unknown>) as Array<{ slug: string; updatedAt: Date; publishedAt: Date | null; isFeatured: boolean }>;
+      select: {
+        slug: true,
+        updatedAt: true,
+        publishedAt: true,
+        isFeatured: true,
+      },
+    } as Record<string, unknown>)) as Array<{
+      slug: string;
+      updatedAt: Date;
+      publishedAt: Date | null;
+      isFeatured: boolean;
+    }>;
 
-    const entries: SitemapEntry[] = posts.map(p => ({
+    const entries: SitemapEntry[] = posts.map((p) => ({
       loc: `${config.blogBaseUrl}/${p.slug}`,
       lastmod: toW3CDate(p.updatedAt),
-      changefreq: 'weekly' as const,
+      changefreq: "weekly" as const,
       priority: p.isFeatured ? 0.9 : 0.7,
     }));
 
@@ -1737,8 +2065,12 @@ export class BlogService {
   /* ──────────────────────────────────────────────────────────────────────── */
 
   /** List all guest posts. */
-  async getGuestPosts(options: PostListOptions = {}): Promise<PaginatedResult<PostWithRelations>> {
-    return this.findAll({ ...options, isGuestPost: true } as PostListOptions & { isGuestPost: boolean });
+  async getGuestPosts(
+    options: PostListOptions = {},
+  ): Promise<PaginatedResult<PostWithRelations>> {
+    return this.findAll({ ...options, isGuestPost: true } as PostListOptions & {
+      isGuestPost: boolean;
+    });
   }
 
   /* ──────────────────────────────────────────────────────────────────────── */
@@ -1752,15 +2084,23 @@ export class BlogService {
 
     const [total, draft, published, scheduled, archived] = await Promise.all([
       this.prisma.post.count({ where: { deletedAt: null } }),
-      this.prisma.post.count({ where: { status: 'DRAFT' as PostStatus, deletedAt: null } }),
-      this.prisma.post.count({ where: { status: 'PUBLISHED' as PostStatus, deletedAt: null } }),
-      this.prisma.post.count({ where: { status: 'SCHEDULED' as PostStatus, deletedAt: null } }),
-      this.prisma.post.count({ where: { status: 'ARCHIVED' as PostStatus, deletedAt: null } }),
+      this.prisma.post.count({
+        where: { status: "DRAFT" as PostStatus, deletedAt: null },
+      }),
+      this.prisma.post.count({
+        where: { status: "PUBLISHED" as PostStatus, deletedAt: null },
+      }),
+      this.prisma.post.count({
+        where: { status: "SCHEDULED" as PostStatus, deletedAt: null },
+      }),
+      this.prisma.post.count({
+        where: { status: "ARCHIVED" as PostStatus, deletedAt: null },
+      }),
     ]);
 
     // Aggregate views & averages from published posts
     const publishedPosts = await this.prisma.post.findMany({
-      where: { status: 'PUBLISHED' as PostStatus, deletedAt: null },
+      where: { status: "PUBLISHED" as PostStatus, deletedAt: null },
     });
 
     let totalViews = 0;
@@ -1795,7 +2135,12 @@ export class BlogService {
   /** Generate a unique slug, appending counter if collision detected. */
   async generateUniqueSlug(title: string): Promise<string> {
     const base = generateSlug(title);
-    if (!base) throw new BlogError('Cannot generate slug from empty title', 'VALIDATION', 400);
+    if (!base)
+      throw new BlogError(
+        "Cannot generate slug from empty title",
+        "VALIDATION",
+        400,
+      );
 
     let slug = base;
     let counter = 1;
@@ -1825,7 +2170,15 @@ export class BlogService {
     changeNote: string | null,
   ): Promise<void> {
     await this.prisma.postRevision.create({
-      data: { postId, title, content, excerpt, revisionNumber, createdBy, changeNote },
+      data: {
+        postId,
+        title,
+        content,
+        excerpt,
+        revisionNumber,
+        createdBy,
+        changeNote,
+      },
     });
 
     // Trim old revisions
@@ -1833,7 +2186,7 @@ export class BlogService {
     if (config.maxRevisionsPerPost > 0) {
       const revisions = await this.prisma.postRevision.findMany({
         where: { postId },
-        orderBy: { revisionNumber: 'desc' },
+        orderBy: { revisionNumber: "desc" },
       });
       if (revisions.length > config.maxRevisionsPerPost) {
         const toDelete = revisions.slice(config.maxRevisionsPerPost);
@@ -1871,7 +2224,9 @@ export class BlogService {
   }
 
   /** Recalculate and update postCount on a category. */
-  private async recalculateCategoryPostCount(categoryId: string): Promise<void> {
+  private async recalculateCategoryPostCount(
+    categoryId: string,
+  ): Promise<void> {
     const count = await this.prisma.post.count({
       where: {
         deletedAt: null,
@@ -1885,27 +2240,41 @@ export class BlogService {
   }
 
   /** Assert that a category chain won't exceed max depth. */
-  private async assertCategoryDepth(parentId: string, depth = 0): Promise<void> {
+  private async assertCategoryDepth(
+    parentId: string,
+    depth = 0,
+  ): Promise<void> {
     if (depth >= BLOG_LIMITS.MAX_DEPTH_CATEGORY) {
       throw new BlogError(
         `Category nesting cannot exceed ${BLOG_LIMITS.MAX_DEPTH_CATEGORY} levels`,
-        'VALIDATION', 400,
+        "VALIDATION",
+        400,
       );
     }
-    const parent = await this.prisma.category.findUnique({ where: { id: parentId } });
-    if (!parent) throw new BlogError('Parent category not found', 'NOT_FOUND', 404);
+    const parent = await this.prisma.category.findUnique({
+      where: { id: parentId },
+    });
+    if (!parent)
+      throw new BlogError("Parent category not found", "NOT_FOUND", 404);
     if (parent.parentId) {
       await this.assertCategoryDepth(parent.parentId, depth + 1);
     }
   }
 
   /** Check if targetId is a descendant of ancestorId (circular ref prevention). */
-  private async isCategoryDescendant(targetId: string, ancestorId: string, depth = 0): Promise<boolean> {
+  private async isCategoryDescendant(
+    targetId: string,
+    ancestorId: string,
+    depth = 0,
+  ): Promise<boolean> {
     if (depth > BLOG_LIMITS.MAX_DEPTH_CATEGORY) return false;
-    const children = await this.prisma.category.findMany({ where: { parentId: ancestorId } });
+    const children = await this.prisma.category.findMany({
+      where: { parentId: ancestorId },
+    });
     for (const child of children) {
       if (child.id === targetId) return true;
-      if (await this.isCategoryDescendant(targetId, child.id, depth + 1)) return true;
+      if (await this.isCategoryDescendant(targetId, child.id, depth + 1))
+        return true;
     }
     return false;
   }
@@ -1913,17 +2282,21 @@ export class BlogService {
   /** Assert bulk operation size limit. */
   private assertBulkLimit(ids: string[]): void {
     if (ids.length > BLOG_LIMITS.MAX_BULK_SIZE) {
-      throw new BlogError(`Maximum ${BLOG_LIMITS.MAX_BULK_SIZE} items per bulk operation`, 'BULK_LIMIT', 400);
+      throw new BlogError(
+        `Maximum ${BLOG_LIMITS.MAX_BULK_SIZE} items per bulk operation`,
+        "BULK_LIMIT",
+        400,
+      );
     }
     if (ids.length === 0) {
-      throw new BlogError('At least one item required', 'VALIDATION', 400);
+      throw new BlogError("At least one item required", "VALIDATION", 400);
     }
   }
 
   /** Invalidate all post-related caches. */
   private async invalidatePostCaches(): Promise<void> {
     await Promise.all([
-      this.cache.flush(`${CACHE_KEYS.postList('')}*`),
+      this.cache.flush(`${CACHE_KEYS.postList("")}*`),
       this.cache.del(CACHE_KEYS.postStats()),
       this.cache.del(CACHE_KEYS.featuredPosts()),
       this.cache.del(CACHE_KEYS.pinnedPosts()),
@@ -1947,7 +2320,7 @@ export class BlogService {
     try {
       await this.revalidate(paths);
     } catch {
-      this.logger.warn(`Revalidation failed for: ${paths.join(', ')}`);
+      this.logger.warn(`Revalidation failed for: ${paths.join(", ")}`);
     }
   }
 }

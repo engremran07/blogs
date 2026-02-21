@@ -14,6 +14,7 @@ import type {
 } from '../types';
 import { AutocompleteMode } from '../types';
 import { DEFAULT_CONFIG } from './constants';
+import { similarity } from './string-utils';
 
 export class AutocompleteService {
   private readonly cfg: Required<TagsConfig>;
@@ -81,20 +82,26 @@ export class AutocompleteService {
       where.parentId = query.parentId;
     }
 
+    const selectFields = {
+      id: true,
+      name: true,
+      slug: true,
+      path: true,
+      color: true,
+      icon: true,
+      description: true,
+      usageCount: true,
+      trending: true,
+      featured: true,
+    } as const;
+
     const [results, total] = await Promise.all([
       this.prisma.tag.findMany({
         where,
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          path: true,
-          color: true,
-          icon: true,
-          usageCount: true,
-        },
+        select: selectFields,
         orderBy: [
-          // Prioritize exact starts, then by usage
+          { trending: 'desc' },
+          { featured: 'desc' },
           { usageCount: 'desc' },
           { name: 'asc' },
         ],
@@ -104,18 +111,57 @@ export class AutocompleteService {
       this.prisma.tag.count({ where }),
     ]);
 
+    const mapped: AutocompleteResult[] = results.map((t) => ({
+      id: t.id,
+      name: t.name,
+      slug: t.slug,
+      path: t.path,
+      color: t.color,
+      icon: t.icon,
+      description: t.description ?? null,
+      usageCount: t.usageCount,
+      trending: t.trending ?? false,
+      featured: t.featured ?? false,
+      isExisting: true as const,
+    }));
+
+    // ── Fuzzy fallback: if primary results are sparse, add Levenshtein matches ──
+    if (mapped.length < limit) {
+      const existingIds = new Set(mapped.map((r) => r.id));
+      const candidates = await this.prisma.tag.findMany({
+        where: { id: { notIn: [...existingIds] } },
+        select: selectFields,
+        orderBy: { usageCount: 'desc' },
+        take: 50,
+      });
+
+      const fuzzyMatches = candidates
+        .map((c) => ({ tag: c, score: similarity(q.toLowerCase(), c.name.toLowerCase()) }))
+        .filter((m) => m.score >= 0.6)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit - mapped.length);
+
+      for (const { tag: t } of fuzzyMatches) {
+        mapped.push({
+          id: t.id,
+          name: t.name,
+          slug: t.slug,
+          path: t.path,
+          color: t.color,
+          icon: t.icon,
+          description: t.description ?? null,
+          usageCount: t.usageCount,
+          trending: t.trending ?? false,
+          featured: t.featured ?? false,
+          isExisting: true as const,
+          fuzzy: true,
+        });
+      }
+    }
+
     return {
-      results: results.map((t) => ({
-        id: t.id,
-        name: t.name,
-        slug: t.slug,
-        path: t.path,
-        color: t.color,
-        icon: t.icon,
-        usageCount: t.usageCount,
-        isExisting: true as const,
-      })),
-      total,
+      results: mapped,
+      total: total + mapped.length - results.length, // account for fuzzy additions
       page,
       hasMore: skip + limit < total,
     };
@@ -128,11 +174,24 @@ export class AutocompleteService {
   async getInitialSuggestions(limit: number, page = 1): Promise<AutocompleteResponse> {
     const skip = (page - 1) * limit;
 
+    const selectFields = {
+      id: true, name: true, slug: true, path: true,
+      color: true, icon: true, description: true,
+      usageCount: true, trending: true, featured: true,
+    } as const;
+
+    const mapResult = (t: { id: string; name: string; slug: string; path: string | null; color: string | null; icon: string | null; description: string | null; usageCount: number; trending: boolean; featured: boolean }): AutocompleteResult => ({
+      id: t.id, name: t.name, slug: t.slug, path: t.path,
+      color: t.color, icon: t.icon, description: t.description ?? null,
+      usageCount: t.usageCount, trending: t.trending ?? false,
+      featured: t.featured ?? false, isExisting: true as const,
+    });
+
     // If initial tags are configured, return those first
     if (this.cfg.initialTags.length > 0) {
       const initialResults = await this.prisma.tag.findMany({
         where: { name: { in: this.cfg.initialTags, mode: 'insensitive' } },
-        select: { id: true, name: true, slug: true, path: true, color: true, icon: true, usageCount: true },
+        select: selectFields,
         skip,
         take: limit,
       });
@@ -140,10 +199,7 @@ export class AutocompleteService {
         where: { name: { in: this.cfg.initialTags, mode: 'insensitive' } },
       });
       return {
-        results: initialResults.map((t) => ({
-          id: t.id, name: t.name, slug: t.slug, path: t.path,
-          color: t.color, icon: t.icon, usageCount: t.usageCount, isExisting: true as const,
-        })),
+        results: initialResults.map(mapResult),
         total,
         page,
         hasMore: skip + limit < total,
@@ -153,8 +209,8 @@ export class AutocompleteService {
     // Fallback: most popular tags
     const [results, total] = await Promise.all([
       this.prisma.tag.findMany({
-        orderBy: { usageCount: 'desc' },
-        select: { id: true, name: true, slug: true, path: true, color: true, icon: true, usageCount: true },
+        orderBy: [{ trending: 'desc' }, { featured: 'desc' }, { usageCount: 'desc' }],
+        select: selectFields,
         skip,
         take: limit,
       }),
@@ -162,10 +218,7 @@ export class AutocompleteService {
     ]);
 
     return {
-      results: results.map((t) => ({
-        id: t.id, name: t.name, slug: t.slug, path: t.path,
-        color: t.color, icon: t.icon, usageCount: t.usageCount, isExisting: true as const,
-      })),
+      results: results.map(mapResult),
       total,
       page,
       hasMore: skip + limit < total,
@@ -342,11 +395,11 @@ export class AutocompleteService {
             { synonyms: { has: name.toLowerCase() } },
           ],
         },
-        select: { id: true, name: true, slug: true, path: true, color: true, icon: true, usageCount: true },
+        select: { id: true, name: true, slug: true, path: true, color: true, icon: true, description: true, usageCount: true, trending: true, featured: true },
       });
 
       if (tag) {
-        resolved.push({ ...tag, isExisting: true });
+        resolved.push({ ...tag, description: tag.description ?? null, trending: tag.trending ?? false, featured: tag.featured ?? false, isExisting: true });
       } else if (opts.createMissing) {
         const slug = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
         const appliedName = this.cfg.forceLowercase ? name.toLowerCase() : name;
@@ -357,9 +410,9 @@ export class AutocompleteService {
             usageCount: 0,
             protected: this.cfg.protectInitial,
           },
-          select: { id: true, name: true, slug: true, path: true, color: true, icon: true, usageCount: true },
+          select: { id: true, name: true, slug: true, path: true, color: true, icon: true, description: true, usageCount: true, trending: true, featured: true },
         });
-        resolved.push({ ...created, isExisting: true });
+        resolved.push({ ...created, description: created.description ?? null, trending: created.trending ?? false, featured: created.featured ?? false, isExisting: true });
       } else {
         unmatched.push(name);
       }

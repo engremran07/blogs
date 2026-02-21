@@ -139,7 +139,7 @@ export class PagesAdminSettingsService {
       data,
     });
 
-    this.cached = updated as unknown as PagesSystemSettings;
+    this.cached = updated;
 
     // Propagate to all registered consumers
     await this.propagateConfig();
@@ -164,7 +164,7 @@ export class PagesAdminSettingsService {
       data,
     });
 
-    this.cached = updated as unknown as PagesSystemSettings;
+    this.cached = updated;
     await this.propagateConfig();
     return this.cached;
   }
@@ -178,7 +178,7 @@ export class PagesAdminSettingsService {
     const existing = await this.prisma.pageSettings.findFirst();
 
     if (existing) {
-      this.cached = existing as unknown as PagesSystemSettings;
+      this.cached = existing;
       return this.cached;
     }
 
@@ -207,7 +207,7 @@ export class PagesAdminSettingsService {
       },
     });
 
-    this.cached = created as unknown as PagesSystemSettings;
+    this.cached = created;
     return this.cached;
   }
 

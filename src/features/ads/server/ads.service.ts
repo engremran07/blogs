@@ -11,6 +11,9 @@ import type {
   AdProviderType,
   AdPosition,
   AdPlacementRecord,
+  AdProviderRecord,
+  AdSlotRecord,
+  AdLogRecord,
   AdsAggregateResult,
 } from "../types";
 import {
@@ -26,7 +29,6 @@ export interface AdsServiceDeps {
   getConfig: () => Promise<AdsConfig>;
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export class AdsService {
   private prisma: AdsPrismaClient;
   private cache: CacheProvider;
@@ -40,7 +42,7 @@ export class AdsService {
 
   // ── Providers ────────────────────────────────────────────────────────────
 
-  async findAllProviders(activeOnly = false): Promise<any[]> {
+  async findAllProviders(activeOnly = false): Promise<AdProviderRecord[]> {
     const where = activeOnly ? { isActive: true, killSwitch: false } : {};
     return this.prisma.adProvider.findMany({
       where,
@@ -49,15 +51,17 @@ export class AdsService {
     });
   }
 
-  stripSensitiveFields(provider: any): SafeAdProvider {
+  stripSensitiveFields(provider: AdProviderRecord): SafeAdProvider {
     const safe = { ...provider };
     for (const field of PROVIDER_SENSITIVE_FIELDS) {
       delete safe[field];
     }
-    return safe;
+    return safe as SafeAdProvider;
   }
 
-  async createProvider(input: Record<string, any>): Promise<any> {
+  async createProvider(
+    input: Record<string, unknown> & { name: string; slug?: string },
+  ): Promise<AdProviderRecord> {
     const slug = input.slug || generateSlug(input.name);
     const provider = await this.prisma.adProvider.create({
       data: { ...input, slug },
@@ -67,14 +71,17 @@ export class AdsService {
     return provider;
   }
 
-  async findProviderById(id: string): Promise<any | null> {
+  async findProviderById(id: string): Promise<AdProviderRecord | null> {
     return this.prisma.adProvider.findUnique({
       where: { id },
       include: { _count: { select: { placements: true } } },
     });
   }
 
-  async updateProvider(id: string, input: Record<string, any>): Promise<any> {
+  async updateProvider(
+    id: string,
+    input: Record<string, unknown> & { name?: string; slug?: string },
+  ): Promise<AdProviderRecord> {
     if (input.name && !input.slug) {
       input.slug = generateSlug(input.name);
     }
@@ -92,7 +99,10 @@ export class AdsService {
     await this.cache.invalidatePrefix("ads:");
   }
 
-  async toggleProviderKillSwitch(id: string, killed: boolean): Promise<any> {
+  async toggleProviderKillSwitch(
+    id: string,
+    killed: boolean,
+  ): Promise<AdProviderRecord> {
     const provider = await this.prisma.adProvider.update({
       where: { id },
       data: { killSwitch: killed },
@@ -105,7 +115,9 @@ export class AdsService {
   /**
    * Strip sensitive / internal fields from a placement before sending to the public.
    */
-  stripForPublicResponse(placement: any): Record<string, any> {
+  stripForPublicResponse(
+    placement: AdPlacementRecord,
+  ): Record<string, unknown> {
     const {
       impressions: _i,
       clicks: _c,
@@ -117,7 +129,6 @@ export class AdsService {
       endDate: _ed,
       createdAt: _ca,
       updatedAt: _ua,
-      logs: _logs,
       ...safe
     } = placement;
     return safe;
@@ -125,7 +136,7 @@ export class AdsService {
 
   // ── Slots ────────────────────────────────────────────────────────────────
 
-  async findAllSlots(activeOnly = false): Promise<any[]> {
+  async findAllSlots(activeOnly = false): Promise<AdSlotRecord[]> {
     const where = activeOnly ? { isActive: true } : {};
     return this.prisma.adSlot.findMany({
       where,
@@ -134,7 +145,9 @@ export class AdsService {
     });
   }
 
-  async createSlot(input: Record<string, any>): Promise<any> {
+  async createSlot(
+    input: Record<string, unknown> & { name: string; slug?: string },
+  ): Promise<AdSlotRecord> {
     const slug = input.slug || generateSlug(input.name);
     const slot = await this.prisma.adSlot.create({
       data: { ...input, slug },
@@ -144,14 +157,17 @@ export class AdsService {
     return slot;
   }
 
-  async findSlotById(id: string): Promise<any | null> {
+  async findSlotById(id: string): Promise<AdSlotRecord | null> {
     return this.prisma.adSlot.findUnique({
       where: { id },
       include: { _count: { select: { placements: true } } },
     });
   }
 
-  async updateSlot(id: string, input: Record<string, any>): Promise<any> {
+  async updateSlot(
+    id: string,
+    input: Record<string, unknown> & { name?: string; slug?: string },
+  ): Promise<AdSlotRecord> {
     if (input.name && !input.slug) {
       input.slug = generateSlug(input.name);
     }
@@ -171,7 +187,7 @@ export class AdsService {
 
   // ── Placements ───────────────────────────────────────────────────────────
 
-  async findPlacementById(id: string): Promise<any | null> {
+  async findPlacementById(id: string): Promise<AdPlacementRecord | null> {
     return this.prisma.adPlacement.findUnique({
       where: { id },
       include: {
@@ -185,9 +201,15 @@ export class AdsService {
     pageType?: string,
     category?: string,
     containerWidth?: number,
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     const now = new Date();
-    const where: any = {
+    const where: {
+      isActive: boolean;
+      provider: { isActive: boolean; killSwitch: boolean };
+      slot: Record<string, unknown>;
+      AND: Array<Record<string, unknown>>;
+      OR?: Array<Record<string, unknown>>;
+    } = {
       isActive: true,
       provider: { isActive: true, killSwitch: false },
       slot: { isActive: true },
@@ -211,7 +233,7 @@ export class AdsService {
       where.slot = {
         ...where.slot,
         OR: [
-          ...(where.slot.OR ?? []),
+          ...((where.slot as { OR?: Array<Record<string, unknown>> }).OR ?? []),
           { categories: { isEmpty: true } },
           { categories: { has: category } },
         ],
@@ -263,10 +285,10 @@ export class AdsService {
       orderBy: { slot: { renderPriority: "desc" } },
     });
 
-    return placements.map((p: any) => this.stripForPublicResponse(p));
+    return placements.map((p) => this.stripForPublicResponse(p));
   }
 
-  async findAllPlacements(): Promise<any[]> {
+  async findAllPlacements(): Promise<AdPlacementRecord[]> {
     return this.prisma.adPlacement.findMany({
       include: {
         provider: { select: { name: true, type: true } },
@@ -276,7 +298,12 @@ export class AdsService {
     });
   }
 
-  async createPlacement(input: Record<string, any>): Promise<any> {
+  async createPlacement(
+    input: Record<string, unknown> & {
+      adCode?: string | null;
+      customHtml?: string | null;
+    },
+  ): Promise<AdPlacementRecord> {
     const config = await this.getConfig();
     if (config.sanitizeAdCode && input.adCode) {
       input.adCode = sanitizeAdCode(input.adCode);
@@ -295,7 +322,13 @@ export class AdsService {
     return placement;
   }
 
-  async updatePlacement(id: string, input: Record<string, any>): Promise<any> {
+  async updatePlacement(
+    id: string,
+    input: Record<string, unknown> & {
+      adCode?: string | null;
+      customHtml?: string | null;
+    },
+  ): Promise<AdPlacementRecord> {
     const config = await this.getConfig();
     if (config.sanitizeAdCode && input.adCode) {
       input.adCode = sanitizeAdCode(input.adCode);
@@ -324,16 +357,16 @@ export class AdsService {
 
   async getPlacementStats(id: string, days = 30): Promise<PlacementStats> {
     const since = new Date(Date.now() - days * 86_400_000);
-    const logs = await this.prisma.adLog.findMany({
+    const logs = (await this.prisma.adLog.findMany({
       where: { placementId: id, createdAt: { gte: since } },
-    });
+    })) as AdLogRecord[];
 
     const impressions = logs.filter(
-      (l: any) => l.eventType === "IMPRESSION",
+      (log) => log.eventType === "IMPRESSION",
     ).length;
-    const clicks = logs.filter((l: any) => l.eventType === "CLICK").length;
-    const viewable = logs.filter((l: any) => l.eventType === "VIEWABLE").length;
-    const closes = logs.filter((l: any) => l.eventType === "CLOSE").length;
+    const clicks = logs.filter((log) => log.eventType === "CLICK").length;
+    const viewable = logs.filter((log) => log.eventType === "VIEWABLE").length;
+    const closes = logs.filter((log) => log.eventType === "CLOSE").length;
 
     return {
       impressions,
@@ -367,7 +400,7 @@ export class AdsService {
 
     const totals = (await this.prisma.adPlacement.aggregate!({
       _sum: { impressions: true, clicks: true, revenue: true },
-    })) as unknown as AdsAggregateResult;
+    })) as AdsAggregateResult;
 
     const totalImpressions = totals._sum?.impressions ?? 0;
     const totalClicks = totals._sum?.clicks ?? 0;
@@ -581,4 +614,3 @@ export class AdsService {
     await this.cache.invalidatePrefix("ads:");
   }
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */

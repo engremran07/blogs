@@ -187,7 +187,7 @@ export default async function CmsPage({
       </header>
 
       {/* Page Content */}
-      <article className="prose prose-lg mx-auto max-w-none dark:prose-invert prose-headings:text-gray-900 prose-p:text-gray-600 prose-a:text-blue-600 dark:prose-headings:text-white dark:prose-p:text-gray-400 dark:prose-a:text-blue-400">
+      <article className="prose prose-lg mx-auto max-w-none dark:prose-invert prose-headings:text-gray-900 prose-p:text-gray-600 prose-a:text-primary dark:prose-headings:text-white dark:prose-p:text-gray-400">
         <div dangerouslySetInnerHTML={{ __html: page.content }} />
       </article>
 

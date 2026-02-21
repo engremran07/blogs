@@ -2,8 +2,7 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/server/db/prisma";
 import { siteSettingsService } from "@/server/wiring";
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://example.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_URL.replace(/\/$/, "");
@@ -11,8 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Check if sitemap generation is enabled
   try {
     const s = await siteSettingsService.getSettings();
-    const raw = s as unknown as Record<string, unknown>;
-    if (raw.sitemapEnabled === false) {
+    if (s.sitemapEnabled === false) {
       return []; // Empty sitemap when disabled
     }
   } catch {
@@ -38,22 +36,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     select: { slug: true, updatedAt: true },
   });
 
-  // Fetch tags
-  const tags = await prisma.tag.findMany({
-    select: { slug: true, updatedAt: true },
-  });
-
   // Use latest post date for dynamic pages, a stable date for static ones
   const latestPostDate = posts[0]?.updatedAt ?? new Date();
-  const latestTagDate = tags[0]?.updatedAt ?? new Date();
 
   // Static routes
   const staticRoutes: MetadataRoute.Sitemap = [
-    { url: baseUrl, lastModified: latestPostDate, changeFrequency: "daily", priority: 1.0 },
-    { url: `${baseUrl}/blog`, lastModified: latestPostDate, changeFrequency: "daily", priority: 0.9 },
+    {
+      url: baseUrl,
+      lastModified: latestPostDate,
+      changeFrequency: "daily",
+      priority: 1.0,
+    },
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: latestPostDate,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
     { url: `${baseUrl}/about`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${baseUrl}/contact`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${baseUrl}/tags`, lastModified: latestTagDate, changeFrequency: "weekly", priority: 0.5 },
   ];
 
   // Post routes
@@ -80,13 +81,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  // Tag routes
-  const tagRoutes: MetadataRoute.Sitemap = tags.map((tag) => ({
-    url: `${baseUrl}/tags/${tag.slug}`,
-    lastModified: tag.updatedAt,
-    changeFrequency: "monthly" as const,
-    priority: 0.4,
-  }));
-
-  return [...staticRoutes, ...postRoutes, ...pageRoutes, ...categoryRoutes, ...tagRoutes];
+  return [...staticRoutes, ...postRoutes, ...pageRoutes, ...categoryRoutes];
 }

@@ -12,13 +12,19 @@ import type {
   DistributionChannelData,
   PlatformCredentials,
   PostData,
+  CreateChannelInput,
+  UpdateChannelInput,
+  QueryDistributionsInput,
+  DistributePostInput,
+  BulkDistributeInput,
+  RetryDistributionInput,
+  CancelDistributionInput,
 } from "../types";
 import type { DistributionEventBus } from "./events";
 import { DEFAULT_CONFIG, VALID_STATUS_TRANSITIONS } from "./constants";
 import { MessageBuilder } from "./message-builder";
 import { getConnector } from "./connectors";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export class DistributionService {
   private prisma: DistributionPrismaClient;
   private eventBus: DistributionEventBus;
@@ -108,8 +114,9 @@ export class DistributionService {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await fn();
-      } catch (err: any) {
-        lastError = err;
+      } catch (err: unknown) {
+        lastError =
+          err instanceof Error ? err : new Error("Unknown retry error");
         if (attempt < maxRetries) {
           const delay = baseDelayMs * Math.pow(backoffMultiplier, attempt);
           const jitter = Math.random() * delay * 0.3;
@@ -118,6 +125,25 @@ export class DistributionService {
       }
     }
     throw lastError;
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    return "Unknown error";
+  }
+
+  private isRateLimitError(error: unknown): boolean {
+    const message = this.getErrorMessage(error).toLowerCase();
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code ?? "")
+        : "";
+
+    return (
+      message.includes("rate limit") ||
+      message.includes("429") ||
+      code === "RATE_LIMITED"
+    );
   }
 
   // ── Health Check ─────────────────────────────────────────────────────────
@@ -161,7 +187,7 @@ export class DistributionService {
 
   // ── Channels ─────────────────────────────────────────────────────────────
 
-  async getChannels(enabledOnly = false): Promise<any[]> {
+  async getChannels(enabledOnly = false): Promise<DistributionChannelData[]> {
     const where = enabledOnly ? { enabled: true } : {};
     return this.prisma.distributionChannel.findMany({
       where,
@@ -169,7 +195,9 @@ export class DistributionService {
     });
   }
 
-  async createChannel(input: Record<string, any>): Promise<any> {
+  async createChannel(
+    input: CreateChannelInput,
+  ): Promise<DistributionChannelData> {
     const channel = await this.prisma.distributionChannel.create({
       data: input,
     });
@@ -179,11 +207,14 @@ export class DistributionService {
     return channel;
   }
 
-  async getChannelById(id: string): Promise<any | null> {
+  async getChannelById(id: string): Promise<DistributionChannelData | null> {
     return this.prisma.distributionChannel.findUnique({ where: { id } });
   }
 
-  async updateChannel(id: string, input: Record<string, any>): Promise<any> {
+  async updateChannel(
+    id: string,
+    input: UpdateChannelInput,
+  ): Promise<DistributionChannelData> {
     const channel = await this.prisma.distributionChannel.update({
       where: { id },
       data: input,
@@ -218,21 +249,21 @@ export class DistributionService {
         channel.credentials as PlatformCredentials,
       );
       return { valid };
-    } catch (err: any) {
-      return { valid: false, error: err.message };
+    } catch (err: unknown) {
+      return { valid: false, error: this.getErrorMessage(err) };
     }
   }
 
   // ── Records / Distributions ──────────────────────────────────────────────
 
   async getDistributions(
-    query: Record<string, any> = {},
+    query: QueryDistributionsInput = {},
   ): Promise<PaginatedResult<DistributionRecordData>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (query.postId) where.postId = query.postId;
     if (query.platform) where.platform = query.platform;
     if (query.status) where.status = query.status;
@@ -264,7 +295,9 @@ export class DistributionService {
     };
   }
 
-  async getDistributionById(id: string): Promise<any | null> {
+  async getDistributionById(
+    id: string,
+  ): Promise<DistributionRecordData | null> {
     return this.prisma.distributionRecord.findUnique({
       where: { id },
       include: {
@@ -274,7 +307,9 @@ export class DistributionService {
     });
   }
 
-  async getPostDistributions(postId: string): Promise<any[]> {
+  async getPostDistributions(
+    postId: string,
+  ): Promise<DistributionRecordData[]> {
     return this.prisma.distributionRecord.findMany({
       where: { postId },
       orderBy: { createdAt: "desc" },
@@ -284,14 +319,16 @@ export class DistributionService {
 
   // ── Distribute ───────────────────────────────────────────────────────────
 
-  async distributePost(input: Record<string, any>): Promise<any[]> {
+  async distributePost(
+    input: DistributePostInput,
+  ): Promise<DistributionRecordData[]> {
     const post = (await this.prisma.post.findUnique({
       where: { id: input.postId },
     })) as PostData | null;
     if (!post) throw new Error("Post not found");
 
-    const results: any[] = [];
-    for (const platform of input.platforms as string[]) {
+    const results: DistributionRecordData[] = [];
+    for (const platform of input.platforms) {
       // ── Pre-flight checks ──
       if (this.isCircuitOpen(platform)) {
         const record = await this.prisma.distributionRecord.create({
@@ -334,9 +371,9 @@ export class DistributionService {
         utmSource: this.config.utmSource,
       });
 
-      const channel = await this.prisma.distributionChannel.findFirst({
+      const channel = (await this.prisma.distributionChannel.findFirst({
         where: { platform, enabled: true },
-      });
+      })) as DistributionChannelData | null;
 
       const status = input.scheduledFor
         ? DistributionStatus.SCHEDULED
@@ -408,11 +445,9 @@ export class DistributionService {
               });
               this.recordFailure(platform);
             }
-          } catch (err: any) {
-            const isRateLimit =
-              err.message?.includes("rate limit") ||
-              err.message?.includes("429") ||
-              err.code === "RATE_LIMITED";
+          } catch (err: unknown) {
+            const isRateLimit = this.isRateLimitError(err);
+            const message = this.getErrorMessage(err);
 
             if (isRateLimit) {
               this.setRateLimitCooldown(platform);
@@ -420,13 +455,13 @@ export class DistributionService {
                 where: { id: record.id },
                 data: {
                   status: DistributionStatus.RATE_LIMITED,
-                  error: `Rate limited: ${err.message}`,
+                  error: `Rate limited: ${message}`,
                 },
               });
             } else {
               await this.prisma.distributionRecord.update({
                 where: { id: record.id },
-                data: { status: DistributionStatus.FAILED, error: err.message },
+                data: { status: DistributionStatus.FAILED, error: message },
               });
             }
             this.recordFailure(platform);
@@ -449,28 +484,30 @@ export class DistributionService {
   }
 
   async bulkDistribute(
-    input: Record<string, any>,
+    input: BulkDistributeInput,
   ): Promise<{ total: number; created: number; errors: string[] }> {
     const errors: string[] = [];
     let created = 0;
 
-    for (const postId of input.postIds as string[]) {
+    for (const postId of input.postIds) {
       try {
         await this.distributePost({ ...input, postId });
         created++;
-      } catch (err: any) {
-        errors.push(`Post ${postId}: ${err.message}`);
+      } catch (err: unknown) {
+        errors.push(`Post ${postId}: ${this.getErrorMessage(err)}`);
       }
     }
 
     await this.eventBus.emit(DistributionEvent.BULK_DISTRIBUTED, {
-      total: (input.postIds as string[]).length,
+      total: input.postIds.length,
       created,
     });
-    return { total: (input.postIds as string[]).length, created, errors };
+    return { total: input.postIds.length, created, errors };
   }
 
-  async retryDistribution(input: { recordId: string }): Promise<any> {
+  async retryDistribution(
+    input: RetryDistributionInput,
+  ): Promise<DistributionRecordData> {
     const record = await this.prisma.distributionRecord.findUnique({
       where: { id: input.recordId },
     });
@@ -575,10 +612,10 @@ export class DistributionService {
           }
         }
       }
-    } catch (retryErr: any) {
+    } catch (retryErr: unknown) {
       console.warn(
         "[DistributionService] Retry execution failed, will be picked up by scheduler",
-        { id: record.id, error: retryErr?.message },
+        { id: record.id, error: this.getErrorMessage(retryErr) },
       );
     }
 
@@ -589,7 +626,9 @@ export class DistributionService {
     return finalRecord ?? updated;
   }
 
-  async cancelDistribution(input: { recordId: string }): Promise<any> {
+  async cancelDistribution(
+    input: CancelDistributionInput,
+  ): Promise<DistributionRecordData> {
     const record = await this.prisma.distributionRecord.findUnique({
       where: { id: input.recordId },
     });
@@ -613,7 +652,23 @@ export class DistributionService {
 
   // ── Stats & Config ───────────────────────────────────────────────────────
 
-  async getStats(): Promise<Record<string, any>> {
+  async getStats(): Promise<{
+    records: {
+      total: number;
+      published: number;
+      failed: number;
+      pending: number;
+      scheduled: number;
+      rateLimited: number;
+    };
+    channels: { total: number; active: number };
+    config: DistributionConfig;
+    successRate: number;
+    platformHealth: Record<
+      string,
+      { status: string; circuitOpen: boolean; rateLimited: boolean }
+    >;
+  }> {
     const [total, published, failed, pending, scheduled, rateLimited] =
       await Promise.all([
         this.prisma.distributionRecord.count(),
@@ -791,27 +846,26 @@ export class DistributionService {
               });
               this.recordFailure(record.platform);
             }
-          } catch (err: any) {
-            const isRateLimit =
-              err.message?.includes("rate limit") ||
-              err.message?.includes("429");
+          } catch (err: unknown) {
+            const isRateLimit = this.isRateLimitError(err);
+            const message = this.getErrorMessage(err);
             if (isRateLimit) {
               this.setRateLimitCooldown(record.platform);
               await this.prisma.distributionRecord.update({
                 where: { id: record.id },
                 data: {
                   status: DistributionStatus.RATE_LIMITED,
-                  error: err.message,
+                  error: message,
                 },
               });
             } else {
               await this.prisma.distributionRecord.update({
                 where: { id: record.id },
-                data: { status: DistributionStatus.FAILED, error: err.message },
+                data: { status: DistributionStatus.FAILED, error: message },
               });
             }
             this.recordFailure(record.platform);
-            errors.push(`Record ${record.id}: ${err.message}`);
+            errors.push(`Record ${record.id}: ${message}`);
           }
         } else {
           // No connector or channel available — mark as failed
@@ -825,8 +879,8 @@ export class DistributionService {
         }
 
         processed++;
-      } catch (err: any) {
-        errors.push(`Record ${record.id}: ${err.message}`);
+      } catch (err: unknown) {
+        errors.push(`Record ${record.id}: ${this.getErrorMessage(err)}`);
       }
     }
 
@@ -848,4 +902,3 @@ export class DistributionService {
     return result.count ?? 0;
   }
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */

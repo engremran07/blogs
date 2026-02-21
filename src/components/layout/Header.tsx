@@ -25,7 +25,6 @@ import { isModeratorRole } from "@/features/auth/server/capabilities";
 const DEFAULT_NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/blog", label: "Blog" },
-  { href: "/tags", label: "Tags" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact Us" },
 ];

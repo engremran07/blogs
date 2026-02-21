@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 // media-manager/MediaManager.tsx
 // ─────────────────────────────────────────────────────────────────────────────
@@ -25,10 +25,16 @@ import {
   useState,
   useMemo,
   type ReactNode,
-} from 'react';
-import Image from 'next/image';
-import { Dialog, Transition, TransitionChild, DialogPanel, DialogTitle } from '@headlessui/react';
-import { Fragment } from 'react';
+} from "react";
+import Image from "next/image";
+import {
+  Dialog,
+  Transition,
+  TransitionChild,
+  DialogPanel,
+  DialogTitle,
+} from "@headlessui/react";
+import { Fragment } from "react";
 import {
   Upload,
   Search,
@@ -62,7 +68,7 @@ import {
   PanelLeftOpen,
   ArrowUp,
   ArrowDown,
-} from 'lucide-react';
+} from "lucide-react";
 
 import type {
   MediaManagerProps,
@@ -78,7 +84,7 @@ import type {
   SortField,
   MediaSeoAuditResult,
   UpdateMediaInput,
-} from '../types';
+} from "../types";
 import {
   formatFileSize,
   getMimeCategory,
@@ -86,9 +92,9 @@ import {
   getMimeLabel,
   MEDIA_LIMITS,
   FRONTEND_DEFAULTS,
-} from '../server/constants';
+} from "../server/constants";
 
-import './media-manager.css';
+import "./media-manager.css";
 
 /* ====================================================================== *
  *  Default settings                                                      *
@@ -135,9 +141,9 @@ function createInitialState(
     totalItems: 0,
     page: 1,
     pageSize: settings.pageSize,
-    search: '',
+    search: "",
     filter: {},
-    sort: { field: 'date', direction: 'desc' },
+    sort: { field: "date", direction: "desc" },
     isLoading: false,
     isUploading: false,
     uploadQueue: INITIAL_UPLOAD_QUEUE,
@@ -156,10 +162,10 @@ function mediaReducer(
   action: MediaManagerAction,
 ): MediaManagerState {
   switch (action.type) {
-    case 'SET_VIEW_MODE':
+    case "SET_VIEW_MODE":
       return { ...state, viewMode: action.payload };
 
-    case 'SET_FOLDER':
+    case "SET_FOLDER":
       return {
         ...state,
         currentFolder: action.payload,
@@ -168,47 +174,47 @@ function mediaReducer(
         detailItem: null,
       };
 
-    case 'SET_SEARCH':
+    case "SET_SEARCH":
       return { ...state, search: action.payload, page: 1 };
 
-    case 'SET_FILTER':
+    case "SET_FILTER":
       return { ...state, filter: action.payload, page: 1 };
 
-    case 'SET_SORT':
+    case "SET_SORT":
       return { ...state, sort: action.payload, page: 1 };
 
-    case 'SET_PAGE':
+    case "SET_PAGE":
       return { ...state, page: action.payload };
 
-    case 'SELECT_ITEM':
+    case "SELECT_ITEM":
       return {
         ...state,
         selectedIds: new Set(state.selectedIds).add(action.payload),
       };
 
-    case 'DESELECT_ITEM': {
+    case "DESELECT_ITEM": {
       const next = new Set(state.selectedIds);
       next.delete(action.payload);
       return { ...state, selectedIds: next };
     }
 
-    case 'SELECT_ALL':
+    case "SELECT_ALL":
       return {
         ...state,
         selectedIds: new Set(state.items.map((i) => i.id)),
       };
 
-    case 'DESELECT_ALL':
+    case "DESELECT_ALL":
       return { ...state, selectedIds: new Set() };
 
-    case 'TOGGLE_SELECT': {
+    case "TOGGLE_SELECT": {
       const next = new Set(state.selectedIds);
       if (next.has(action.payload)) next.delete(action.payload);
       else next.add(action.payload);
       return { ...state, selectedIds: next };
     }
 
-    case 'SET_ITEMS':
+    case "SET_ITEMS":
       return {
         ...state,
         items: action.payload.items,
@@ -216,29 +222,29 @@ function mediaReducer(
         isLoading: false,
       };
 
-    case 'SET_FOLDERS':
+    case "SET_FOLDERS":
       return { ...state, folders: action.payload };
 
-    case 'SET_LOADING':
+    case "SET_LOADING":
       return { ...state, isLoading: action.payload };
 
-    case 'SET_DETAIL':
+    case "SET_DETAIL":
       return { ...state, detailItem: action.payload };
 
-    case 'SET_EDIT':
+    case "SET_EDIT":
       return { ...state, editItem: action.payload };
 
-    case 'SET_UPLOAD_MODAL':
+    case "SET_UPLOAD_MODAL":
       return { ...state, showUploadModal: action.payload };
 
-    case 'SET_DELETE_CONFIRM':
+    case "SET_DELETE_CONFIRM":
       return {
         ...state,
         showDeleteConfirm: action.payload.show,
         deleteTargetIds: action.payload.ids,
       };
 
-    case 'UPDATE_ITEM':
+    case "UPDATE_ITEM":
       return {
         ...state,
         items: state.items.map((i) =>
@@ -250,7 +256,7 @@ function mediaReducer(
             : state.detailItem,
       };
 
-    case 'REMOVE_ITEMS': {
+    case "REMOVE_ITEMS": {
       const removedSet = new Set(action.payload);
       const nextSelected = new Set(state.selectedIds);
       action.payload.forEach((id) => nextSelected.delete(id));
@@ -266,23 +272,23 @@ function mediaReducer(
       };
     }
 
-    case 'ADD_ITEM':
+    case "ADD_ITEM":
       return {
         ...state,
         items: [action.payload, ...state.items],
         totalItems: state.totalItems + 1,
       };
 
-    case 'SET_ERROR':
+    case "SET_ERROR":
       return { ...state, error: action.payload };
 
-    case 'SET_SIDEBAR':
+    case "SET_SIDEBAR":
       return { ...state, sidebarOpen: action.payload };
 
-    case 'UPLOAD_START':
+    case "UPLOAD_START":
       return { ...state, isUploading: true };
 
-    case 'UPLOAD_PROGRESS':
+    case "UPLOAD_PROGRESS":
       return {
         ...state,
         uploadQueue: {
@@ -292,7 +298,7 @@ function mediaReducer(
         },
       };
 
-    case 'UPLOAD_COMPLETE':
+    case "UPLOAD_COMPLETE":
       return {
         ...state,
         uploadQueue: {
@@ -302,7 +308,7 @@ function mediaReducer(
         },
       };
 
-    case 'UPLOAD_FAILED':
+    case "UPLOAD_FAILED":
       return {
         ...state,
         uploadQueue: {
@@ -312,7 +318,7 @@ function mediaReducer(
         },
       };
 
-    case 'UPLOAD_RESET':
+    case "UPLOAD_RESET":
       return {
         ...state,
         isUploading: false,
@@ -352,13 +358,13 @@ function MediaTypeIcon({
 }) {
   const type = getMimeCategory(mimeType);
   switch (type) {
-    case 'IMAGE':
+    case "IMAGE":
       return <ImageIcon size={size} className={className} />;
-    case 'VIDEO':
+    case "VIDEO":
       return <Film size={size} className={className} />;
-    case 'AUDIO':
+    case "AUDIO":
       return <Music size={size} className={className} />;
-    case 'DOCUMENT':
+    case "DOCUMENT":
       return <FileText size={size} className={className} />;
     default:
       return <File size={size} className={className} />;
@@ -384,13 +390,17 @@ function Toolbar({
   onToggleSidebar: () => void;
 }) {
   return (
-    <div className="mm-toolbar" role="toolbar" aria-label="Media manager toolbar">
+    <div
+      className="mm-toolbar"
+      role="toolbar"
+      aria-label="Media manager toolbar"
+    >
       {settings.enableFolders && (
         <button
           className="mm-btn mm-btn--ghost mm-btn--icon"
           onClick={onToggleSidebar}
-          aria-label={state.sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-          title={state.sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          aria-label={state.sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          title={state.sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           {state.sidebarOpen ? (
             <PanelLeftClose size={18} />
@@ -407,22 +417,25 @@ function Toolbar({
 
       {settings.enableSearch && (
         <div className="mm-search">
-          <Search size={16} style={{ color: 'var(--mm-text-muted)', flexShrink: 0 }} />
+          <Search
+            size={16}
+            style={{ color: "var(--mm-text-muted)", flexShrink: 0 }}
+          />
           <input
             className="mm-search__input"
             type="text"
             placeholder="Search media…"
             value={state.search}
             onChange={(e) =>
-              dispatch({ type: 'SET_SEARCH', payload: e.target.value })
+              dispatch({ type: "SET_SEARCH", payload: e.target.value })
             }
             aria-label="Search media"
           />
           {state.search && (
             <button
               className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
-              style={{ padding: '2px' }}
-              onClick={() => dispatch({ type: 'SET_SEARCH', payload: '' })}
+              style={{ padding: "2px" }}
+              onClick={() => dispatch({ type: "SET_SEARCH", payload: "" })}
               aria-label="Clear search"
             >
               <X size={14} />
@@ -439,7 +452,7 @@ function Toolbar({
           currentType={state.filter.mediaType ?? null}
           onChange={(mediaType) =>
             dispatch({
-              type: 'SET_FILTER',
+              type: "SET_FILTER",
               payload: { ...state.filter, mediaType: mediaType ?? undefined },
             })
           }
@@ -449,34 +462,34 @@ function Toolbar({
       {/* Sort */}
       <SortControl
         sort={state.sort}
-        onSort={(sort) => dispatch({ type: 'SET_SORT', payload: sort })}
+        onSort={(sort) => dispatch({ type: "SET_SORT", payload: sort })}
       />
 
       <span className="mm-toolbar__separator" />
 
       {/* View mode */}
-      <div className="mm-toolbar__group" role="radiogroup" aria-label="View mode">
+      <div
+        className="mm-toolbar__group"
+        role="radiogroup"
+        aria-label="View mode"
+      >
         <button
           className={`mm-btn mm-btn--icon ${
-            state.viewMode === 'grid' ? 'mm-btn--active' : 'mm-btn--ghost'
+            state.viewMode === "grid" ? "mm-btn--active" : "mm-btn--ghost"
           }`}
-          onClick={() =>
-            dispatch({ type: 'SET_VIEW_MODE', payload: 'grid' })
-          }
+          onClick={() => dispatch({ type: "SET_VIEW_MODE", payload: "grid" })}
           aria-label="Grid view"
-          aria-pressed={state.viewMode === 'grid'}
+          aria-pressed={state.viewMode === "grid"}
         >
           <Grid3X3 size={18} />
         </button>
         <button
           className={`mm-btn mm-btn--icon ${
-            state.viewMode === 'list' ? 'mm-btn--active' : 'mm-btn--ghost'
+            state.viewMode === "list" ? "mm-btn--active" : "mm-btn--ghost"
           }`}
-          onClick={() =>
-            dispatch({ type: 'SET_VIEW_MODE', payload: 'list' })
-          }
+          onClick={() => dispatch({ type: "SET_VIEW_MODE", payload: "list" })}
           aria-label="List view"
-          aria-pressed={state.viewMode === 'list'}
+          aria-pressed={state.viewMode === "list"}
         >
           <List size={18} />
         </button>
@@ -490,24 +503,28 @@ function TypeFilter({
   currentType,
   onChange,
 }: {
-  currentType: import('../types').MediaType | null;
-  onChange: (type: import('../types').MediaType | null) => void;
+  currentType: import("../types").MediaType | null;
+  onChange: (type: import("../types").MediaType | null) => void;
 }) {
-  type TypeOption = { value: import('../types').MediaType | null; label: string; icon: ReactNode };
+  type TypeOption = {
+    value: import("../types").MediaType | null;
+    label: string;
+    icon: ReactNode;
+  };
   const types: TypeOption[] = [
-    { value: null, label: 'All types', icon: <SlidersHorizontal size={14} /> },
-    { value: 'IMAGE', label: 'Images', icon: <ImageIcon size={14} /> },
-    { value: 'VIDEO', label: 'Videos', icon: <Film size={14} /> },
-    { value: 'AUDIO', label: 'Audio', icon: <Music size={14} /> },
-    { value: 'DOCUMENT', label: 'Documents', icon: <FileText size={14} /> },
+    { value: null, label: "All types", icon: <SlidersHorizontal size={14} /> },
+    { value: "IMAGE", label: "Images", icon: <ImageIcon size={14} /> },
+    { value: "VIDEO", label: "Videos", icon: <Film size={14} /> },
+    { value: "AUDIO", label: "Audio", icon: <Music size={14} /> },
+    { value: "DOCUMENT", label: "Documents", icon: <FileText size={14} /> },
   ];
 
   const active = types.find((t) => t.value === currentType) ?? types[0];
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: "relative" }}>
       <button
-        className={`mm-btn mm-btn--sm ${currentType ? 'mm-btn--active' : ''}`}
+        className={`mm-btn mm-btn--sm ${currentType ? "mm-btn--active" : ""}`}
         onClick={() => {
           /* cycle through types on click */
           const idx = types.findIndex((t) => t.value === currentType);
@@ -533,10 +550,10 @@ function SortControl({
   onSort: (s: MediaSort) => void;
 }) {
   const fields: { value: SortField; label: string }[] = [
-    { value: 'date', label: 'Date' },
-    { value: 'name', label: 'Name' },
-    { value: 'size', label: 'Size' },
-    { value: 'type', label: 'Type' },
+    { value: "date", label: "Date" },
+    { value: "name", label: "Name" },
+    { value: "size", label: "Size" },
+    { value: "type", label: "Type" },
   ];
 
   const handleClick = () => {
@@ -549,7 +566,7 @@ function SortControl({
     e.stopPropagation();
     onSort({
       field: sort.field,
-      direction: sort.direction === 'asc' ? 'desc' : 'asc',
+      direction: sort.direction === "asc" ? "desc" : "asc",
     });
   };
 
@@ -562,15 +579,17 @@ function SortControl({
         aria-label={`Sort by ${sort.field}`}
       >
         <ArrowUpDown size={14} />
-        <span>{fields.find((f) => f.value === sort.field)?.label ?? 'Date'}</span>
+        <span>
+          {fields.find((f) => f.value === sort.field)?.label ?? "Date"}
+        </span>
       </button>
       <button
         className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
         onClick={handleDirectionToggle}
-        aria-label={sort.direction === 'asc' ? 'Ascending' : 'Descending'}
-        title={sort.direction === 'asc' ? 'Ascending' : 'Descending'}
+        aria-label={sort.direction === "asc" ? "Ascending" : "Descending"}
+        title={sort.direction === "asc" ? "Ascending" : "Descending"}
       >
-        {sort.direction === 'asc' ? (
+        {sort.direction === "asc" ? (
           <ArrowUp size={14} />
         ) : (
           <ArrowDown size={14} />
@@ -640,20 +659,20 @@ function FolderSidebar({
     <nav aria-label="Folder navigation">
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0.625rem 0.75rem',
-          borderBottom: '1px solid var(--mm-border)',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0.625rem 0.75rem",
+          borderBottom: "1px solid var(--mm-border)",
         }}
       >
         <span
           style={{
-            fontSize: '0.6875rem',
+            fontSize: "0.6875rem",
             fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            color: 'var(--mm-text-muted)',
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            color: "var(--mm-text-muted)",
           }}
         >
           Folders
@@ -672,13 +691,13 @@ function FolderSidebar({
       <ul className="mm-folder-list" role="listbox" aria-label="Folders">
         {/* All files */}
         <li
-          className={`mm-folder-item ${currentFolder === null ? 'mm-folder-item--active' : ''}`}
+          className={`mm-folder-item ${currentFolder === null ? "mm-folder-item--active" : ""}`}
           role="option"
           aria-selected={currentFolder === null}
           onClick={() => onSelect(null)}
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
+            if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               onSelect(null);
             }
@@ -691,14 +710,14 @@ function FolderSidebar({
           <li
             key={folder.id}
             className={`mm-folder-item ${
-              currentFolder === folder.id ? 'mm-folder-item--active' : ''
+              currentFolder === folder.id ? "mm-folder-item--active" : ""
             }`}
             role="option"
             aria-selected={currentFolder === folder.id}
             onClick={() => onSelect(folder.id)}
             tabIndex={0}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 onSelect(folder.id);
               }
@@ -725,7 +744,7 @@ function MediaGrid({
 }: {
   items: MediaItem[];
   selectedIds: Set<string>;
-  onToggleSelect: (id: string, e: React.MouseEvent) => void;
+  onToggleSelect: (id: string, e: React.SyntheticEvent) => void;
   onItemClick: (item: MediaItem) => void;
 }) {
   if (items.length === 0) {
@@ -748,15 +767,15 @@ function MediaGrid({
         return (
           <div
             key={item.id}
-            className={`mm-grid-item ${isSelected ? 'mm-grid-item--selected' : ''}`}
+            className={`mm-grid-item ${isSelected ? "mm-grid-item--selected" : ""}`}
             role="gridcell"
             onClick={() => onItemClick(item)}
             tabIndex={0}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') onItemClick(item);
-              if (e.key === ' ') {
+              if (e.key === "Enter") onItemClick(item);
+              if (e.key === " ") {
                 e.preventDefault();
-                onToggleSelect(item.id, e as unknown as React.MouseEvent);
+                onToggleSelect(item.id, e);
               }
             }}
             aria-selected={isSelected}
@@ -771,7 +790,7 @@ function MediaGrid({
               }}
             >
               <span
-                className={`mm-checkbox ${isSelected ? 'mm-checkbox--checked' : ''}`}
+                className={`mm-checkbox ${isSelected ? "mm-checkbox--checked" : ""}`}
                 role="checkbox"
                 aria-checked={isSelected}
                 tabIndex={-1}
@@ -833,12 +852,13 @@ function MediaList({
   items: MediaItem[];
   selectedIds: Set<string>;
   sort: MediaSort;
-  onToggleSelect: (id: string, e: React.MouseEvent) => void;
+  onToggleSelect: (id: string, e: React.SyntheticEvent) => void;
   onSelectAll: () => void;
   onItemClick: (item: MediaItem) => void;
   onSort: (s: MediaSort) => void;
 }) {
-  const allSelected = items.length > 0 && items.every((i) => selectedIds.has(i.id));
+  const allSelected =
+    items.length > 0 && items.every((i) => selectedIds.has(i.id));
 
   const sortHeader = (field: SortField, label: string) => {
     const active = sort.field === field;
@@ -847,21 +867,27 @@ function MediaList({
         onClick={() =>
           onSort({
             field,
-            direction:
-              active && sort.direction === 'asc' ? 'desc' : 'asc',
+            direction: active && sort.direction === "asc" ? "desc" : "asc",
           })
         }
         aria-sort={
           active
-            ? sort.direction === 'asc'
-              ? 'ascending'
-              : 'descending'
-            : 'none'
+            ? sort.direction === "asc"
+              ? "ascending"
+              : "descending"
+            : "none"
         }
       >
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        <span
+          style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+        >
           {label}
-          {active && (sort.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+          {active &&
+            (sort.direction === "asc" ? (
+              <ArrowUp size={12} />
+            ) : (
+              <ArrowDown size={12} />
+            ))}
         </span>
       </th>
     );
@@ -885,13 +911,13 @@ function MediaList({
         <tr>
           <th style={{ width: 40 }}>
             <span
-              className={`mm-checkbox ${allSelected ? 'mm-checkbox--checked' : ''}`}
+              className={`mm-checkbox ${allSelected ? "mm-checkbox--checked" : ""}`}
               role="checkbox"
               aria-checked={allSelected}
               tabIndex={0}
               onClick={onSelectAll}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onSelectAll();
                 }
@@ -901,10 +927,10 @@ function MediaList({
             </span>
           </th>
           <th style={{ width: 56 }}>Preview</th>
-          {sortHeader('name', 'Name')}
-          {sortHeader('type', 'Type')}
-          {sortHeader('size', 'Size')}
-          {sortHeader('date', 'Date')}
+          {sortHeader("name", "Name")}
+          {sortHeader("type", "Type")}
+          {sortHeader("size", "Size")}
+          {sortHeader("date", "Date")}
           <th style={{ width: 80 }}>Alt text</th>
         </tr>
       </thead>
@@ -915,18 +941,18 @@ function MediaList({
           return (
             <tr
               key={item.id}
-              className={isSelected ? 'mm-list-row--selected' : ''}
+              className={isSelected ? "mm-list-row--selected" : ""}
               onClick={() => onItemClick(item)}
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') onItemClick(item);
+                if (e.key === "Enter") onItemClick(item);
               }}
               role="row"
               aria-selected={isSelected}
             >
               <td onClick={(e) => e.stopPropagation()}>
                 <span
-                  className={`mm-checkbox ${isSelected ? 'mm-checkbox--checked' : ''}`}
+                  className={`mm-checkbox ${isSelected ? "mm-checkbox--checked" : ""}`}
                   role="checkbox"
                   aria-checked={isSelected}
                   tabIndex={-1}
@@ -956,24 +982,40 @@ function MediaList({
                 )}
               </td>
               <td>
-                <span className="mm-truncate" style={{ maxWidth: 240, display: 'inline-block' }}>
+                <span
+                  className="mm-truncate"
+                  style={{ maxWidth: 240, display: "inline-block" }}
+                >
                   {item.originalName}
                 </span>
               </td>
               <td>
-                <span style={{ fontSize: '0.75rem', color: 'var(--mm-text-secondary)' }}>
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--mm-text-secondary)",
+                  }}
+                >
                   {getMimeLabel(item.mimeType)}
                 </span>
               </td>
-              <td style={{ whiteSpace: 'nowrap' }}>{formatFileSize(item.size)}</td>
-              <td style={{ whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+              <td style={{ whiteSpace: "nowrap" }}>
+                {formatFileSize(item.size)}
+              </td>
+              <td style={{ whiteSpace: "nowrap", fontSize: "0.75rem" }}>
                 {new Date(item.createdAt).toLocaleDateString()}
               </td>
               <td>
                 {item.altText ? (
-                  <CheckCircle size={14} style={{ color: 'var(--mm-success)' }} />
+                  <CheckCircle
+                    size={14}
+                    style={{ color: "var(--mm-success)" }}
+                  />
                 ) : (
-                  <AlertTriangle size={14} style={{ color: 'var(--mm-warning)' }} />
+                  <AlertTriangle
+                    size={14}
+                    style={{ color: "var(--mm-warning)" }}
+                  />
                 )}
               </td>
             </tr>
@@ -1025,7 +1067,13 @@ function DetailPanel({
   return (
     <div className="mm-detail" role="complementary" aria-label="Media details">
       {/* Close */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "0.5rem",
+        }}
+      >
         <button
           className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
           onClick={onClose}
@@ -1050,9 +1098,9 @@ function DetailPanel({
         <div
           className="mm-detail__preview"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           <MediaTypeIcon mimeType={item.mimeType} size={48} />
@@ -1062,10 +1110,10 @@ function DetailPanel({
       {/* Actions */}
       <div
         style={{
-          display: 'flex',
-          gap: '0.5rem',
-          marginBottom: '1rem',
-          flexWrap: 'wrap',
+          display: "flex",
+          gap: "0.5rem",
+          marginBottom: "1rem",
+          flexWrap: "wrap",
         }}
       >
         <button className="mm-btn mm-btn--sm" onClick={onEdit}>
@@ -1123,7 +1171,14 @@ function DetailPanel({
         <span className="mm-detail__label">Alt text</span>
         <span className="mm-detail__value">
           {item.altText || (
-            <span style={{ color: 'var(--mm-warning)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span
+              style={{
+                color: "var(--mm-warning)",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
               <AlertTriangle size={12} /> Missing — click Edit to add
             </span>
           )}
@@ -1149,14 +1204,14 @@ function DetailPanel({
         <div className="mm-detail__section">
           <span className="mm-detail__label">Variants</span>
           <div className="mm-variants">
-            {(['thumb', 'small', 'medium', 'large', 'og'] as const).map(
+            {(["thumb", "small", "medium", "large", "og"] as const).map(
               (preset) => (
                 <span
                   key={preset}
                   className={`mm-variant-badge ${
                     item.variants?.[preset]
-                      ? 'mm-variant-badge--available'
-                      : 'mm-variant-badge--missing'
+                      ? "mm-variant-badge--available"
+                      : "mm-variant-badge--missing"
                   }`}
                 >
                   {preset}
@@ -1168,51 +1223,57 @@ function DetailPanel({
       )}
 
       {/* SEO audit */}
-      {seoAudit && (() => {
-        const score = computeScore(seoAudit);
-        return (
-          <div className="mm-detail__section">
-            <span className="mm-detail__label">SEO Score</span>
-            <span
-              className={`mm-seo-score ${
-                score >= 80
-                  ? 'mm-seo-score--good'
-                  : score >= 50
-                    ? 'mm-seo-score--warning'
-                    : 'mm-seo-score--poor'
-              }`}
-            >
-              {score >= 80 ? (
-                <CheckCircle size={12} />
-              ) : score >= 50 ? (
-                <AlertTriangle size={12} />
-              ) : (
-                <XCircle size={12} />
-              )}
-              {score}/100
-            </span>
-            {seoAudit.suggestions.length > 0 && (
-              <ul
-                style={{
-                  marginTop: '0.5rem',
-                  paddingLeft: '1rem',
-                  fontSize: '0.75rem',
-                  color: 'var(--mm-text-secondary)',
-                }}
+      {seoAudit &&
+        (() => {
+          const score = computeScore(seoAudit);
+          return (
+            <div className="mm-detail__section">
+              <span className="mm-detail__label">SEO Score</span>
+              <span
+                className={`mm-seo-score ${
+                  score >= 80
+                    ? "mm-seo-score--good"
+                    : score >= 50
+                      ? "mm-seo-score--warning"
+                      : "mm-seo-score--poor"
+                }`}
               >
-                {seoAudit.suggestions.map((suggestion: string, idx: number) => (
-                  <li key={idx}>{suggestion}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        );
-      })()}
+                {score >= 80 ? (
+                  <CheckCircle size={12} />
+                ) : score >= 50 ? (
+                  <AlertTriangle size={12} />
+                ) : (
+                  <XCircle size={12} />
+                )}
+                {score}/100
+              </span>
+              {seoAudit.suggestions.length > 0 && (
+                <ul
+                  style={{
+                    marginTop: "0.5rem",
+                    paddingLeft: "1rem",
+                    fontSize: "0.75rem",
+                    color: "var(--mm-text-secondary)",
+                  }}
+                >
+                  {seoAudit.suggestions.map(
+                    (suggestion: string, idx: number) => (
+                      <li key={idx}>{suggestion}</li>
+                    ),
+                  )}
+                </ul>
+              )}
+            </div>
+          );
+        })()}
 
       {/* URL */}
-      <div className="mm-detail__section" style={{ borderBottom: 'none' }}>
+      <div className="mm-detail__section" style={{ borderBottom: "none" }}>
         <span className="mm-detail__label">URL</span>
-        <span className="mm-detail__value" style={{ fontFamily: 'var(--mm-font-mono)', fontSize: '0.6875rem' }}>
+        <span
+          className="mm-detail__value"
+          style={{ fontFamily: "var(--mm-font-mono)", fontSize: "0.6875rem" }}
+        >
           {item.url}
         </span>
       </div>
@@ -1230,11 +1291,15 @@ function UploadProgressBar({ queue }: { queue: UploadQueueState }) {
       : 0;
 
   const activeCount = queue.items.filter(
-    (i) => i.status === 'uploading' || i.status === 'processing',
+    (i) => i.status === "uploading" || i.status === "processing",
   ).length;
 
   return (
-    <div className="mm-upload-progress" role="status" aria-label="Upload progress">
+    <div
+      className="mm-upload-progress"
+      role="status"
+      aria-label="Upload progress"
+    >
       <div className="mm-upload-progress__bar">
         <div
           className="mm-upload-progress__fill"
@@ -1251,9 +1316,15 @@ function UploadProgressBar({ queue }: { queue: UploadQueueState }) {
           {queue.failedFiles > 0 && ` · ${queue.failedFiles} failed`}
         </span>
         {activeCount > 0 && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <Loader2 size={12} className="mm-spinner" style={{ border: 'none', animation: 'none' }} />
-            Uploading {activeCount} file{activeCount !== 1 ? 's' : ''}…
+          <span
+            style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+          >
+            <Loader2
+              size={12}
+              className="mm-spinner"
+              style={{ border: "none", animation: "none" }}
+            />
+            Uploading {activeCount} file{activeCount !== 1 ? "s" : ""}…
           </span>
         )}
       </div>
@@ -1293,18 +1364,21 @@ function Pagination({
         <ChevronLeft size={16} />
       </button>
       {generatePageNumbers(page, totalPages).map((p, idx) =>
-        p === '...' ? (
-          <span key={`ellipsis-${idx}`} style={{ padding: '0 4px', color: 'var(--mm-text-muted)' }}>
+        p === "..." ? (
+          <span
+            key={`ellipsis-${idx}`}
+            style={{ padding: "0 4px", color: "var(--mm-text-muted)" }}
+          >
             …
           </span>
         ) : (
           <button
             key={p}
             className={`mm-btn mm-btn--sm ${
-              p === page ? 'mm-btn--active' : 'mm-btn--ghost'
+              p === page ? "mm-btn--active" : "mm-btn--ghost"
             }`}
             onClick={() => onChange(p as number)}
-            aria-current={p === page ? 'page' : undefined}
+            aria-current={p === page ? "page" : undefined}
           >
             {p}
           </button>
@@ -1325,10 +1399,10 @@ function Pagination({
 function generatePageNumbers(
   current: number,
   total: number,
-): (number | '...')[] {
+): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | '...')[] = [1];
-  if (current > 3) pages.push('...');
+  const pages: (number | "...")[] = [1];
+  if (current > 3) pages.push("...");
   for (
     let i = Math.max(2, current - 1);
     i <= Math.min(total - 1, current + 1);
@@ -1336,7 +1410,7 @@ function generatePageNumbers(
   ) {
     pages.push(i);
   }
-  if (current < total - 2) pages.push('...');
+  if (current < total - 2) pages.push("...");
   pages.push(total);
   return pages;
 }
@@ -1351,10 +1425,10 @@ function EditModal({
   onSave: (id: string, data: UpdateMediaInput) => Promise<void>;
   onClose: () => void;
 }) {
-  const [altText, setAltText] = useState(item.altText ?? '');
-  const [title, setTitle] = useState(item.title ?? '');
-  const [description, setDescription] = useState(item.description ?? '');
-  const [tagInput, setTagInput] = useState('');
+  const [altText, setAltText] = useState(item.altText ?? "");
+  const [title, setTitle] = useState(item.title ?? "");
+  const [description, setDescription] = useState(item.description ?? "");
+  const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>(item.tags ?? []);
   const [saving, setSaving] = useState(false);
 
@@ -1362,7 +1436,7 @@ function EditModal({
     const tag = tagInput.trim().toLowerCase();
     if (tag && !tags.includes(tag) && tags.length < MEDIA_LIMITS.MAX_TAGS) {
       setTags([...tags, tag]);
-      setTagInput('');
+      setTagInput("");
     }
   };
 
@@ -1389,7 +1463,11 @@ function EditModal({
 
   return (
     <Transition appear show as={Fragment}>
-      <Dialog onClose={onClose} className="mm-root" style={{ position: 'relative', zIndex: 200 }}>
+      <Dialog
+        onClose={onClose}
+        className="mm-root"
+        style={{ position: "relative", zIndex: 200 }}
+      >
         <TransitionChild
           as={Fragment}
           enter="transition-opacity duration-150"
@@ -1402,7 +1480,16 @@ function EditModal({
           <div className="mm-modal-overlay" aria-hidden="true" />
         </TransitionChild>
 
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <TransitionChild
             as={Fragment}
             enter="transition-all duration-150"
@@ -1414,7 +1501,9 @@ function EditModal({
           >
             <DialogPanel className="mm-modal" style={{ maxWidth: 560 }}>
               <div className="mm-modal__header">
-                <DialogTitle className="mm-modal__title">Edit media</DialogTitle>
+                <DialogTitle className="mm-modal__title">
+                  Edit media
+                </DialogTitle>
                 <button
                   className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
                   onClick={onClose}
@@ -1424,12 +1513,26 @@ function EditModal({
                 </button>
               </div>
 
-              <div className="mm-modal__body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div
+                className="mm-modal__body"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                }}
+              >
                 {/* Alt text */}
                 <div>
                   <label className="mm-detail__label" htmlFor="mm-edit-alt">
                     Alt text
-                    <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 'normal', marginLeft: 4 }}>
+                    <span
+                      style={{
+                        fontWeight: 400,
+                        textTransform: "none",
+                        letterSpacing: "normal",
+                        marginLeft: 4,
+                      }}
+                    >
                       (important for SEO & accessibility)
                     </span>
                   </label>
@@ -1446,9 +1549,9 @@ function EditModal({
                     className={`mm-detail__char-count ${
                       altText.length > MEDIA_LIMITS.MAX_ALT_TEXT_LENGTH * 0.9
                         ? altText.length >= MEDIA_LIMITS.MAX_ALT_TEXT_LENGTH
-                          ? 'mm-detail__char-count--error'
-                          : 'mm-detail__char-count--warn'
-                        : ''
+                          ? "mm-detail__char-count--error"
+                          : "mm-detail__char-count--warn"
+                        : ""
                     }`}
                   >
                     {altText.length}/{MEDIA_LIMITS.MAX_ALT_TEXT_LENGTH}
@@ -1489,7 +1592,7 @@ function EditModal({
                 {/* Tags */}
                 <div>
                   <label className="mm-detail__label">Tags</label>
-                  <div className="mm-tags" style={{ marginBottom: '0.5rem' }}>
+                  <div className="mm-tags" style={{ marginBottom: "0.5rem" }}>
                     {tags.map((tag) => (
                       <span key={tag} className="mm-tag">
                         {tag}
@@ -1503,13 +1606,13 @@ function EditModal({
                       </span>
                     ))}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.375rem' }}>
+                  <div style={{ display: "flex", gap: "0.375rem" }}>
                     <input
                       className="mm-detail__input"
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === "Enter") {
                           e.preventDefault();
                           handleAddTag();
                         }
@@ -1539,11 +1642,14 @@ function EditModal({
                 >
                   {saving ? (
                     <>
-                      <Loader2 size={14} style={{ animation: 'mm-spin 0.6s linear infinite' }} />
+                      <Loader2
+                        size={14}
+                        style={{ animation: "mm-spin 0.6s linear infinite" }}
+                      />
                       Saving…
                     </>
                   ) : (
-                    'Save changes'
+                    "Save changes"
                   )}
                 </button>
               </div>
@@ -1563,7 +1669,7 @@ function UrlUploadModal({
   onUpload: (url: string) => Promise<void>;
   onClose: () => void;
 }) {
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1575,7 +1681,7 @@ function UrlUploadModal({
       await onUpload(url.trim());
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
     }
@@ -1583,7 +1689,11 @@ function UrlUploadModal({
 
   return (
     <Transition appear show as={Fragment}>
-      <Dialog onClose={onClose} className="mm-root" style={{ position: 'relative', zIndex: 200 }}>
+      <Dialog
+        onClose={onClose}
+        className="mm-root"
+        style={{ position: "relative", zIndex: 200 }}
+      >
         <TransitionChild
           as={Fragment}
           enter="transition-opacity duration-150"
@@ -1596,7 +1706,16 @@ function UrlUploadModal({
           <div className="mm-modal-overlay" aria-hidden="true" />
         </TransitionChild>
 
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <TransitionChild
             as={Fragment}
             enter="transition-all duration-150"
@@ -1608,7 +1727,9 @@ function UrlUploadModal({
           >
             <DialogPanel className="mm-modal">
               <div className="mm-modal__header">
-                <DialogTitle className="mm-modal__title">Upload from URL</DialogTitle>
+                <DialogTitle className="mm-modal__title">
+                  Upload from URL
+                </DialogTitle>
                 <button
                   className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
                   onClick={onClose}
@@ -1617,12 +1738,22 @@ function UrlUploadModal({
                   <X size={16} />
                 </button>
               </div>
-              <div className="mm-modal__body" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div
+                className="mm-modal__body"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
+                }}
+              >
                 <label className="mm-detail__label" htmlFor="mm-url-input">
                   Paste a public file URL
                 </label>
-                <div className="mm-search" style={{ maxWidth: 'none' }}>
-                  <Link2 size={16} style={{ color: 'var(--mm-text-muted)', flexShrink: 0 }} />
+                <div className="mm-search" style={{ maxWidth: "none" }}>
+                  <Link2
+                    size={16}
+                    style={{ color: "var(--mm-text-muted)", flexShrink: 0 }}
+                  />
                   <input
                     id="mm-url-input"
                     className="mm-search__input"
@@ -1631,19 +1762,29 @@ function UrlUploadModal({
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder="https://example.com/image.jpg"
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleUpload();
+                      if (e.key === "Enter") handleUpload();
                     }}
                     autoFocus
                   />
                 </div>
                 {error && (
-                  <p style={{ fontSize: '0.75rem', color: 'var(--mm-danger)', margin: 0 }}>
+                  <p
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "var(--mm-danger)",
+                      margin: 0,
+                    }}
+                  >
                     {error}
                   </p>
                 )}
               </div>
               <div className="mm-modal__footer">
-                <button className="mm-btn" onClick={onClose} disabled={uploading}>
+                <button
+                  className="mm-btn"
+                  onClick={onClose}
+                  disabled={uploading}
+                >
                   Cancel
                 </button>
                 <button
@@ -1653,7 +1794,10 @@ function UrlUploadModal({
                 >
                   {uploading ? (
                     <>
-                      <Loader2 size={14} style={{ animation: 'mm-spin 0.6s linear infinite' }} />
+                      <Loader2
+                        size={14}
+                        style={{ animation: "mm-spin 0.6s linear infinite" }}
+                      />
                       Uploading…
                     </>
                   ) : (
@@ -1692,7 +1836,11 @@ function ConfirmDialog({
 }) {
   return (
     <Transition appear show={show} as={Fragment}>
-      <Dialog onClose={onCancel} className="mm-root" style={{ position: 'relative', zIndex: 200 }}>
+      <Dialog
+        onClose={onCancel}
+        className="mm-root"
+        style={{ position: "relative", zIndex: 200 }}
+      >
         <TransitionChild
           as={Fragment}
           enter="transition-opacity duration-150"
@@ -1705,7 +1853,16 @@ function ConfirmDialog({
           <div className="mm-modal-overlay" aria-hidden="true" />
         </TransitionChild>
 
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <TransitionChild
             as={Fragment}
             enter="transition-all duration-150"
@@ -1720,7 +1877,13 @@ function ConfirmDialog({
                 <DialogTitle className="mm-modal__title">{title}</DialogTitle>
               </div>
               <div className="mm-modal__body">
-                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--mm-text-secondary)' }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "0.875rem",
+                    color: "var(--mm-text-secondary)",
+                  }}
+                >
                   {message}
                 </p>
               </div>
@@ -1729,7 +1892,7 @@ function ConfirmDialog({
                   Cancel
                 </button>
                 <button
-                  className={`mm-btn ${danger ? 'mm-btn--danger' : 'mm-btn--primary'}`}
+                  className={`mm-btn ${danger ? "mm-btn--danger" : "mm-btn--primary"}`}
                   onClick={onConfirm}
                 >
                   {confirmLabel}
@@ -1753,18 +1916,22 @@ function CreateFolderDialog({
   onConfirm: (name: string) => void;
   onCancel: () => void;
 }) {
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
 
   const handleConfirm = () => {
     if (name.trim()) {
       onConfirm(name.trim());
-      setName('');
+      setName("");
     }
   };
 
   return (
     <Transition appear show={show} as={Fragment}>
-      <Dialog onClose={onCancel} className="mm-root" style={{ position: 'relative', zIndex: 200 }}>
+      <Dialog
+        onClose={onCancel}
+        className="mm-root"
+        style={{ position: "relative", zIndex: 200 }}
+      >
         <TransitionChild
           as={Fragment}
           enter="transition-opacity duration-150"
@@ -1777,7 +1944,16 @@ function CreateFolderDialog({
           <div className="mm-modal-overlay" aria-hidden="true" />
         </TransitionChild>
 
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <TransitionChild
             as={Fragment}
             enter="transition-all duration-150"
@@ -1789,7 +1965,9 @@ function CreateFolderDialog({
           >
             <DialogPanel className="mm-modal" style={{ maxWidth: 400 }}>
               <div className="mm-modal__header">
-                <DialogTitle className="mm-modal__title">Create folder</DialogTitle>
+                <DialogTitle className="mm-modal__title">
+                  Create folder
+                </DialogTitle>
                 <button
                   className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
                   onClick={onCancel}
@@ -1808,7 +1986,7 @@ function CreateFolderDialog({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleConfirm();
+                    if (e.key === "Enter") handleConfirm();
                   }}
                   placeholder="New folder"
                   autoFocus
@@ -1874,7 +2052,7 @@ export function MediaManager(props: MediaManagerProps) {
     onAuditSeo,
     onDownload,
     onSelect,
-    mode = 'manager',
+    mode = "manager",
     multiSelect = false,
     adminSettings,
     className,
@@ -1886,7 +2064,7 @@ export function MediaManager(props: MediaManagerProps) {
     [adminSettings],
   );
 
-  const isPicker = mode === 'picker';
+  const isPicker = mode === "picker";
 
   const [state, dispatch] = useReducer(
     mediaReducer,
@@ -1907,32 +2085,45 @@ export function MediaManager(props: MediaManagerProps) {
   /* ── Data fetching ──────────────────────────────────────────────── */
 
   const fetchItems = useCallback(async () => {
-    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: "SET_LOADING", payload: true });
     try {
       const filter: MediaFilter = {
         ...state.filter,
         folder: state.currentFolder ?? undefined,
         search: state.search || undefined,
       };
-      const result = await onList(filter, state.sort, state.page, state.pageSize);
+      const result = await onList(
+        filter,
+        state.sort,
+        state.page,
+        state.pageSize,
+      );
       dispatch({
-        type: 'SET_ITEMS',
+        type: "SET_ITEMS",
         payload: { items: result.data, total: result.total },
       });
     } catch (err) {
       dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : 'Failed to load media',
+        type: "SET_ERROR",
+        payload: err instanceof Error ? err.message : "Failed to load media",
       });
-      dispatch({ type: 'SET_LOADING', payload: false });
+      dispatch({ type: "SET_LOADING", payload: false });
     }
-  }, [onList, state.filter, state.currentFolder, state.search, state.sort, state.page, state.pageSize]);
+  }, [
+    onList,
+    state.filter,
+    state.currentFolder,
+    state.search,
+    state.sort,
+    state.page,
+    state.pageSize,
+  ]);
 
   const fetchFolders = useCallback(async () => {
     if (!onListFolders || !settings.enableFolders) return;
     try {
       const folders = await onListFolders();
-      dispatch({ type: 'SET_FOLDERS', payload: folders });
+      dispatch({ type: "SET_FOLDERS", payload: folders });
     } catch {
       /* silent */
     }
@@ -1954,10 +2145,14 @@ export function MediaManager(props: MediaManagerProps) {
       return;
     }
     let cancelled = false;
-    onAuditSeo(state.detailItem).then((result) => {
-      if (!cancelled) setSeoAudit(result);
-    }).catch(() => {});
-    return () => { cancelled = true; };
+    onAuditSeo(state.detailItem)
+      .then((result) => {
+        if (!cancelled) setSeoAudit(result);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [state.detailItem, onAuditSeo, settings.enableSeoAudit]);
 
   /* ── File upload handler ────────────────────────────────────────── */
@@ -1967,19 +2162,19 @@ export function MediaManager(props: MediaManagerProps) {
       const fileArray = Array.from(files);
       if (fileArray.length === 0) return;
 
-      dispatch({ type: 'UPLOAD_START' });
+      dispatch({ type: "UPLOAD_START" });
 
       for (let i = 0; i < fileArray.length; i++) {
         const file = fileArray[i];
         const uploadId = `upload-${Date.now()}-${i}`;
 
         dispatch({
-          type: 'UPLOAD_PROGRESS',
+          type: "UPLOAD_PROGRESS",
           payload: {
             id: uploadId,
             filename: file.name,
             progress: 0,
-            status: 'uploading',
+            status: "uploading",
           },
         });
 
@@ -2000,45 +2195,45 @@ export function MediaManager(props: MediaManagerProps) {
           }
 
           dispatch({
-            type: 'UPLOAD_PROGRESS',
+            type: "UPLOAD_PROGRESS",
             payload: {
               id: uploadId,
               filename: file.name,
               progress: 50,
-              status: 'uploading',
+              status: "uploading",
             },
           });
 
           const mediaItem = await onUpload(file);
 
           dispatch({
-            type: 'UPLOAD_COMPLETE',
+            type: "UPLOAD_COMPLETE",
             payload: {
               id: uploadId,
               filename: file.name,
               progress: 100,
-              status: 'complete',
+              status: "complete",
               mediaItem,
             },
           });
 
-          dispatch({ type: 'ADD_ITEM', payload: mediaItem });
+          dispatch({ type: "ADD_ITEM", payload: mediaItem });
         } catch (err) {
           dispatch({
-            type: 'UPLOAD_FAILED',
+            type: "UPLOAD_FAILED",
             payload: {
               id: uploadId,
               filename: file.name,
               progress: 0,
-              status: 'failed',
-              error: err instanceof Error ? err.message : 'Upload failed',
+              status: "failed",
+              error: err instanceof Error ? err.message : "Upload failed",
             },
           });
         }
       }
 
       // Auto‑reset upload queue after a delay
-      setTimeout(() => dispatch({ type: 'UPLOAD_RESET' }), 3000);
+      setTimeout(() => dispatch({ type: "UPLOAD_RESET" }), 3000);
     },
     [onUpload, settings.maxUploadSize, settings.allowedMimeTypes],
   );
@@ -2055,7 +2250,7 @@ export function MediaManager(props: MediaManagerProps) {
       e.preventDefault();
       e.stopPropagation();
       dragCounter.current++;
-      if (e.dataTransfer?.types.includes('Files')) {
+      if (e.dataTransfer?.types.includes("Files")) {
         setIsDragOver(true);
       }
     };
@@ -2084,16 +2279,16 @@ export function MediaManager(props: MediaManagerProps) {
       }
     };
 
-    el.addEventListener('dragenter', handleDragEnter);
-    el.addEventListener('dragleave', handleDragLeave);
-    el.addEventListener('dragover', handleDragOver);
-    el.addEventListener('drop', handleDrop);
+    el.addEventListener("dragenter", handleDragEnter);
+    el.addEventListener("dragleave", handleDragLeave);
+    el.addEventListener("dragover", handleDragOver);
+    el.addEventListener("drop", handleDrop);
 
     return () => {
-      el.removeEventListener('dragenter', handleDragEnter);
-      el.removeEventListener('dragleave', handleDragLeave);
-      el.removeEventListener('dragover', handleDragOver);
-      el.removeEventListener('drop', handleDrop);
+      el.removeEventListener("dragenter", handleDragEnter);
+      el.removeEventListener("dragleave", handleDragLeave);
+      el.removeEventListener("dragover", handleDragOver);
+      el.removeEventListener("drop", handleDrop);
     };
   }, [settings.enableDragDrop, handleFiles]);
 
@@ -2109,7 +2304,7 @@ export function MediaManager(props: MediaManagerProps) {
       const files: File[] = [];
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        if (item.kind === 'file') {
+        if (item.kind === "file") {
           const file = item.getAsFile();
           if (file) files.push(file);
         }
@@ -2121,8 +2316,8 @@ export function MediaManager(props: MediaManagerProps) {
       }
     };
 
-    document.addEventListener('paste', handlePaste);
-    return () => document.removeEventListener('paste', handlePaste);
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
   }, [settings.enablePasteUpload, handleFiles]);
 
   /* ── Keyboard shortcuts ─────────────────────────────────────────── */
@@ -2132,50 +2327,50 @@ export function MediaManager(props: MediaManagerProps) {
       // Don't trigger shortcuts when typing in inputs
       const target = e.target as HTMLElement;
       if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
         target.isContentEditable
       ) {
         return;
       }
 
       // Ctrl/Cmd + A: select all
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
         e.preventDefault();
-        dispatch({ type: 'SELECT_ALL' });
+        dispatch({ type: "SELECT_ALL" });
       }
 
       // Escape: deselect all / close detail / close edit
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         if (state.editItem) {
-          dispatch({ type: 'SET_EDIT', payload: null });
+          dispatch({ type: "SET_EDIT", payload: null });
         } else if (state.detailItem) {
-          dispatch({ type: 'SET_DETAIL', payload: null });
+          dispatch({ type: "SET_DETAIL", payload: null });
         } else if (state.selectedIds.size > 0) {
-          dispatch({ type: 'DESELECT_ALL' });
+          dispatch({ type: "DESELECT_ALL" });
         }
       }
 
       // Delete: delete selected
-      if (e.key === 'Delete' && state.selectedIds.size > 0) {
+      if (e.key === "Delete" && state.selectedIds.size > 0) {
         e.preventDefault();
         dispatch({
-          type: 'SET_DELETE_CONFIRM',
+          type: "SET_DELETE_CONFIRM",
           payload: { show: true, ids: Array.from(state.selectedIds) },
         });
       }
 
       // G: toggle grid/list view
-      if (e.key === 'g' && !e.ctrlKey && !e.metaKey) {
+      if (e.key === "g" && !e.ctrlKey && !e.metaKey) {
         dispatch({
-          type: 'SET_VIEW_MODE',
-          payload: state.viewMode === 'grid' ? 'list' : 'grid',
+          type: "SET_VIEW_MODE",
+          payload: state.viewMode === "grid" ? "list" : "grid",
         });
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [state.selectedIds, state.editItem, state.detailItem, state.viewMode]);
 
   /* ── Handlers ───────────────────────────────────────────────────── */
@@ -2188,7 +2383,7 @@ export function MediaManager(props: MediaManagerProps) {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files?.length) {
         handleFiles(e.target.files);
-        e.target.value = ''; // reset for re-selecting same file
+        e.target.value = ""; // reset for re-selecting same file
       }
     },
     [handleFiles],
@@ -2198,21 +2393,21 @@ export function MediaManager(props: MediaManagerProps) {
     (item: MediaItem) => {
       if (isPicker) {
         if (multiSelect) {
-          dispatch({ type: 'TOGGLE_SELECT', payload: item.id });
+          dispatch({ type: "TOGGLE_SELECT", payload: item.id });
         } else {
           onSelect?.([item]);
         }
       } else {
-        dispatch({ type: 'SET_DETAIL', payload: item });
+        dispatch({ type: "SET_DETAIL", payload: item });
       }
     },
     [isPicker, multiSelect, onSelect],
   );
 
   const handleToggleSelect = useCallback(
-    (id: string, e: React.MouseEvent) => {
+    (id: string, e: React.SyntheticEvent) => {
       e.stopPropagation();
-      dispatch({ type: 'TOGGLE_SELECT', payload: id });
+      dispatch({ type: "TOGGLE_SELECT", payload: id });
     },
     [],
   );
@@ -2227,37 +2422,43 @@ export function MediaManager(props: MediaManagerProps) {
           await onDelete(id);
         }
       }
-      dispatch({ type: 'REMOVE_ITEMS', payload: ids });
+      dispatch({ type: "REMOVE_ITEMS", payload: ids });
     } catch (err) {
       dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : 'Delete failed',
+        type: "SET_ERROR",
+        payload: err instanceof Error ? err.message : "Delete failed",
       });
     } finally {
-      dispatch({ type: 'SET_DELETE_CONFIRM', payload: { show: false, ids: [] } });
+      dispatch({
+        type: "SET_DELETE_CONFIRM",
+        payload: { show: false, ids: [] },
+      });
     }
   }, [state.deleteTargetIds, onDelete, onBulkDelete]);
 
   const handleUpdate = useCallback(
     async (id: string, data: UpdateMediaInput) => {
       const updated = await onUpdate(id, data);
-      dispatch({ type: 'UPDATE_ITEM', payload: updated });
+      dispatch({ type: "UPDATE_ITEM", payload: updated });
     },
     [onUpdate],
   );
 
   const handleCopyUrl = useCallback((item: MediaItem) => {
-    navigator.clipboard.writeText(item.url).then(() => {
-      setCopyFeedback(true);
-      setTimeout(() => setCopyFeedback(false), 2000);
-    }).catch(() => {});
+    navigator.clipboard
+      .writeText(item.url)
+      .then(() => {
+        setCopyFeedback(true);
+        setTimeout(() => setCopyFeedback(false), 2000);
+      })
+      .catch(() => {});
   }, []);
 
   const handleUrlUpload = useCallback(
     async (url: string) => {
       if (!onUploadFromUrl) return;
       const item = await onUploadFromUrl(url);
-      dispatch({ type: 'ADD_ITEM', payload: item });
+      dispatch({ type: "ADD_ITEM", payload: item });
     },
     [onUploadFromUrl],
   );
@@ -2268,14 +2469,15 @@ export function MediaManager(props: MediaManagerProps) {
       try {
         const folder = await onCreateFolder(name);
         dispatch({
-          type: 'SET_FOLDERS',
+          type: "SET_FOLDERS",
           payload: [...state.folders, folder],
         });
         setShowCreateFolder(false);
       } catch (err) {
         dispatch({
-          type: 'SET_ERROR',
-          payload: err instanceof Error ? err.message : 'Failed to create folder',
+          type: "SET_ERROR",
+          payload:
+            err instanceof Error ? err.message : "Failed to create folder",
         });
       }
     },
@@ -2287,9 +2489,9 @@ export function MediaManager(props: MediaManagerProps) {
       state.items.length > 0 &&
       state.items.every((i) => state.selectedIds.has(i.id));
     if (allSelected) {
-      dispatch({ type: 'DESELECT_ALL' });
+      dispatch({ type: "DESELECT_ALL" });
     } else {
-      dispatch({ type: 'SELECT_ALL' });
+      dispatch({ type: "SELECT_ALL" });
     }
   }, [state.items, state.selectedIds]);
 
@@ -2304,7 +2506,7 @@ export function MediaManager(props: MediaManagerProps) {
   const acceptString = useMemo(() => {
     if (accept) return accept;
     if (settings.allowedMimeTypes.length > 0) {
-      return settings.allowedMimeTypes.join(',');
+      return settings.allowedMimeTypes.join(",");
     }
     return undefined;
   }, [accept, settings.allowedMimeTypes]);
@@ -2313,7 +2515,7 @@ export function MediaManager(props: MediaManagerProps) {
 
   return (
     <div
-      className={`mm-root ${className || ''}`}
+      className={`mm-root ${className || ""}`}
       ref={dropRef}
       data-mode={mode}
     >
@@ -2335,12 +2537,14 @@ export function MediaManager(props: MediaManagerProps) {
         dispatch={dispatch}
         settings={settings}
         onUploadClick={handleUploadClick}
-        onToggleSidebar={() => dispatch({ type: 'SET_SIDEBAR', payload: !state.sidebarOpen })}
+        onToggleSidebar={() =>
+          dispatch({ type: "SET_SIDEBAR", payload: !state.sidebarOpen })
+        }
       />
 
       {/* Upload from URL button (placed after toolbar) */}
       {settings.enableUrlUpload && onUploadFromUrl && (
-        <div style={{ display: 'flex', gap: '0.5rem', padding: '0 1rem' }}>
+        <div style={{ display: "flex", gap: "0.5rem", padding: "0 1rem" }}>
           <button
             className="mm-btn mm-btn--ghost mm-btn--sm"
             onClick={() => setShowUrlUpload(true)}
@@ -2355,49 +2559,51 @@ export function MediaManager(props: MediaManagerProps) {
       <UploadProgressBar queue={state.uploadQueue} />
 
       {/* Bulk actions bar */}
-      {settings.enableBulkOperations && state.selectedIds.size > 0 && !isPicker && (
-        <BulkActionsBar
-          count={state.selectedIds.size}
-          onSelectAll={() => dispatch({ type: 'SELECT_ALL' })}
-          onDeselectAll={() => dispatch({ type: 'DESELECT_ALL' })}
-          onDelete={() =>
-            dispatch({
-              type: 'SET_DELETE_CONFIRM',
-              payload: {
-                show: true,
-                ids: Array.from(state.selectedIds),
-              },
-            })
-          }
-          onDownload={
-            onDownload
-              ? () => onDownload(Array.from(state.selectedIds))
-              : undefined
-          }
-          totalItems={state.items.length}
-        />
-      )}
+      {settings.enableBulkOperations &&
+        state.selectedIds.size > 0 &&
+        !isPicker && (
+          <BulkActionsBar
+            count={state.selectedIds.size}
+            onSelectAll={() => dispatch({ type: "SELECT_ALL" })}
+            onDeselectAll={() => dispatch({ type: "DESELECT_ALL" })}
+            onDelete={() =>
+              dispatch({
+                type: "SET_DELETE_CONFIRM",
+                payload: {
+                  show: true,
+                  ids: Array.from(state.selectedIds),
+                },
+              })
+            }
+            onDownload={
+              onDownload
+                ? () => onDownload(Array.from(state.selectedIds))
+                : undefined
+            }
+            totalItems={state.items.length}
+          />
+        )}
 
       {/* Error banner */}
       {state.error && (
         <div
           role="alert"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.5rem 1rem',
-            background: 'var(--mm-danger-light)',
-            borderBottom: '1px solid var(--mm-danger)',
-            fontSize: '0.8125rem',
-            color: 'var(--mm-danger)',
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.5rem 1rem",
+            background: "var(--mm-danger-light)",
+            borderBottom: "1px solid var(--mm-danger)",
+            fontSize: "0.8125rem",
+            color: "var(--mm-danger)",
           }}
         >
           <AlertTriangle size={14} />
           <span style={{ flex: 1 }}>{state.error}</span>
           <button
             className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
-            onClick={() => dispatch({ type: 'SET_ERROR', payload: null })}
+            onClick={() => dispatch({ type: "SET_ERROR", payload: null })}
             aria-label="Dismiss error"
           >
             <X size={14} />
@@ -2406,16 +2612,16 @@ export function MediaManager(props: MediaManagerProps) {
       )}
 
       {/* Main layout */}
-      <div className="mm-layout" style={{ position: 'relative' }}>
+      <div className="mm-layout" style={{ position: "relative" }}>
         {/* Folder sidebar */}
         {settings.enableFolders && (
           <aside
-            className={`mm-sidebar ${state.sidebarOpen ? '' : 'mm-sidebar--collapsed'}`}
+            className={`mm-sidebar ${state.sidebarOpen ? "" : "mm-sidebar--collapsed"}`}
           >
             <FolderSidebar
               folders={state.folders}
               currentFolder={state.currentFolder}
-              onSelect={(id) => dispatch({ type: 'SET_FOLDER', payload: id })}
+              onSelect={(id) => dispatch({ type: "SET_FOLDER", payload: id })}
               onCreateFolder={
                 onCreateFolder ? () => setShowCreateFolder(true) : undefined
               }
@@ -2426,7 +2632,15 @@ export function MediaManager(props: MediaManagerProps) {
         {/* Content area */}
         <div className="mm-main">
           {/* Drop zone overlay */}
-          <div className={`mm-dropzone ${isDragOver ? 'mm-dropzone--active' : ''}`} style={{ flex: '1 1 0%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+          <div
+            className={`mm-dropzone ${isDragOver ? "mm-dropzone--active" : ""}`}
+            style={{
+              flex: "1 1 0%",
+              display: "flex",
+              flexDirection: "column",
+              position: "relative",
+            }}
+          >
             <div className="mm-dropzone__overlay">
               <UploadCloud className="mm-dropzone__icon" />
               <span className="mm-dropzone__text">Drop files to upload</span>
@@ -2436,19 +2650,22 @@ export function MediaManager(props: MediaManagerProps) {
             {state.isLoading && (
               <div
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '2rem',
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "2rem",
                   flex: 1,
                 }}
               >
-                <span className="mm-spinner" style={{ width: 24, height: 24 }} />
+                <span
+                  className="mm-spinner"
+                  style={{ width: 24, height: 24 }}
+                />
                 <span
                   style={{
-                    marginLeft: '0.5rem',
-                    color: 'var(--mm-text-muted)',
-                    fontSize: '0.875rem',
+                    marginLeft: "0.5rem",
+                    color: "var(--mm-text-muted)",
+                    fontSize: "0.875rem",
                   }}
                 >
                   Loading…
@@ -2459,7 +2676,7 @@ export function MediaManager(props: MediaManagerProps) {
             {/* Content */}
             {!state.isLoading && (
               <div className="mm-content">
-                {state.viewMode === 'grid' ? (
+                {state.viewMode === "grid" ? (
                   <MediaGrid
                     items={state.items}
                     selectedIds={state.selectedIds}
@@ -2474,7 +2691,7 @@ export function MediaManager(props: MediaManagerProps) {
                     onToggleSelect={handleToggleSelect}
                     onSelectAll={handleSelectAllToggle}
                     onItemClick={handleItemClick}
-                    onSort={(s) => dispatch({ type: 'SET_SORT', payload: s })}
+                    onSort={(s) => dispatch({ type: "SET_SORT", payload: s })}
                   />
                 )}
               </div>
@@ -2486,7 +2703,7 @@ export function MediaManager(props: MediaManagerProps) {
             page={state.page}
             totalItems={state.totalItems}
             pageSize={state.pageSize}
-            onChange={(p) => dispatch({ type: 'SET_PAGE', payload: p })}
+            onChange={(p) => dispatch({ type: "SET_PAGE", payload: p })}
           />
         </div>
 
@@ -2494,18 +2711,18 @@ export function MediaManager(props: MediaManagerProps) {
         {!isPicker && state.detailItem && (
           <aside
             className={`mm-detail-panel ${
-              state.detailItem ? '' : 'mm-detail-panel--closed'
+              state.detailItem ? "" : "mm-detail-panel--closed"
             }`}
           >
             <DetailPanel
               item={state.detailItem}
-              onClose={() => dispatch({ type: 'SET_DETAIL', payload: null })}
+              onClose={() => dispatch({ type: "SET_DETAIL", payload: null })}
               onEdit={() =>
-                dispatch({ type: 'SET_EDIT', payload: state.detailItem })
+                dispatch({ type: "SET_EDIT", payload: state.detailItem })
               }
               onDelete={() =>
                 dispatch({
-                  type: 'SET_DELETE_CONFIRM',
+                  type: "SET_DELETE_CONFIRM",
                   payload: {
                     show: true,
                     ids: [state.detailItem!.id],
@@ -2528,25 +2745,28 @@ export function MediaManager(props: MediaManagerProps) {
       {isPicker && multiSelect && state.selectedIds.size > 0 && (
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.625rem 1rem',
-            borderTop: '1px solid var(--mm-border)',
-            background: 'var(--mm-bg-secondary)',
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.625rem 1rem",
+            borderTop: "1px solid var(--mm-border)",
+            background: "var(--mm-bg-secondary)",
           }}
         >
-          <span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+          <span style={{ fontSize: "0.8125rem", fontWeight: 500 }}>
             {state.selectedIds.size} selected
           </span>
           <span className="mm-toolbar__spacer" />
           <button
             className="mm-btn"
-            onClick={() => dispatch({ type: 'DESELECT_ALL' })}
+            onClick={() => dispatch({ type: "DESELECT_ALL" })}
           >
             Clear
           </button>
-          <button className="mm-btn mm-btn--primary" onClick={handlePickerConfirm}>
+          <button
+            className="mm-btn mm-btn--primary"
+            onClick={handlePickerConfirm}
+          >
             <Check size={14} />
             Confirm selection
           </button>
@@ -2559,20 +2779,20 @@ export function MediaManager(props: MediaManagerProps) {
           role="status"
           aria-live="polite"
           style={{
-            position: 'fixed',
-            bottom: '1rem',
-            right: '1rem',
-            padding: '0.5rem 1rem',
-            background: 'var(--mm-text)',
-            color: 'var(--mm-bg)',
-            borderRadius: 'var(--mm-radius)',
-            fontSize: '0.8125rem',
+            position: "fixed",
+            bottom: "1rem",
+            right: "1rem",
+            padding: "0.5rem 1rem",
+            background: "var(--mm-text)",
+            color: "var(--mm-bg)",
+            borderRadius: "var(--mm-radius)",
+            fontSize: "0.8125rem",
             fontWeight: 500,
             zIndex: 300,
-            boxShadow: 'var(--mm-shadow-lg)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.375rem',
+            boxShadow: "var(--mm-shadow-lg)",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.375rem",
           }}
         >
           <Check size={14} />
@@ -2587,7 +2807,7 @@ export function MediaManager(props: MediaManagerProps) {
         <EditModal
           item={state.editItem}
           onSave={handleUpdate}
-          onClose={() => dispatch({ type: 'SET_EDIT', payload: null })}
+          onClose={() => dispatch({ type: "SET_EDIT", payload: null })}
         />
       )}
 
@@ -2605,7 +2825,7 @@ export function MediaManager(props: MediaManagerProps) {
         title="Delete media"
         message={
           state.deleteTargetIds.length === 1
-            ? 'Are you sure you want to delete this item? This action cannot be undone.'
+            ? "Are you sure you want to delete this item? This action cannot be undone."
             : `Are you sure you want to delete ${state.deleteTargetIds.length} items? This action cannot be undone.`
         }
         confirmLabel="Delete"
@@ -2613,7 +2833,7 @@ export function MediaManager(props: MediaManagerProps) {
         onConfirm={handleDelete}
         onCancel={() =>
           dispatch({
-            type: 'SET_DELETE_CONFIRM',
+            type: "SET_DELETE_CONFIRM",
             payload: { show: false, ids: [] },
           })
         }

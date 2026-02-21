@@ -3,12 +3,29 @@ import { blogService } from "@/server/wiring";
 import { prisma } from "@/server/db/prisma";
 import { requireAuth } from "@/server/api-auth";
 import { createLogger } from "@/server/observability/logger";
-import { CreateCategorySchema, BulkCreateCategoriesSchema } from "@/features/blog/server/schemas";
+import {
+  CreateCategorySchema,
+  BulkCreateCategoriesSchema,
+} from "@/features/blog/server/schemas";
 import { z } from "zod";
 import type { ScanPrisma } from "@/features/ads/server/scan-pages";
 import type { Category } from "@prisma/client";
 
 const logger = createLogger("api/categories");
+
+const scanPrisma: ScanPrisma = {
+  category: { findMany: (args) => prisma.category.findMany(args as never) },
+  tag: { findMany: (args) => prisma.tag.findMany(args as never) },
+  page: { findMany: (args) => prisma.page.findMany(args as never) },
+  post: {
+    count: (args) => prisma.post.count(args as never),
+    findMany: (args) => prisma.post.findMany(args as never),
+  },
+  adSlot: {
+    findMany: (args) => prisma.adSlot.findMany(args as never),
+    update: (args) => prisma.adSlot.update(args as never),
+  },
+};
 
 /**
  * GET /api/categories
@@ -44,7 +61,7 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    const { errorResponse } = await requireAuth({ level: "moderator" });
     if (errorResponse) return errorResponse;
 
     const body = await req.json();
@@ -53,7 +70,9 @@ export async function POST(req: NextRequest) {
     if (body.names && typeof body.names === "string") {
       const bulkParsed = BulkCreateCategoriesSchema.safeParse(body);
       if (!bulkParsed.success) {
-        const message = bulkParsed.error.issues.map((e: { message: string }) => e.message).join(", ");
+        const message = bulkParsed.error.issues
+          .map((e: { message: string }) => e.message)
+          .join(", ");
         return NextResponse.json(
           { success: false, error: message },
           { status: 400 },
@@ -80,14 +99,16 @@ export async function POST(req: NextRequest) {
 
           // Auto-include ad slot page types
           try {
-            const { addPageTypesToSlots } = await import("@/features/ads/server/scan-pages");
-            const { prisma } = await import("@/server/db/prisma");
-            await addPageTypesToSlots(prisma as unknown as ScanPrisma, [`category:${cat.slug}`]);
+            const { addPageTypesToSlots } =
+              await import("@/features/ads/server/scan-pages");
+            await addPageTypesToSlots(scanPrisma, [`category:${cat.slug}`]);
           } catch {
             // Ads module may not be available — non-critical
           }
         } catch (err: unknown) {
-          errors.push(`"${names[i]}": ${(err as { message?: string })?.message || "Failed to create"}`);
+          errors.push(
+            `"${names[i]}": ${(err as { message?: string })?.message || "Failed to create"}`,
+          );
         }
       }
 
@@ -109,7 +130,9 @@ export async function POST(req: NextRequest) {
     // ── Single creation ──
     const parsed = CreateCategorySchema.safeParse(body);
     if (!parsed.success) {
-      const message = parsed.error.issues.map((e: { message: string }) => e.message).join(", ");
+      const message = parsed.error.issues
+        .map((e: { message: string }) => e.message)
+        .join(", ");
       return NextResponse.json(
         { success: false, error: message },
         { status: 400 },
@@ -120,17 +143,21 @@ export async function POST(req: NextRequest) {
 
     // Auto-include: add this category's pageType to ad slots with wildcard patterns
     try {
-      const { addPageTypesToSlots } = await import("@/features/ads/server/scan-pages");
-      const { prisma } = await import("@/server/db/prisma");
-      await addPageTypesToSlots(prisma as unknown as ScanPrisma, [`category:${category.slug}`]);
+      const { addPageTypesToSlots } =
+        await import("@/features/ads/server/scan-pages");
+      await addPageTypesToSlots(scanPrisma, [`category:${category.slug}`]);
     } catch {
       // Ads module may not be available — non-critical
     }
 
-    return NextResponse.json({ success: true, data: category }, { status: 201 });
+    return NextResponse.json(
+      { success: true, data: category },
+      { status: 201 },
+    );
   } catch (error: unknown) {
     const status = (error as { statusCode?: number })?.statusCode ?? 500;
-    const message = (error as { message?: string })?.message ?? "Failed to create category";
+    const message =
+      (error as { message?: string })?.message ?? "Failed to create category";
     logger.error("[api/categories] POST error:", { error });
     return NextResponse.json({ success: false, error: message }, { status });
   }
@@ -153,13 +180,15 @@ const BulkReorderSchema = z.object({
  */
 export async function PUT(req: NextRequest) {
   try {
-    const { errorResponse } = await requireAuth({ level: 'moderator' });
+    const { errorResponse } = await requireAuth({ level: "moderator" });
     if (errorResponse) return errorResponse;
 
     const body = await req.json();
     const parsed = BulkReorderSchema.safeParse(body);
     if (!parsed.success) {
-      const message = parsed.error.issues.map((e: { message: string }) => e.message).join(", ");
+      const message = parsed.error.issues
+        .map((e: { message: string }) => e.message)
+        .join(", ");
       return NextResponse.json(
         { success: false, error: message },
         { status: 400 },

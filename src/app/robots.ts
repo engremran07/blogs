@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next";
 import { siteSettingsService } from "@/server/wiring";
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://example.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com";
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const baseUrl = SITE_URL.replace(/\/$/, "");
@@ -10,14 +9,21 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   // Read DB settings for custom robots.txt and sitemap toggle
   try {
     const s = await siteSettingsService.getSettings();
-    const raw = s as unknown as Record<string, unknown>;
-    const sitemapEnabled = raw.sitemapEnabled !== false;
-    const customRobotsTxt = raw.robotsTxtCustom as string | null;
+    const sitemapEnabled = s.sitemapEnabled !== false;
+    const customRobotsTxt = s.robotsTxtCustom;
 
     if (customRobotsTxt && customRobotsTxt.trim()) {
       // Parse custom robots.txt into structured format
-      const rules: Array<{ userAgent: string; allow: string[]; disallow: string[] }> = [];
-      let currentAgent: { userAgent: string; allow: string[]; disallow: string[] } | null = null;
+      const rules: Array<{
+        userAgent: string;
+        allow: string[];
+        disallow: string[];
+      }> = [];
+      let currentAgent: {
+        userAgent: string;
+        allow: string[];
+        disallow: string[];
+      } | null = null;
 
       for (const line of customRobotsTxt.split("\n")) {
         const trimmed = line.trim();
@@ -52,12 +58,27 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       {
         userAgent: "*",
         allow: ["/"],
-        disallow: ["/api/", "/admin/", "/_next/", "/login", "/register", "/profile", "/search"],
+        disallow: [
+          "/api/",
+          "/admin/",
+          "/_next/",
+          "/login",
+          "/register",
+          "/profile",
+          "/search",
+        ],
       },
       // Block AI scrapers
       ...[
-        "GPTBot", "ChatGPT-User", "CCBot", "anthropic-ai", "ClaudeBot",
-        "Google-Extended", "Bytespider", "Omgilibot", "FacebookBot",
+        "GPTBot",
+        "ChatGPT-User",
+        "CCBot",
+        "anthropic-ai",
+        "ClaudeBot",
+        "Google-Extended",
+        "Bytespider",
+        "Omgilibot",
+        "FacebookBot",
       ].map((ua) => ({ userAgent: ua, disallow: ["/"] })),
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

@@ -205,7 +205,7 @@ export default function AdminPagesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search pages..."
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
         </div>
         <select
@@ -282,7 +282,7 @@ export default function AdminPagesPage() {
                     className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     {allSelected ? (
-                      <CheckSquare className="h-4 w-4 text-blue-600" />
+                      <CheckSquare className="h-4 w-4 text-primary" />
                     ) : (
                       <Square className="h-4 w-4" />
                     )}
@@ -322,7 +322,7 @@ export default function AdminPagesPage() {
                 : pages.map((pg) => (
                     <tr
                       key={pg.id}
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-700/30 ${selected.has(pg.id) ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-700/30 ${selected.has(pg.id) ? "bg-primary/5 dark:bg-primary/10" : ""}`}
                     >
                       <td className="px-3 py-3">
                         <button
@@ -330,7 +330,7 @@ export default function AdminPagesPage() {
                           className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                         >
                           {selected.has(pg.id) ? (
-                            <CheckSquare className="h-4 w-4 text-blue-600" />
+                            <CheckSquare className="h-4 w-4 text-primary" />
                           ) : (
                             <Square className="h-4 w-4" />
                           )}

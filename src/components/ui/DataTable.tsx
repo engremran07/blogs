@@ -160,7 +160,7 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
             className={clsx(
               "min-w-8 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
               p === page
-                ? "bg-blue-600 text-white"
+                ? "bg-primary text-white"
                 : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800",
             )}
           >

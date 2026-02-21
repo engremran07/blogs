@@ -416,7 +416,7 @@ export function RolePicker({
         onClick={() => setOpen(!open)}
         className={`flex w-full items-center justify-between rounded-lg border transition-colors ${
           open
-            ? "border-blue-400 ring-2 ring-blue-500/20"
+            ? "border-primary ring-2 ring-primary/20"
             : "border-gray-300 dark:border-gray-600"
         } bg-white px-3 py-2 text-left text-sm dark:bg-gray-800 ${compact ? "py-1.5" : ""}`}
       >
@@ -477,7 +477,7 @@ export function RolePicker({
                     </p>
                   </div>
                   {selected && (
-                    <Check className="h-4 w-4 shrink-0 text-blue-500" />
+                    <Check className="h-4 w-4 shrink-0 text-primary" />
                   )}
                 </button>
               );

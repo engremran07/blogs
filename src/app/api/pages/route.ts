@@ -3,7 +3,10 @@ import { auth } from "@/server/auth";
 import { requireAuth } from "@/server/api-auth";
 import { pageService, prisma } from "@/server/wiring";
 import { createLogger } from "@/server/observability/logger";
-import { CreatePageSchema, PageListSchema } from "@/features/pages/server/schemas";
+import {
+  CreatePageSchema,
+  PageListSchema,
+} from "@/features/pages/server/schemas";
 import { PageError } from "@/features/pages/types";
 import { addPageTypesToSlots } from "@/features/ads/server/scan-pages";
 import type { ScanPrisma } from "@/features/ads/server/scan-pages";
@@ -11,6 +14,54 @@ import { InterlinkService } from "@/features/seo/server/interlink.service";
 import type { InterlinkPrisma } from "@/features/seo/server/interlink.service";
 
 const logger = createLogger("api/pages");
+
+const scanPrisma: ScanPrisma = {
+  category: { findMany: (args) => prisma.category.findMany(args as never) },
+  tag: { findMany: (args) => prisma.tag.findMany(args as never) },
+  page: { findMany: (args) => prisma.page.findMany(args as never) },
+  post: {
+    count: (args) => prisma.post.count(args as never),
+    findMany: (args) => prisma.post.findMany(args as never),
+  },
+  adSlot: {
+    findMany: (args) => prisma.adSlot.findMany(args as never),
+    update: (args) => prisma.adSlot.update(args as never),
+  },
+};
+
+const interlinkPrisma: InterlinkPrisma = {
+  post: {
+    findMany: (args) => prisma.post.findMany(args as never),
+    findUnique: (args) => prisma.post.findUnique(args as never),
+    update: (args) => prisma.post.update(args as never),
+    count: (args) => prisma.post.count(args as never),
+  },
+  page: {
+    findMany: (args) => prisma.page.findMany(args as never),
+    findUnique: (args) => prisma.page.findUnique(args as never),
+    update: (args) => prisma.page.update(args as never),
+    count: (args) => prisma.page.count(args as never),
+  },
+  internalLink: {
+    findMany: (args) => prisma.internalLink.findMany(args as never),
+    findFirst: (args) => prisma.internalLink.findFirst(args as never),
+    findUnique: (args) => prisma.internalLink.findUnique(args as never),
+    create: (args) => prisma.internalLink.create(args as never),
+    update: (args) => prisma.internalLink.update(args as never),
+    updateMany: (args) => prisma.internalLink.updateMany(args as never),
+    delete: (args) => prisma.internalLink.delete(args as never),
+    deleteMany: (args) => prisma.internalLink.deleteMany(args as never),
+    count: (args) => prisma.internalLink.count(args as never),
+    upsert: (args) => prisma.internalLink.upsert(args as never),
+  },
+  interlinkExclusion: {
+    findMany: (args) => prisma.interlinkExclusion.findMany(args as never),
+    create: (args) => prisma.interlinkExclusion.create(args as never),
+    delete: (args) => prisma.interlinkExclusion.delete(args as never),
+    deleteMany: (args) => prisma.interlinkExclusion.deleteMany(args as never),
+    count: (args) => prisma.interlinkExclusion.count(args as never),
+  },
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,7 +76,9 @@ export async function GET(req: NextRequest) {
 
     // SEC-008: Non-admin users can only see PUBLISHED pages
     const session = await auth();
-    const isAdmin = session?.user && ["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role);
+    const isAdmin =
+      session?.user &&
+      ["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(session.user.role);
     const findOpts = { ...parsed.data };
     if (!isAdmin) {
       findOpts.status = "PUBLISHED" as typeof findOpts.status;
@@ -53,13 +106,18 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, errorResponse } = await requireAuth({ level: 'moderator' });
+    const { userId, errorResponse } = await requireAuth({ level: "moderator" });
     if (errorResponse) return errorResponse;
 
     const body = await req.json();
 
     if (body.slug) {
-      body.slug = body.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      body.slug = body.slug
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9-]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
     }
 
     const authorId = userId || body.authorId;
@@ -73,17 +131,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const page = await pageService.createPage(parsed.data);
+    const { tagIds, ...pageData } = parsed.data;
+    const page = await pageService.createPage({ ...pageData, tagIds });
 
     // Auto-include this new page in ad slot pageTypes
     if (page.slug) {
-      void addPageTypesToSlots(prisma as unknown as ScanPrisma, [`page:${page.slug}`]).catch(() => {});
+      void addPageTypesToSlots(scanPrisma, [`page:${page.slug}`]).catch(
+        () => {},
+      );
     }
 
     // Interlink lifecycle: scan for link suggestions
-    new InterlinkService(prisma as unknown as InterlinkPrisma).onContentCreated(page.id, 'PAGE', parsed.data.status || 'DRAFT').catch((err: unknown) =>
-      logger.error("[api/pages] Interlink onContentCreated error:", { error: err }),
-    );
+    new InterlinkService(interlinkPrisma)
+      .onContentCreated(page.id, "PAGE", parsed.data.status || "DRAFT")
+      .catch((err: unknown) =>
+        logger.error("[api/pages] Interlink onContentCreated error:", {
+          error: err,
+        }),
+      );
 
     return NextResponse.json({ success: true, data: page }, { status: 201 });
   } catch (error) {

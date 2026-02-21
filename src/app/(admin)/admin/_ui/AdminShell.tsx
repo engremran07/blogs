@@ -200,7 +200,7 @@ export default function AdminShell({
   if (!session) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -227,7 +227,7 @@ export default function AdminShell({
         <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
           {!collapsed && (
             <Link href="/admin" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 font-bold text-white">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-bold text-white">
                 B
               </div>
               <span className="font-bold text-gray-900 dark:text-white">
@@ -275,7 +275,7 @@ export default function AdminShell({
                         isModuleKilled
                           ? "text-red-400 hover:bg-red-50 dark:text-red-500 dark:hover:bg-red-900/20"
                           : active || childActive
-                            ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                            ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
                             : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700",
                       )}
                       title={
@@ -334,7 +334,7 @@ export default function AdminShell({
                             className={clsx(
                               "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                               cActive
-                                ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                                ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
                                 : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700",
                             )}
                           >
@@ -392,7 +392,7 @@ export default function AdminShell({
               onClick={() => setProfileOpen(!profileOpen)}
               className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-medium text-primary dark:bg-primary/20 dark:text-primary">
                 {(session.user?.name ||
                   session.user?.email ||
                   "A")[0].toUpperCase()}
@@ -419,7 +419,7 @@ export default function AdminShell({
                 {/* User Header */}
                 <div className="border-b border-gray-200 p-4 dark:border-gray-700">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-lg font-bold text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-bold text-primary dark:bg-primary/20 dark:text-primary">
                       {(session.user?.name ||
                         session.user?.email ||
                         "A")[0].toUpperCase()}
@@ -516,7 +516,7 @@ export default function AdminShell({
                     <li className="flex items-center gap-1.5">
                       <Link
                         href="/admin"
-                        className="flex items-center gap-1 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                        className="flex items-center gap-1 transition-colors hover:text-primary dark:hover:text-primary"
                       >
                         <Home className="h-4 w-4" />
                         <span>Dashboard</span>
@@ -532,7 +532,7 @@ export default function AdminShell({
                         ) : (
                           <Link
                             href={crumb.href}
-                            className="transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                            className="transition-colors hover:text-primary dark:hover:text-primary"
                           >
                             {crumb.label}
                           </Link>

@@ -725,7 +725,7 @@ export default function AdsAdminPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -750,7 +750,7 @@ export default function AdsAdminPage() {
               role="switch"
               aria-checked={adsOn}
               onClick={toggleAds}
-              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
+              className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
                 adsOn ? "bg-green-500" : "bg-red-500"
               }`}
             >
@@ -1104,7 +1104,7 @@ export default function AdsAdminPage() {
                         {s.name}
                       </td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                        <span className="rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                        <span className="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary dark:bg-primary/20 dark:text-primary">
                           {s.position}
                         </span>
                       </td>
@@ -1276,7 +1276,7 @@ export default function AdsAdminPage() {
                               {slot?.name ?? pl.slotId}
                             </span>
                             {slot && (
-                              <span className="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                              <span className="ml-1.5 rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary dark:bg-primary/20 dark:text-primary">
                                 {slot.position}
                               </span>
                             )}
@@ -2031,7 +2031,7 @@ export default function AdsAdminPage() {
                                 pt.kind === "static"
                                   ? "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
                                   : pt.kind === "blog"
-                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                    ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
                                     : pt.kind === "category"
                                       ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
                                       : pt.kind === "tag"
@@ -2144,7 +2144,7 @@ function AdsSettingsPanel() {
   if (loading || !config) {
     return (
       <div className="flex h-32 items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -2196,7 +2196,7 @@ function AdsSettingsPanel() {
         onChange={(e) =>
           setConfig({ ...config, [field]: parseInt(e.target.value) || 0 })
         }
-        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
       />
       {hint && <p className="mt-0.5 text-xs text-gray-400">{hint}</p>}
     </div>

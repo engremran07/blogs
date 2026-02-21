@@ -110,14 +110,6 @@ export function Footer({
               </li>
               <li>
                 <Link
-                  href="/tags"
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  Tags
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/about"
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >

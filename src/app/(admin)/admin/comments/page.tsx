@@ -281,7 +281,7 @@ export default function AdminCommentsPage() {
             role="switch"
             aria-checked={moduleEnabled}
             onClick={toggleComments}
-            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
+            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-900 ${
               moduleEnabled ? "bg-green-500" : "bg-red-500"
             }`}
           >
@@ -340,7 +340,7 @@ export default function AdminCommentsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search comments..."
-              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
           </div>
         </form>
@@ -404,7 +404,7 @@ export default function AdminCommentsPage() {
             className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
           >
             {allSelected ? (
-              <CheckSquare className="h-4 w-4 text-blue-600" />
+              <CheckSquare className="h-4 w-4 text-primary" />
             ) : (
               <Square className="h-4 w-4" />
             )}
@@ -425,7 +425,7 @@ export default function AdminCommentsPage() {
           : comments.map((comment) => (
               <div
                 key={comment.id}
-                className={`rounded-xl border p-4 ${selected.has(comment.id) ? "border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/10" : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"}`}
+                className={`rounded-xl border p-4 ${selected.has(comment.id) ? "border-primary/30 bg-primary/5 dark:border-primary/30 dark:bg-primary/10" : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"}`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3 flex-1">
@@ -434,7 +434,7 @@ export default function AdminCommentsPage() {
                       className="mt-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                     >
                       {selected.has(comment.id) ? (
-                        <CheckSquare className="h-4 w-4 text-blue-600" />
+                        <CheckSquare className="h-4 w-4 text-primary" />
                       ) : (
                         <Square className="h-4 w-4" />
                       )}
@@ -475,7 +475,7 @@ export default function AdminCommentsPage() {
                           <a
                             href={`/blog/${comment.post.slug}`}
                             target="_blank"
-                            className="flex items-center gap-1 text-blue-500 hover:underline"
+                            className="flex items-center gap-1 text-primary hover:underline"
                           >
                             <ExternalLink className="h-3 w-3" />{" "}
                             {comment.post.title}

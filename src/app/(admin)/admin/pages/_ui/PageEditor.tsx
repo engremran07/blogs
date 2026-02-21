@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -18,6 +18,7 @@ import { Input, Textarea, Select } from "@/components/ui/FormFields";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { EditorStatusProvider } from "@/components/admin/EditorContext";
+import TagAutocomplete from "@/components/admin/TagAutocomplete";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import type { MediaItem } from "@/features/media/types";
@@ -83,9 +84,17 @@ interface PageForm {
   customCss: string;
   customJs: string;
   customHead: string;
+  // Tags
+  tagIds: string[];
   // Metrics (computed)
   wordCount: number;
   readingTime: number;
+}
+
+interface TagItem {
+  id: string;
+  name: string;
+  slug: string;
 }
 
 const defaultForm: PageForm = {
@@ -113,6 +122,7 @@ const defaultForm: PageForm = {
   customCss: "",
   customJs: "",
   customHead: "",
+  tagIds: [],
   wordCount: 0,
   readingTime: 0,
 };
@@ -133,8 +143,13 @@ export default function PageEditor({
   const [codeOpen, setCodeOpen] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<TagItem[]>([]);
 
   const [form, setForm] = useState<PageForm>({ ...defaultForm });
+
+  // Ref always points to the latest form so async handlers never see stale state
+  const formRef = useRef(form);
+  formRef.current = form;
 
   useEffect(() => {
     if (!isNew && pageId) {
@@ -143,6 +158,12 @@ export default function PageEditor({
         .then((d) => {
           if (d.success && d.data) {
             const pg = d.data;
+            const pageTags = (pg.tags || []).map((t: TagItem) => ({
+              id: t.id,
+              name: t.name,
+              slug: t.slug,
+            }));
+            setSelectedTags(pageTags);
             setForm({
               title: pg.title || "",
               slug: pg.slug || "",
@@ -170,6 +191,7 @@ export default function PageEditor({
               customCss: pg.customCss || "",
               customJs: pg.customJs || "",
               customHead: pg.customHead || "",
+              tagIds: pageTags.map((t: TagItem) => t.id),
               wordCount: pg.wordCount ?? 0,
               readingTime: pg.readingTime ?? 0,
             });
@@ -188,50 +210,55 @@ export default function PageEditor({
   }
 
   async function handleSave(status?: string) {
-    if (!form.title.trim()) {
+    // Read from ref to guarantee latest state (avoids stale closures from
+    // React-Compiler auto-memoisation or batched state updates).
+    const f = formRef.current;
+    if (!f.title.trim()) {
       toast("Title is required", "error");
       return;
     }
     setSaving(true);
     try {
       const body: Record<string, unknown> = {
-        title: form.title,
-        content: form.content,
-        excerpt: form.excerpt || undefined,
-        status: status || form.status,
-        template: form.template,
-        visibility: form.visibility,
+        title: f.title,
+        content: f.content,
+        excerpt: f.excerpt || undefined,
+        status: status || f.status,
+        template: f.template,
+        visibility: f.visibility,
         // SEO fields
-        metaTitle: form.metaTitle || null,
-        metaDescription: form.metaDescription || null,
-        ogTitle: form.ogTitle || null,
-        ogDescription: form.ogDescription || null,
-        ogImage: form.ogImage || null,
-        canonicalUrl: form.canonicalUrl || null,
-        noIndex: form.noIndex,
-        noFollow: form.noFollow,
+        metaTitle: f.metaTitle || null,
+        metaDescription: f.metaDescription || null,
+        ogTitle: f.ogTitle || null,
+        ogDescription: f.ogDescription || null,
+        ogImage: f.ogImage || null,
+        canonicalUrl: f.canonicalUrl || null,
+        noIndex: f.noIndex,
+        noFollow: f.noFollow,
         // Media
-        featuredImage: form.featuredImage || null,
-        featuredImageAlt: form.featuredImageAlt || null,
+        featuredImage: f.featuredImage || null,
+        featuredImageAlt: f.featuredImageAlt || null,
         // Hierarchy
-        parentId: form.parentId || null,
-        sortOrder: form.sortOrder,
+        parentId: f.parentId || null,
+        sortOrder: f.sortOrder,
         // Visibility guard
         password:
-          form.visibility === "PASSWORD_PROTECTED"
-            ? form.password || null
+          f.visibility === "PASSWORD_PROTECTED"
+            ? f.password || null
             : null,
         // Code injection
-        customCss: form.customCss || null,
-        customJs: form.customJs || null,
-        customHead: form.customHead || null,
+        customCss: f.customCss || null,
+        customJs: f.customJs || null,
+        customHead: f.customHead || null,
+        // Tags
+        tagIds: f.tagIds,
         // Metrics
-        wordCount: form.wordCount,
-        readingTime: form.readingTime,
+        wordCount: f.wordCount,
+        readingTime: f.readingTime,
       };
 
-      if (form.scheduledFor) {
-        body.scheduledFor = new Date(form.scheduledFor).toISOString();
+      if (f.scheduledFor) {
+        body.scheduledFor = new Date(f.scheduledFor).toISOString();
       }
 
       if (status === "PUBLISHED") body.publishedAt = new Date().toISOString();
@@ -520,7 +547,7 @@ export default function PageEditor({
                       onChange={(e) => update("customCss", e.target.value)}
                       placeholder=".my-class { color: red; }"
                       rows={4}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600"
+                      className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-600"
                       spellCheck={false}
                     />
                   </div>
@@ -533,7 +560,7 @@ export default function PageEditor({
                       onChange={(e) => update("customJs", e.target.value)}
                       placeholder="console.log('Hello from page');"
                       rows={4}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600"
+                      className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-600"
                       spellCheck={false}
                     />
                   </div>
@@ -546,7 +573,7 @@ export default function PageEditor({
                       onChange={(e) => update("customHead", e.target.value)}
                       placeholder='<meta name="custom" content="value" />'
                       rows={3}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600"
+                      className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-600"
                       spellCheck={false}
                     />
                   </div>
@@ -672,6 +699,22 @@ export default function PageEditor({
                   placeholder="Image description for accessibility..."
                 />
               </div>
+            </div>
+
+            {/* Tags */}
+            <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+              <h3 className="mb-3 font-semibold text-gray-900 dark:text-white">
+                Tags
+              </h3>
+              <TagAutocomplete
+                selectedTagIds={form.tagIds}
+                selectedTags={selectedTags}
+                onTagsChange={(tagIds, tags) => {
+                  setForm((prev) => ({ ...prev, tagIds }));
+                  setSelectedTags(tags);
+                }}
+                placeholder="Search tags..."
+              />
             </div>
 
             {/* Page Info */}
