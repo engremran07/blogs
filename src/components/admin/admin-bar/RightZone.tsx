@@ -13,6 +13,7 @@ import {
 import { useAdminBar } from "./AdminBarProvider";
 import { NewDropdown } from "./NewDropdown";
 import { UserDropdown } from "./UserDropdown";
+import { SiteSeoDropdown } from "./SiteSeoDropdown";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import type { RouteIntelligence } from "./useRouteIntelligence";
 import type { EditorStatus } from "../EditorContext";
@@ -97,6 +98,9 @@ export function RightZone({
     <div className="flex shrink-0 items-center gap-1">
       {/* Theme toggle */}
       <ThemeToggle variant="adminbar" />
+
+      {/* Site SEO overview — homepage only */}
+      {route.isHome && <SiteSeoDropdown />}
 
       {/* + New dropdown */}
       <NewDropdown />

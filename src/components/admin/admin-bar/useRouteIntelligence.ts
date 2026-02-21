@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 
 export interface RouteIntelligence {
+  /** Whether the current page is the public home page */
+  isHome: boolean;
   /** Whether the current page is a post/page editor */
   isEditor: boolean;
   /** Resource type being edited */
@@ -83,6 +85,7 @@ export function useRouteIntelligence(): RouteIntelligence {
       resourceType: null,
       resourceId: null,
       routeLabel: "Home",
+      isHome: false,
       isViewingPost: false,
       isViewingPage: false,
       isAdmin,
@@ -177,6 +180,15 @@ export function useRouteIntelligence(): RouteIntelligence {
         isList,
         backHref: back?.href ?? null,
         backLabel: back?.label ?? null,
+      };
+    }
+
+    // ── Public: Home page ──
+    if (pathname === "/" || pathname === "/home") {
+      return {
+        ...base,
+        isHome: true,
+        routeLabel: "Home",
       };
     }
 

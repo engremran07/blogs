@@ -220,7 +220,7 @@ const _themeService = new ThemeService(db);
 const _menuBuilderService = new MenuBuilderService(db);
 
 // Core services
-const authService = new AuthService(
+export const authService = new AuthService(
   db,
   noopJwt,
   getMailProvider(),

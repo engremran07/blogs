@@ -97,7 +97,7 @@ export class NodemailerMailProvider implements MailProvider {
       "Reset your password",
       `<h2>Password Reset</h2>
        <p>You (or someone else) requested a password reset for your account.</p>
-       <p><a href="${process.env.NEXTAUTH_URL || ""}/login?resetToken=${token}" style="color: #2563eb; font-weight: bold;">Reset Password →</a></p>
+      <p><a href="${process.env.NEXTAUTH_URL || ""}/reset-password?token=${token}" style="color: #2563eb; font-weight: bold;">Reset Password →</a></p>
        <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>`,
     );
   }

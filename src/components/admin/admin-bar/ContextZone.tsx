@@ -12,6 +12,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useAdminBar } from "./AdminBarProvider";
+import { SeoDropdown } from "./SeoDropdown";
 
 import { usePageMeta } from "./usePageMeta";
 import { LAST_SAVED_INTERVAL_MS } from "./constants";
@@ -288,6 +289,9 @@ export function ContextZone({
           visible={settings.adminBarShowLastSaved && !!meta}
         />
       )}
+
+      {/* SEO audit dropdown (on-demand fetch) */}
+      <SeoDropdown route={route} editor={editor} />
 
 
 
