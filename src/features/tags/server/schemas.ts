@@ -130,20 +130,58 @@ export const suggestTagsSchema = z.object({
 // ─── Autocomplete (Tagulous-inspired) ─────────────────────────────────
 
 export const autocompleteSchema = z.object({
-  q: z.string().min(0, 'Query is required').max(200),
-  page: z.coerce.number().int().min(1).default(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(20).optional(),
-  mode: z.enum(['startsWith', 'contains']).default('startsWith').optional(),
+  q: z.string().max(200).default(''),
+  page: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return 1;
+      const parsed = parseInt(String(val), 10);
+      return isNaN(parsed) || parsed < 1 ? 1 : parsed;
+    },
+    z.number().int().min(1)
+  ).optional(),
+  limit: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return 20;
+      const parsed = parseInt(String(val), 10);
+      return isNaN(parsed) || parsed < 1 ? 20 : Math.min(parsed, 100);
+    },
+    z.number().int().min(1).max(100)
+  ).optional(),
+  mode: z.enum(['startsWith', 'contains']).default('startsWith').catch('startsWith').optional(),
   parentId: z.string().nullable().optional(),
-  includeCount: z.coerce.boolean().default(true).optional(),
+  includeCount: z.preprocess(
+    (val) => val === 'true' || val === true || val === '1',
+    z.boolean()
+  ).default(true).optional(),
 });
 
 // ─── Tag Cloud ──────────────────────────────────────────────────────────
 
 export const tagCloudSchema = z.object({
-  minWeight: z.coerce.number().int().min(1).default(1).optional(),
-  maxWeight: z.coerce.number().int().min(1).default(6).optional(),
-  limit: z.coerce.number().int().min(1).max(500).default(100).optional(),
+  minWeight: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return 1;
+      const parsed = parseInt(String(val), 10);
+      return isNaN(parsed) || parsed < 1 ? 1 : parsed;
+    },
+    z.number().int().min(1)
+  ).optional(),
+  maxWeight: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return 6;
+      const parsed = parseInt(String(val), 10);
+      return isNaN(parsed) || parsed < 1 ? 6 : parsed;
+    },
+    z.number().int().min(1)
+  ).optional(),
+  limit: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return 100;
+      const parsed = parseInt(String(val), 10);
+      return isNaN(parsed) || parsed < 1 ? 100 : Math.min(parsed, 500);
+    },
+    z.number().int().min(1).max(500)
+  ).optional(),
   parentId: z.string().nullable().optional(),
 });
 

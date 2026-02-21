@@ -173,7 +173,7 @@ const USERS_DATA = [
   {
     username: "admin",
     email: "admin@myblog.com",
-    password: "Aa1357",
+    password: "Admin@12345678",
     firstName: "Admin",
     lastName: "User",
     displayName: "Admin",
@@ -1343,7 +1343,7 @@ async function main() {
   console.log(`  Ad Providers:${counts.adProviders}`);
   console.log(`  Ad Placements:${counts.adPlacements}`);
   console.log("─────────────────────────────────────────");
-  console.log("  Admin login: admin@myblog.com / Aa1357");
+  console.log("  Admin login: admin@myblog.com / Admin@12345678");
   console.log("─────────────────────────────────────────");
 }
 

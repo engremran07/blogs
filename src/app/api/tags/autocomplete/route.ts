@@ -37,11 +37,13 @@ export async function GET(req: NextRequest) {
       });
 
       if (!parsed.success) {
+        const details = parsed.error.flatten().fieldErrors;
+        logger.error("[api/tags/autocomplete] Tag cloud validation failed:", { error: details });
         return NextResponse.json(
           {
             success: false,
             error: "Validation failed",
-            details: parsed.error.flatten().fieldErrors,
+            details,
           },
           { status: 400 },
         );
@@ -76,11 +78,16 @@ export async function GET(req: NextRequest) {
     });
 
     if (!parsed.success) {
+      const details = parsed.error.flatten().fieldErrors;
+      logger.error("[api/tags/autocomplete] Validation failed:", { 
+        error: details,
+        params: Object.fromEntries(searchParams)
+      });
       return NextResponse.json(
         {
           success: false,
           error: "Validation failed",
-          details: parsed.error.flatten().fieldErrors,
+          details,
         },
         { status: 400 },
       );
