@@ -45,15 +45,24 @@ export function usePublicNav(enabled: boolean): PublicNavData | null {
     if (!enabled) return;
     fetch("/api/settings/public")
       .then((r) => r.json())
-      .then((res: { success: boolean; data?: { siteName?: string; logoUrl?: string; menuStructure?: MenuData[] } }) => {
-        if (res.success && res.data) {
-          setData({
-            siteName: res.data.siteName || "MyBlog",
-            logoUrl: res.data.logoUrl || null,
-            menuStructure: res.data.menuStructure || null,
-          });
-        }
-      })
+      .then(
+        (res: {
+          success: boolean;
+          data?: {
+            siteName?: string;
+            logoUrl?: string;
+            menuStructure?: MenuData[];
+          };
+        }) => {
+          if (res.success && res.data) {
+            setData({
+              siteName: res.data.siteName || "MyBlog",
+              logoUrl: res.data.logoUrl || null,
+              menuStructure: res.data.menuStructure || null,
+            });
+          }
+        },
+      )
       .catch(() => {});
   }, [enabled]);
 

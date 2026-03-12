@@ -12,7 +12,11 @@ import { prisma } from "@/server/db/prisma";
  * Auth-gated: requires EDITOR / ADMINISTRATOR / SUPER_ADMIN.
  */
 export async function GET(req: NextRequest) {
-  const { userId: _userId, userRole: _userRole, errorResponse } = await requireAuth({ level: "moderator" });
+  const {
+    userId: _userId,
+    userRole: _userRole,
+    errorResponse,
+  } = await requireAuth({ level: "moderator" });
   if (errorResponse) return errorResponse;
 
   const { searchParams } = new URL(req.url);

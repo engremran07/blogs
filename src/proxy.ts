@@ -77,7 +77,15 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // ── 4. Build response with CSRF cookie + CSP nonce ───────────────────────
+  // ── 4. Sitemap / XSL routes — skip CSP (browsers need unrestricted XML→XSL)
+  if (
+    pathname.startsWith("/sitemap") ||
+    pathname === "/robots.txt"
+  ) {
+    return NextResponse.next();
+  }
+
+  // ── 5. Build response with CSRF cookie + CSP nonce ───────────────────────
   const nonce = generateNonce();
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);

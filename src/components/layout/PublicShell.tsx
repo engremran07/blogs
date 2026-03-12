@@ -56,7 +56,13 @@ interface MenuData {
   name: string;
   slot: string;
   enabled: boolean;
-  items: { id: string; label: string; url: string; target: string; visible: boolean }[];
+  items: {
+    id: string;
+    label: string;
+    url: string;
+    target: string;
+    visible: boolean;
+  }[];
 }
 
 export function PublicShell({
@@ -124,12 +130,18 @@ export function PublicShell({
     if (!headerMenu) return undefined;
     return headerMenu.items
       .filter((item) => item.visible)
-      .map((item) => ({ href: item.url, label: item.label, target: item.target }));
+      .map((item) => ({
+        href: item.url,
+        label: item.label,
+        target: item.target,
+      }));
   })();
 
   return (
     <div className={`flex min-h-screen flex-col${hasAdminBar ? " pt-11" : ""}`}>
-      {settings && !hasAdminBar && <TopBar settings={settings} socialLinks={socialLinks} />}
+      {settings && !hasAdminBar && (
+        <TopBar settings={settings} socialLinks={socialLinks} />
+      )}
       {!hasAdminBar && (
         <Header
           siteName={siteName}

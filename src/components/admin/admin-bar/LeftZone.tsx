@@ -37,7 +37,9 @@ export function LeftZone({
       {/* Mobile sidebar toggle — only on admin routes, only on small screens */}
       {route.isAdmin && (
         <button
-          onClick={() => window.dispatchEvent(new Event("admin-sidebar-toggle"))}
+          onClick={() =>
+            window.dispatchEvent(new Event("admin-sidebar-toggle"))
+          }
           className="flex shrink-0 items-center rounded p-1 text-gray-400 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
           aria-label="Toggle sidebar"
         >
@@ -52,7 +54,11 @@ export function LeftZone({
           className="flex shrink-0 items-center rounded p-1 text-gray-400 transition-colors hover:bg-white/10 hover:text-white md:hidden"
           aria-label="Toggle site navigation"
         >
-          {mobileNavOpen ? <X className="h-4.5 w-4.5" /> : <Menu className="h-4.5 w-4.5" />}
+          {mobileNavOpen ? (
+            <X className="h-4.5 w-4.5" />
+          ) : (
+            <Menu className="h-4.5 w-4.5" />
+          )}
         </button>
       )}
 
@@ -86,9 +92,9 @@ export function LeftZone({
       <SiteNameDropdown />
 
       {/* ── Admin route: breadcrumbs ── */}
-      {route.isAdmin && settings.adminBarShowBreadcrumbs && breadcrumbs.length > 0 && (
-        <span className="text-gray-600">|</span>
-      )}
+      {route.isAdmin &&
+        settings.adminBarShowBreadcrumbs &&
+        breadcrumbs.length > 0 && <span className="text-gray-600">|</span>}
       {route.isAdmin && settings.adminBarShowBreadcrumbs && !route.isEditor && (
         <nav
           aria-label="Breadcrumb"
@@ -118,14 +124,21 @@ export function LeftZone({
       {isPublicPage && publicNav && (
         <>
           <span className="hidden text-gray-600 md:inline">|</span>
-          <nav className="hidden items-center gap-0.5 md:flex" aria-label="Site navigation">
+          <nav
+            className="hidden items-center gap-0.5 md:flex"
+            aria-label="Site navigation"
+          >
             {publicNav.navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={clsx(
                   "rounded px-2 py-1 text-sm transition-colors",
-                  (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href))
+                  (
+                    link.href === "/"
+                      ? pathname === "/"
+                      : pathname.startsWith(link.href)
+                  )
                     ? "bg-white/15 font-medium text-white"
                     : "text-gray-300 hover:bg-white/10 hover:text-white",
                 )}
@@ -154,7 +167,11 @@ export function LeftZone({
               onClick={() => setMobileNavOpen(false)}
               className={clsx(
                 "block rounded px-3 py-2 text-sm transition-colors",
-                (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href))
+                (
+                  link.href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(link.href)
+                )
                   ? "bg-white/15 font-medium text-white"
                   : "text-gray-300 hover:bg-white/10 hover:text-white",
               )}
