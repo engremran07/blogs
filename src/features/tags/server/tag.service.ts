@@ -557,6 +557,7 @@ export class TagService {
     const recentPosts = (await this.prisma.post.findMany({
       where: {
         status: "PUBLISHED",
+        deletedAt: null,
         publishedAt: { gte: cutoff },
       },
       include: { tags: { select: { id: true } } },

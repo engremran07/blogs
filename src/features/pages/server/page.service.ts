@@ -5,26 +5,51 @@
 // Framework-agnostic with constructor DI.
 
 import type {
-  PagesPrismaClient, PagesCacheProvider, PagesLogger,
-  PagesRevalidationCallback, PagesConfig, PagesConfigConsumer,
-  Page, PageWithRelations, PageTreeNode,
-  PageRevision, PageListOptions, PaginatedResult,
-  CreatePageInput, UpdatePageInput,
-  PageLockInfo, ScheduledPage, ScheduleProcessResult,
-  PageStats, SystemPageRegistration, SystemPageKey,
-} from '../types';
-import { PageError } from '../types';
+  PagesPrismaClient,
+  PagesCacheProvider,
+  PagesLogger,
+  PagesRevalidationCallback,
+  PagesConfig,
+  PagesConfigConsumer,
+  Page,
+  PageWithRelations,
+  PageTreeNode,
+  PageRevision,
+  PageListOptions,
+  PaginatedResult,
+  CreatePageInput,
+  UpdatePageInput,
+  PageLockInfo,
+  ScheduledPage,
+  ScheduleProcessResult,
+  PageStats,
+  SystemPageRegistration,
+  SystemPageKey,
+} from "../types";
+import { PageError } from "../types";
 import {
-  CACHE_KEYS, CACHE_TTL, PAGE_LIMITS, PAGES_DEFAULTS,
-  SYSTEM_PAGES_REGISTRY, RESERVED_SLUGS,
-  generateSlug, countWords, calculateReadingTime,
-  generateExcerpt, buildPagePath, hashListOptions, isPast,
+  CACHE_KEYS,
+  CACHE_TTL,
+  PAGE_LIMITS,
+  PAGES_DEFAULTS,
+  SYSTEM_PAGES_REGISTRY,
+  RESERVED_SLUGS,
+  generateSlug,
+  countWords,
+  calculateReadingTime,
+  generateExcerpt,
+  buildPagePath,
+  hashListOptions,
+  isPast,
   normalizeIds,
-} from './constants';
+} from "./constants";
 import {
-  sanitizeContent, sanitizeText, sanitizeSlug,
-  sanitizeCss, sanitizeHeadHtml,
-} from './sanitization.util';
+  sanitizeContent,
+  sanitizeText,
+  sanitizeSlug,
+  sanitizeCss,
+  sanitizeHeadHtml,
+} from "./sanitization.util";
 
 /* ========================================================================== */
 /*  DEPENDENCY INTERFACE                                                      */
@@ -84,51 +109,74 @@ export class PageService implements PagesConfigConsumer {
 
     const title = sanitizeText(input.title.trim());
     if (title.length < PAGE_LIMITS.TITLE_MIN_LENGTH) {
-      throw new PageError('Title is too short', 'TITLE_TOO_SHORT', 400);
+      throw new PageError("Title is too short", "TITLE_TOO_SHORT", 400);
     }
 
     // Generate unique slug — use custom slug if provided, otherwise auto-generate from title
-    const baseSlug = input.slug ? sanitizeSlug(input.slug) : generateSlug(title);
+    const baseSlug = input.slug
+      ? sanitizeSlug(input.slug)
+      : generateSlug(title);
     const slug = await this.generateUniqueSlug(baseSlug);
 
     // Content enrichment
-    const content = input.content ? sanitizeContent(input.content) : '';
+    const content = input.content ? sanitizeContent(input.content) : "";
     const wordCount = countWords(content);
     const readingTime = calculateReadingTime(wordCount, cfg.readingSpeedWpm);
-    const excerpt = input.excerpt ?? generateExcerpt(content, cfg.excerptLength);
+    const excerpt =
+      input.excerpt ?? generateExcerpt(content, cfg.excerptLength);
 
     // Hierarchy
     let parentPath: string | null = null;
     let level = 0;
     if (input.parentId && cfg.enableHierarchy) {
-      const parent = await this.prisma.page.findUnique({ where: { id: input.parentId } });
-      if (!parent) throw new PageError('Parent page not found', 'PARENT_NOT_FOUND', 404);
+      const parent = await this.prisma.page.findUnique({
+        where: { id: input.parentId },
+      });
+      if (!parent)
+        throw new PageError("Parent page not found", "PARENT_NOT_FOUND", 404);
       level = (parent as Page).level + 1;
       if (level > cfg.maxDepth) {
-        throw new PageError(`Maximum nesting depth of ${cfg.maxDepth} exceeded`, 'MAX_DEPTH_EXCEEDED', 400);
+        throw new PageError(
+          `Maximum nesting depth of ${cfg.maxDepth} exceeded`,
+          "MAX_DEPTH_EXCEEDED",
+          400,
+        );
       }
       parentPath = (parent as Page).path;
     }
     const path = buildPagePath(slug, parentPath, cfg.pagesBaseUrl);
 
     // Code injection guard
-    const customCss = cfg.allowCodeInjection ? sanitizeCss(input.customCss ?? '') || null : null;
+    const customCss = cfg.allowCodeInjection
+      ? sanitizeCss(input.customCss ?? "") || null
+      : null;
     const customJs = cfg.allowCodeInjection ? (input.customJs ?? null) : null;
-    const customHead = cfg.allowCodeInjection ? sanitizeHeadHtml(input.customHead ?? '') || null : null;
+    const customHead = cfg.allowCodeInjection
+      ? sanitizeHeadHtml(input.customHead ?? "") || null
+      : null;
 
     // Scheduled publishing
-    let status = input.status ?? (cfg.defaultStatus as CreatePageInput['status']) ?? 'DRAFT';
+    let status =
+      input.status ??
+      (cfg.defaultStatus as CreatePageInput["status"]) ??
+      "DRAFT";
     let scheduledFor: Date | null = null;
     if (input.scheduledFor && cfg.enableScheduling) {
       scheduledFor = new Date(input.scheduledFor);
       if (isPast(scheduledFor)) {
-        throw new PageError('Scheduled date must be in the future', 'SCHEDULE_PAST', 400);
+        throw new PageError(
+          "Scheduled date must be in the future",
+          "SCHEDULE_PAST",
+          400,
+        );
       }
-      status = 'SCHEDULED';
+      status = "SCHEDULED";
     }
 
     // Password guard
-    const password = cfg.enablePasswordProtection ? (input.password ?? null) : null;
+    const password = cfg.enablePasswordProtection
+      ? (input.password ?? null)
+      : null;
 
     const page = await this.prisma.page.create({
       data: {
@@ -137,8 +185,14 @@ export class PageService implements PagesConfigConsumer {
         content,
         excerpt,
         status,
-        template: input.template ?? (cfg.defaultTemplate as CreatePageInput['template']) ?? 'DEFAULT',
-        visibility: input.visibility ?? (cfg.defaultVisibility as CreatePageInput['visibility']) ?? 'PUBLIC',
+        template:
+          input.template ??
+          (cfg.defaultTemplate as CreatePageInput["template"]) ??
+          "DEFAULT",
+        visibility:
+          input.visibility ??
+          (cfg.defaultVisibility as CreatePageInput["visibility"]) ??
+          "PUBLIC",
         isSystem: false,
         systemKey: null,
         isHomePage: false,
@@ -168,10 +222,9 @@ export class PageService implements PagesConfigConsumer {
         lockedAt: null,
         revision: 1,
         authorId: input.authorId,
-        publishedAt: status === 'PUBLISHED' ? new Date() : null,
+        publishedAt: status === "PUBLISHED" ? new Date() : null,
         scheduledFor,
         deletedAt: null,
-        ...(input.tagIds?.length ? { tags: { connect: input.tagIds.map(id => ({ id })) } } : {}),
       },
     });
 
@@ -185,39 +238,51 @@ export class PageService implements PagesConfigConsumer {
   /*  CRUD — READ                                                            */
   /* ======================================================================== */
 
-  async findById(id: string, includeDeleted = false): Promise<PageWithRelations | null> {
-    const cached = await this.cache?.get<PageWithRelations>(CACHE_KEYS.pageById(id));
+  async findById(
+    id: string,
+    includeDeleted = false,
+  ): Promise<PageWithRelations | null> {
+    const cached = await this.cache?.get<PageWithRelations>(
+      CACHE_KEYS.pageById(id),
+    );
     if (cached) return cached;
 
     const where: Record<string, unknown> = { id };
     if (!includeDeleted) where.deletedAt = null;
 
-    const page = await this.prisma.page.findFirst({
-      where,
-      include: { tags: { select: { id: true, name: true, slug: true } } },
-    });
+    const page = await this.prisma.page.findFirst({ where });
     if (!page) return null;
 
     const result = page as PageWithRelations;
-    await this.cache?.set(CACHE_KEYS.pageById(id), result, CACHE_TTL.pageDetail);
+    await this.cache?.set(
+      CACHE_KEYS.pageById(id),
+      result,
+      CACHE_TTL.pageDetail,
+    );
     return result;
   }
 
-  async findBySlug(slug: string, includeDeleted = false): Promise<PageWithRelations | null> {
-    const cached = await this.cache?.get<PageWithRelations>(CACHE_KEYS.pageBySlug(slug));
+  async findBySlug(
+    slug: string,
+    includeDeleted = false,
+  ): Promise<PageWithRelations | null> {
+    const cached = await this.cache?.get<PageWithRelations>(
+      CACHE_KEYS.pageBySlug(slug),
+    );
     if (cached) return cached;
 
     const where: Record<string, unknown> = { slug };
     if (!includeDeleted) where.deletedAt = null;
 
-    const page = await this.prisma.page.findFirst({
-      where,
-      include: { tags: { select: { id: true, name: true, slug: true } } },
-    });
+    const page = await this.prisma.page.findFirst({ where });
     if (!page) return null;
 
     const result = page as PageWithRelations;
-    await this.cache?.set(CACHE_KEYS.pageBySlug(slug), result, CACHE_TTL.pageDetail);
+    await this.cache?.set(
+      CACHE_KEYS.pageBySlug(slug),
+      result,
+      CACHE_TTL.pageDetail,
+    );
     return result;
   }
 
@@ -231,18 +296,27 @@ export class PageService implements PagesConfigConsumer {
     if (!page) return null;
 
     const result = page as Page;
-    await this.cache?.set(CACHE_KEYS.pageBySystemKey(key), result, CACHE_TTL.systemPages);
+    await this.cache?.set(
+      CACHE_KEYS.pageBySystemKey(key),
+      result,
+      CACHE_TTL.systemPages,
+    );
     return result;
   }
 
   async findAll(opts: PageListOptions = {}): Promise<PaginatedResult<Page>> {
     const cfg = await this.resolveConfig();
     const page = opts.page ?? 1;
-    const limit = Math.min(opts.limit ?? cfg.pagesPerPage, PAGE_LIMITS.MAX_PAGES_PER_PAGE);
+    const limit = Math.min(
+      opts.limit ?? cfg.pagesPerPage,
+      PAGE_LIMITS.MAX_PAGES_PER_PAGE,
+    );
     const skip = (page - 1) * limit;
 
     // Cache check
-    const cacheKey = CACHE_KEYS.pageList(hashListOptions(opts as Record<string, unknown>));
+    const cacheKey = CACHE_KEYS.pageList(
+      hashListOptions(opts as Record<string, unknown>),
+    );
     const cached = await this.cache?.get<PaginatedResult<Page>>(cacheKey);
     if (cached) return cached;
 
@@ -265,16 +339,16 @@ export class PageService implements PagesConfigConsumer {
     if (opts.search) {
       const term = opts.search.trim();
       where.OR = [
-        { title: { contains: term, mode: 'insensitive' } },
-        { slug: { contains: term, mode: 'insensitive' } },
-        { content: { contains: term, mode: 'insensitive' } },
-        { excerpt: { contains: term, mode: 'insensitive' } },
+        { title: { contains: term, mode: "insensitive" } },
+        { slug: { contains: term, mode: "insensitive" } },
+        { content: { contains: term, mode: "insensitive" } },
+        { excerpt: { contains: term, mode: "insensitive" } },
       ];
     }
 
     // Sort
-    const sortBy = opts.sortBy ?? 'sortOrder';
-    const sortOrder = opts.sortOrder ?? 'asc';
+    const sortBy = opts.sortBy ?? "sortOrder";
+    const sortOrder = opts.sortOrder ?? "asc";
     const orderBy = { [sortBy]: sortOrder };
 
     const [data, total] = await Promise.all([
@@ -301,7 +375,7 @@ export class PageService implements PagesConfigConsumer {
   async updatePage(id: string, input: UpdatePageInput): Promise<Page> {
     const cfg = await this.resolveConfig();
     const existing = await this.prisma.page.findUnique({ where: { id } });
-    if (!existing) throw new PageError('Page not found', 'PAGE_NOT_FOUND', 404);
+    if (!existing) throw new PageError("Page not found", "PAGE_NOT_FOUND", 404);
 
     const ex = existing as Page;
 
@@ -314,11 +388,14 @@ export class PageService implements PagesConfigConsumer {
     if (cfg.enableLocking && ex.isLocked) {
       // Still locked by someone else? lock timeout check
       if (ex.lockedAt) {
-        const lockExpiry = new Date(ex.lockedAt.getTime() + cfg.lockTimeoutMinutes * 60_000);
+        const lockExpiry = new Date(
+          ex.lockedAt.getTime() + cfg.lockTimeoutMinutes * 60_000,
+        );
         if (!isPast(lockExpiry)) {
           throw new PageError(
             `Page is locked by another user until ${lockExpiry.toISOString()}`,
-            'PAGE_LOCKED', 423,
+            "PAGE_LOCKED",
+            423,
           );
         }
       }
@@ -348,7 +425,10 @@ export class PageService implements PagesConfigConsumer {
     if (input.content !== undefined) {
       data.content = sanitizeContent(input.content);
       data.wordCount = countWords(data.content as string);
-      data.readingTime = calculateReadingTime(data.wordCount as number, cfg.readingSpeedWpm);
+      data.readingTime = calculateReadingTime(
+        data.wordCount as number,
+        cfg.readingSpeedWpm,
+      );
     }
 
     // Excerpt
@@ -362,16 +442,22 @@ export class PageService implements PagesConfigConsumer {
     if (input.template !== undefined) data.template = input.template;
     if (input.visibility !== undefined) data.visibility = input.visibility;
     if (input.metaTitle !== undefined) data.metaTitle = input.metaTitle;
-    if (input.metaDescription !== undefined) data.metaDescription = input.metaDescription;
+    if (input.metaDescription !== undefined)
+      data.metaDescription = input.metaDescription;
     if (input.ogTitle !== undefined) data.ogTitle = input.ogTitle;
-    if (input.ogDescription !== undefined) data.ogDescription = input.ogDescription;
+    if (input.ogDescription !== undefined)
+      data.ogDescription = input.ogDescription;
     if (input.ogImage !== undefined) data.ogImage = input.ogImage;
-    if (input.canonicalUrl !== undefined) data.canonicalUrl = input.canonicalUrl;
+    if (input.canonicalUrl !== undefined)
+      data.canonicalUrl = input.canonicalUrl;
     if (input.noIndex !== undefined) data.noIndex = input.noIndex;
     if (input.noFollow !== undefined) data.noFollow = input.noFollow;
-    if (input.structuredData !== undefined) data.structuredData = input.structuredData;
-    if (input.featuredImage !== undefined) data.featuredImage = input.featuredImage;
-    if (input.featuredImageAlt !== undefined) data.featuredImageAlt = input.featuredImageAlt;
+    if (input.structuredData !== undefined)
+      data.structuredData = input.structuredData;
+    if (input.featuredImage !== undefined)
+      data.featuredImage = input.featuredImage;
+    if (input.featuredImageAlt !== undefined)
+      data.featuredImageAlt = input.featuredImageAlt;
     if (input.sortOrder !== undefined) data.sortOrder = input.sortOrder;
 
     // Password
@@ -381,30 +467,47 @@ export class PageService implements PagesConfigConsumer {
 
     // Code injection
     if (cfg.allowCodeInjection) {
-      if (input.customCss !== undefined) data.customCss = sanitizeCss(input.customCss ?? '') || null;
+      if (input.customCss !== undefined)
+        data.customCss = sanitizeCss(input.customCss ?? "") || null;
       if (input.customJs !== undefined) data.customJs = input.customJs;
-      if (input.customHead !== undefined) data.customHead = sanitizeHeadHtml(input.customHead ?? '') || null;
+      if (input.customHead !== undefined)
+        data.customHead = sanitizeHeadHtml(input.customHead ?? "") || null;
     }
 
     // Hierarchy / reparenting
     if (input.parentId !== undefined && cfg.enableHierarchy) {
       if (input.parentId === id) {
-        throw new PageError('A page cannot be its own parent', 'SELF_PARENT', 400);
+        throw new PageError(
+          "A page cannot be its own parent",
+          "SELF_PARENT",
+          400,
+        );
       }
       if (input.parentId) {
-        const parent = await this.prisma.page.findUnique({ where: { id: input.parentId } });
-        if (!parent) throw new PageError('Parent page not found', 'PARENT_NOT_FOUND', 404);
+        const parent = await this.prisma.page.findUnique({
+          where: { id: input.parentId },
+        });
+        if (!parent)
+          throw new PageError("Parent page not found", "PARENT_NOT_FOUND", 404);
 
         // Circular-reference guard
         const ancestors = await this.getAncestors(input.parentId);
-        if (ancestors.some(a => a.id === id)) {
-          throw new PageError('Circular parent reference detected', 'CIRCULAR_PARENT', 400);
+        if (ancestors.some((a) => a.id === id)) {
+          throw new PageError(
+            "Circular parent reference detected",
+            "CIRCULAR_PARENT",
+            400,
+          );
         }
 
         const parentPage = parent as Page;
         const newLevel = parentPage.level + 1;
         if (newLevel > cfg.maxDepth) {
-          throw new PageError(`Maximum nesting depth of ${cfg.maxDepth} exceeded`, 'MAX_DEPTH_EXCEEDED', 400);
+          throw new PageError(
+            `Maximum nesting depth of ${cfg.maxDepth} exceeded`,
+            "MAX_DEPTH_EXCEEDED",
+            400,
+          );
         }
         data.parentId = input.parentId;
         data.level = newLevel;
@@ -425,8 +528,14 @@ export class PageService implements PagesConfigConsumer {
     } else if (data.slug) {
       // Slug changed but parent didn't — rebuild path
       if (ex.parentId) {
-        const parent = await this.prisma.page.findUnique({ where: { id: ex.parentId } });
-        data.path = buildPagePath(data.slug as string, (parent as Page)?.path, cfg.pagesBaseUrl);
+        const parent = await this.prisma.page.findUnique({
+          where: { id: ex.parentId },
+        });
+        data.path = buildPagePath(
+          data.slug as string,
+          (parent as Page)?.path,
+          cfg.pagesBaseUrl,
+        );
       } else {
         data.path = buildPagePath(data.slug as string, null, cfg.pagesBaseUrl);
       }
@@ -435,7 +544,7 @@ export class PageService implements PagesConfigConsumer {
     // Status transitions
     if (input.status !== undefined) {
       data.status = input.status;
-      if (input.status === 'PUBLISHED' && !ex.publishedAt) {
+      if (input.status === "PUBLISHED" && !ex.publishedAt) {
         data.publishedAt = new Date();
       }
     }
@@ -445,21 +554,20 @@ export class PageService implements PagesConfigConsumer {
       if (input.scheduledFor) {
         const schedDate = new Date(input.scheduledFor);
         if (isPast(schedDate)) {
-          throw new PageError('Scheduled date must be in the future', 'SCHEDULE_PAST', 400);
+          throw new PageError(
+            "Scheduled date must be in the future",
+            "SCHEDULE_PAST",
+            400,
+          );
         }
         data.scheduledFor = schedDate;
-        data.status = 'SCHEDULED';
+        data.status = "SCHEDULED";
       } else {
         data.scheduledFor = null;
-        if (data.status === 'SCHEDULED' || ex.status === 'SCHEDULED') {
-          data.status = 'DRAFT';
+        if (data.status === "SCHEDULED" || ex.status === "SCHEDULED") {
+          data.status = "DRAFT";
         }
       }
-    }
-
-    // Tags
-    if (input.tagIds !== undefined) {
-      data.tags = { set: input.tagIds.map(tid => ({ id: tid })) };
     }
 
     // Bump revision
@@ -491,15 +599,19 @@ export class PageService implements PagesConfigConsumer {
   /** Soft-delete (move to trash). System pages cannot be deleted. */
   async softDelete(id: string): Promise<Page> {
     const page = await this.prisma.page.findUnique({ where: { id } });
-    if (!page) throw new PageError('Page not found', 'PAGE_NOT_FOUND', 404);
+    if (!page) throw new PageError("Page not found", "PAGE_NOT_FOUND", 404);
 
     if ((page as Page).isSystem) {
-      throw new PageError('System pages cannot be deleted', 'SYSTEM_PAGE_PROTECTED', 403);
+      throw new PageError(
+        "System pages cannot be deleted",
+        "SYSTEM_PAGE_PROTECTED",
+        403,
+      );
     }
 
     const deleted = await this.prisma.page.update({
       where: { id },
-      data: { deletedAt: new Date(), status: 'ARCHIVED' },
+      data: { deletedAt: new Date(), status: "ARCHIVED" },
     });
 
     this.logger?.log(`Page soft-deleted: ${id}`);
@@ -511,10 +623,14 @@ export class PageService implements PagesConfigConsumer {
   /** Hard-delete (permanent). System pages cannot be deleted. */
   async hardDelete(id: string): Promise<void> {
     const page = await this.prisma.page.findUnique({ where: { id } });
-    if (!page) throw new PageError('Page not found', 'PAGE_NOT_FOUND', 404);
+    if (!page) throw new PageError("Page not found", "PAGE_NOT_FOUND", 404);
 
     if ((page as Page).isSystem) {
-      throw new PageError('System pages cannot be permanently deleted', 'SYSTEM_PAGE_PROTECTED', 403);
+      throw new PageError(
+        "System pages cannot be permanently deleted",
+        "SYSTEM_PAGE_PROTECTED",
+        403,
+      );
     }
 
     // Delete revisions and page atomically
@@ -533,11 +649,12 @@ export class PageService implements PagesConfigConsumer {
     const page = await this.prisma.page.findFirst({
       where: { id, deletedAt: { not: null } },
     });
-    if (!page) throw new PageError('Deleted page not found', 'PAGE_NOT_FOUND', 404);
+    if (!page)
+      throw new PageError("Deleted page not found", "PAGE_NOT_FOUND", 404);
 
     const restored = await this.prisma.page.update({
       where: { id },
-      data: { deletedAt: null, status: 'DRAFT' },
+      data: { deletedAt: null, status: "DRAFT" },
     });
 
     this.logger?.log(`Page restored: ${id}`);
@@ -554,7 +671,9 @@ export class PageService implements PagesConfigConsumer {
    * If a system page already exists in the database it is skipped.
    * Call this once during app initialisation.
    */
-  async bootstrapSystemPages(authorId: string): Promise<SystemPageRegistration[]> {
+  async bootstrapSystemPages(
+    authorId: string,
+  ): Promise<SystemPageRegistration[]> {
     const cfg = await this.resolveConfig();
     if (!cfg.autoRegisterSystemPages) return [];
 
@@ -582,12 +701,12 @@ export class PageService implements PagesConfigConsumer {
           slug: def.slug,
           content: `<p>${def.description}</p>`,
           excerpt: def.description,
-          status: 'PUBLISHED',
+          status: "PUBLISHED",
           template: def.template,
-          visibility: 'PUBLIC',
+          visibility: "PUBLIC",
           isSystem: true,
           systemKey: def.key,
-          isHomePage: def.key === 'HOME',
+          isHomePage: def.key === "HOME",
           metaTitle: def.title,
           metaDescription: def.description,
           ogTitle: null,
@@ -599,7 +718,7 @@ export class PageService implements PagesConfigConsumer {
           structuredData: null,
           parentId: null,
           sortOrder: 0,
-          path: def.slug ? `/${def.slug}` : '/',
+          path: def.slug ? `/${def.slug}` : "/",
           level: 0,
           wordCount: countWords(def.description),
           readingTime: 1,
@@ -642,11 +761,15 @@ export class PageService implements PagesConfigConsumer {
 
     const pages = await this.prisma.page.findMany({
       where: { isSystem: true, deletedAt: null },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
     });
 
     const result = pages as Page[];
-    await this.cache?.set(CACHE_KEYS.systemPages(), result, CACHE_TTL.systemPages);
+    await this.cache?.set(
+      CACHE_KEYS.systemPages(),
+      result,
+      CACHE_TTL.systemPages,
+    );
     return result;
   }
 
@@ -666,11 +789,15 @@ export class PageService implements PagesConfigConsumer {
    */
   async setAsHomePage(pageId: string): Promise<Page> {
     const page = await this.prisma.page.findUnique({ where: { id: pageId } });
-    if (!page) throw new PageError('Page not found', 'PAGE_NOT_FOUND', 404);
+    if (!page) throw new PageError("Page not found", "PAGE_NOT_FOUND", 404);
 
     const p = page as Page;
     if (p.deletedAt) {
-      throw new PageError('Cannot set a deleted page as home', 'PAGE_DELETED', 400);
+      throw new PageError(
+        "Cannot set a deleted page as home",
+        "PAGE_DELETED",
+        400,
+      );
     }
 
     // Clear current home page (if any)
@@ -687,7 +814,7 @@ export class PageService implements PagesConfigConsumer {
 
     this.logger?.log(`Home page set to: ${pageId} — "${p.title}”`);
     await this.invalidateCache();
-    await this.triggerRevalidation(['/', p.path]);
+    await this.triggerRevalidation(["/", p.path]);
     return updated as Page;
   }
 
@@ -720,7 +847,7 @@ export class PageService implements PagesConfigConsumer {
 
     const allPages = await this.prisma.page.findMany({
       where,
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
     });
 
     const pages = allPages as Page[];
@@ -742,7 +869,9 @@ export class PageService implements PagesConfigConsumer {
     let currentId: string | null = pageId;
 
     while (currentId) {
-      const page = await this.prisma.page.findUnique({ where: { id: currentId } });
+      const page = await this.prisma.page.findUnique({
+        where: { id: currentId },
+      });
       if (!page) break;
       const p = page as Page;
       if (p.id !== pageId) ancestors.unshift(p);
@@ -761,7 +890,7 @@ export class PageService implements PagesConfigConsumer {
 
     const children = await this.prisma.page.findMany({
       where: { parentId, deletedAt: null },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
     });
 
     const result = children as Page[];
@@ -800,7 +929,7 @@ export class PageService implements PagesConfigConsumer {
         id: { not: pageId },
         deletedAt: null,
       },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
     });
 
     return siblings as Page[];
@@ -810,38 +939,57 @@ export class PageService implements PagesConfigConsumer {
   async movePage(pageId: string, newParentId: string | null): Promise<Page> {
     const cfg = await this.resolveConfig();
     if (!cfg.enableHierarchy) {
-      throw new PageError('Hierarchy is disabled', 'HIERARCHY_DISABLED', 400);
+      throw new PageError("Hierarchy is disabled", "HIERARCHY_DISABLED", 400);
     }
 
     const page = await this.prisma.page.findUnique({ where: { id: pageId } });
-    if (!page) throw new PageError('Page not found', 'PAGE_NOT_FOUND', 404);
+    if (!page) throw new PageError("Page not found", "PAGE_NOT_FOUND", 404);
 
     if (newParentId === pageId) {
-      throw new PageError('A page cannot be its own parent', 'SELF_PARENT', 400);
+      throw new PageError(
+        "A page cannot be its own parent",
+        "SELF_PARENT",
+        400,
+      );
     }
 
     let newLevel = 0;
     let parentPath: string | null = null;
 
     if (newParentId) {
-      const parent = await this.prisma.page.findUnique({ where: { id: newParentId } });
-      if (!parent) throw new PageError('Target parent not found', 'PARENT_NOT_FOUND', 404);
+      const parent = await this.prisma.page.findUnique({
+        where: { id: newParentId },
+      });
+      if (!parent)
+        throw new PageError("Target parent not found", "PARENT_NOT_FOUND", 404);
 
       // Circular reference guard
       const ancestors = await this.getAncestors(newParentId);
-      if (ancestors.some(a => a.id === pageId)) {
-        throw new PageError('Circular parent reference detected', 'CIRCULAR_PARENT', 400);
+      if (ancestors.some((a) => a.id === pageId)) {
+        throw new PageError(
+          "Circular parent reference detected",
+          "CIRCULAR_PARENT",
+          400,
+        );
       }
 
       const p = parent as Page;
       newLevel = p.level + 1;
       if (newLevel > cfg.maxDepth) {
-        throw new PageError(`Maximum nesting depth of ${cfg.maxDepth} exceeded`, 'MAX_DEPTH_EXCEEDED', 400);
+        throw new PageError(
+          `Maximum nesting depth of ${cfg.maxDepth} exceeded`,
+          "MAX_DEPTH_EXCEEDED",
+          400,
+        );
       }
       parentPath = p.path;
     }
 
-    const newPath = buildPagePath((page as Page).slug, parentPath, cfg.pagesBaseUrl);
+    const newPath = buildPagePath(
+      (page as Page).slug,
+      parentPath,
+      cfg.pagesBaseUrl,
+    );
 
     const updated = await this.prisma.page.update({
       where: { id: pageId },
@@ -865,22 +1013,25 @@ export class PageService implements PagesConfigConsumer {
   async lockPage(pageId: string, userId: string): Promise<PageLockInfo> {
     const cfg = await this.resolveConfig();
     if (!cfg.enableLocking) {
-      throw new PageError('Locking is disabled', 'LOCKING_DISABLED', 400);
+      throw new PageError("Locking is disabled", "LOCKING_DISABLED", 400);
     }
 
     const page = await this.prisma.page.findUnique({ where: { id: pageId } });
-    if (!page) throw new PageError('Page not found', 'PAGE_NOT_FOUND', 404);
+    if (!page) throw new PageError("Page not found", "PAGE_NOT_FOUND", 404);
 
     const p = page as Page;
 
     // Check existing lock
     if (p.isLocked && p.lockedBy !== userId) {
       if (p.lockedAt) {
-        const lockExpiry = new Date(p.lockedAt.getTime() + cfg.lockTimeoutMinutes * 60_000);
+        const lockExpiry = new Date(
+          p.lockedAt.getTime() + cfg.lockTimeoutMinutes * 60_000,
+        );
         if (!isPast(lockExpiry)) {
           throw new PageError(
             `Page is already locked by user ${p.lockedBy}`,
-            'PAGE_LOCKED', 423,
+            "PAGE_LOCKED",
+            423,
           );
         }
       }
@@ -892,19 +1043,28 @@ export class PageService implements PagesConfigConsumer {
     });
 
     const u = updated as Page;
-    return { pageId: u.id, isLocked: true, lockedBy: userId, lockedAt: u.lockedAt };
+    return {
+      pageId: u.id,
+      isLocked: true,
+      lockedBy: userId,
+      lockedAt: u.lockedAt,
+    };
   }
 
   /** Unlock a page. */
   async unlockPage(pageId: string, userId?: string): Promise<PageLockInfo> {
     const page = await this.prisma.page.findUnique({ where: { id: pageId } });
-    if (!page) throw new PageError('Page not found', 'PAGE_NOT_FOUND', 404);
+    if (!page) throw new PageError("Page not found", "PAGE_NOT_FOUND", 404);
 
     const p = page as Page;
 
     // Only the locking user (or admin bypassing with no userId) can unlock
     if (userId && p.lockedBy !== userId) {
-      throw new PageError('You do not hold the lock on this page', 'NOT_LOCK_OWNER', 403);
+      throw new PageError(
+        "You do not hold the lock on this page",
+        "NOT_LOCK_OWNER",
+        403,
+      );
     }
 
     const updated = await this.prisma.page.update({
@@ -923,7 +1083,7 @@ export class PageService implements PagesConfigConsumer {
   /** Get lock info for a page. */
   async getLockInfo(pageId: string): Promise<PageLockInfo> {
     const page = await this.prisma.page.findUnique({ where: { id: pageId } });
-    if (!page) throw new PageError('Page not found', 'PAGE_NOT_FOUND', 404);
+    if (!page) throw new PageError("Page not found", "PAGE_NOT_FOUND", 404);
 
     const p = page as Page;
     return {
@@ -973,7 +1133,7 @@ export class PageService implements PagesConfigConsumer {
         // Delete oldest revisions to make room
         const oldest = await this.prisma.pageRevision.findMany({
           where: { pageId },
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: "asc" },
           take: count - cfg.maxRevisionsPerPage + 1,
         });
         if (oldest.length > 0) {
@@ -1005,29 +1165,40 @@ export class PageService implements PagesConfigConsumer {
   async getRevisions(pageId: string): Promise<PageRevision[]> {
     const revisions = await this.prisma.pageRevision.findMany({
       where: { pageId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
     return revisions as PageRevision[];
   }
 
   /** Restore a page to a specific revision. */
-  async restoreRevision(pageId: string, revisionId: string, userId: string): Promise<Page> {
+  async restoreRevision(
+    pageId: string,
+    revisionId: string,
+    userId: string,
+  ): Promise<Page> {
     const cfg = await this.resolveConfig();
     if (!cfg.enableRevisions) {
-      throw new PageError('Revisions are disabled', 'REVISIONS_DISABLED', 400);
+      throw new PageError("Revisions are disabled", "REVISIONS_DISABLED", 400);
     }
 
     const revision = await this.prisma.pageRevision.findFirst({
       where: { id: revisionId, pageId },
     });
-    if (!revision) throw new PageError('Revision not found', 'REVISION_NOT_FOUND', 404);
+    if (!revision)
+      throw new PageError("Revision not found", "REVISION_NOT_FOUND", 404);
 
     const rev = revision as PageRevision;
 
     // Create a snapshot of current state before restoring
-    const currentPage = await this.prisma.page.findUnique({ where: { id: pageId } });
+    const currentPage = await this.prisma.page.findUnique({
+      where: { id: pageId },
+    });
     if (currentPage) {
-      await this.createRevision(pageId, currentPage as Page, `Before restoring to revision #${rev.revisionNumber}`);
+      await this.createRevision(
+        pageId,
+        currentPage as Page,
+        `Before restoring to revision #${rev.revisionNumber}`,
+      );
     }
 
     const wordCount = countWords(rev.content);
@@ -1047,7 +1218,9 @@ export class PageService implements PagesConfigConsumer {
       },
     });
 
-    this.logger?.log(`Page ${pageId} restored to revision #${rev.revisionNumber} by ${userId}`);
+    this.logger?.log(
+      `Page ${pageId} restored to revision #${rev.revisionNumber} by ${userId}`,
+    );
     await this.invalidateCache();
     await this.triggerRevalidation([(updated as Page).path]);
     return updated as Page;
@@ -1060,11 +1233,15 @@ export class PageService implements PagesConfigConsumer {
   /** Get all pages scheduled for future publication. */
   async getScheduledPages(): Promise<ScheduledPage[]> {
     const pages = await this.prisma.page.findMany({
-      where: { status: 'SCHEDULED', scheduledFor: { not: null }, deletedAt: null },
-      orderBy: { scheduledFor: 'asc' },
+      where: {
+        status: "SCHEDULED",
+        scheduledFor: { not: null },
+        deletedAt: null,
+      },
+      orderBy: { scheduledFor: "asc" },
     });
 
-    return (pages as Page[]).map(p => ({
+    return (pages as Page[]).map((p) => ({
       id: p.id,
       title: p.title,
       slug: p.slug,
@@ -1085,13 +1262,17 @@ export class PageService implements PagesConfigConsumer {
     const now = new Date();
     const due = await this.prisma.page.findMany({
       where: {
-        status: 'SCHEDULED',
+        status: "SCHEDULED",
         scheduledFor: { lte: now },
         deletedAt: null,
       },
     });
 
-    const result: ScheduleProcessResult = { processed: 0, published: [], errors: [] };
+    const result: ScheduleProcessResult = {
+      processed: 0,
+      published: [],
+      errors: [],
+    };
     const paths: string[] = [];
 
     for (const page of due) {
@@ -1099,7 +1280,7 @@ export class PageService implements PagesConfigConsumer {
         await this.prisma.page.update({
           where: { id: (page as Page).id },
           data: {
-            status: 'PUBLISHED',
+            status: "PUBLISHED",
             publishedAt: new Date(),
             scheduledFor: null,
           },
@@ -1133,12 +1314,16 @@ export class PageService implements PagesConfigConsumer {
    * System pages are excluded from DRAFT / ARCHIVED / SCHEDULED transitions
    * to prevent accidentally hiding essential system routes.
    */
-  async bulkUpdateStatus(ids: string[], status: Page['status']): Promise<{ count: number }> {
+  async bulkUpdateStatus(
+    ids: string[],
+    status: Page["status"],
+  ): Promise<{ count: number }> {
     const normalized = normalizeIds(ids);
-    if (normalized.length === 0) throw new PageError('No valid IDs provided', 'EMPTY_IDS', 400);
+    if (normalized.length === 0)
+      throw new PageError("No valid IDs provided", "EMPTY_IDS", 400);
 
     // Protect system pages from destructive status changes
-    const protectedStatuses: string[] = ['ARCHIVED', 'DRAFT', 'SCHEDULED'];
+    const protectedStatuses: string[] = ["ARCHIVED", "DRAFT", "SCHEDULED"];
     const excludeSystem = protectedStatuses.includes(status);
 
     const result = await this.prisma.page.updateMany({
@@ -1149,7 +1334,7 @@ export class PageService implements PagesConfigConsumer {
       },
       data: {
         status,
-        ...(status === 'PUBLISHED' ? { publishedAt: new Date() } : {}),
+        ...(status === "PUBLISHED" ? { publishedAt: new Date() } : {}),
       },
     });
 
@@ -1163,17 +1348,21 @@ export class PageService implements PagesConfigConsumer {
    * Bulk soft-delete or hard-delete pages. System pages are always excluded.
    * Hard-delete also removes revisions. Home page designation is cleared.
    */
-  async bulkDelete(ids: string[], permanent = false): Promise<{ count: number }> {
+  async bulkDelete(
+    ids: string[],
+    permanent = false,
+  ): Promise<{ count: number }> {
     const normalized = normalizeIds(ids);
-    if (normalized.length === 0) throw new PageError('No valid IDs provided', 'EMPTY_IDS', 400);
+    if (normalized.length === 0)
+      throw new PageError("No valid IDs provided", "EMPTY_IDS", 400);
 
     if (permanent) {
       // Only delete revisions for non-system pages that will actually be removed
       const eligible = await this.prisma.page.findMany({
         where: { id: { in: normalized }, isSystem: false },
       });
-      const eligibleIds = (eligible as Page[]).map(p => p.id);
-      const paths = (eligible as Page[]).map(p => p.path);
+      const eligibleIds = (eligible as Page[]).map((p) => p.id);
+      const paths = (eligible as Page[]).map((p) => p.path);
 
       if (eligibleIds.length > 0) {
         await this.prisma.pageRevision.deleteMany({
@@ -1192,7 +1381,7 @@ export class PageService implements PagesConfigConsumer {
 
     const result = await this.prisma.page.updateMany({
       where: { id: { in: normalized }, isSystem: false, deletedAt: null },
-      data: { deletedAt: new Date(), status: 'ARCHIVED' },
+      data: { deletedAt: new Date(), status: "ARCHIVED" },
     });
 
     this.logger?.log(`Bulk soft-delete: ${result.count} page(s)`);
@@ -1205,35 +1394,52 @@ export class PageService implements PagesConfigConsumer {
    * Bulk schedule pages for future publication.
    * System pages are excluded — they should remain published.
    */
-  async bulkSchedule(ids: string[], scheduledFor: Date): Promise<{ count: number }> {
+  async bulkSchedule(
+    ids: string[],
+    scheduledFor: Date,
+  ): Promise<{ count: number }> {
     const cfg = await this.resolveConfig();
     if (!cfg.enableScheduling) {
-      throw new PageError('Scheduling is disabled', 'SCHEDULING_DISABLED', 400);
+      throw new PageError("Scheduling is disabled", "SCHEDULING_DISABLED", 400);
     }
 
     if (isPast(scheduledFor)) {
-      throw new PageError('Scheduled date must be in the future', 'SCHEDULE_PAST', 400);
+      throw new PageError(
+        "Scheduled date must be in the future",
+        "SCHEDULE_PAST",
+        400,
+      );
     }
 
     const normalized = normalizeIds(ids);
-    if (normalized.length === 0) throw new PageError('No valid IDs provided', 'EMPTY_IDS', 400);
+    if (normalized.length === 0)
+      throw new PageError("No valid IDs provided", "EMPTY_IDS", 400);
 
     const result = await this.prisma.page.updateMany({
       where: { id: { in: normalized }, deletedAt: null, isSystem: false },
-      data: { status: 'SCHEDULED', scheduledFor },
+      data: { status: "SCHEDULED", scheduledFor },
     });
 
-    this.logger?.log(`Bulk schedule: ${result.count} page(s) → ${scheduledFor.toISOString()}`);
+    this.logger?.log(
+      `Bulk schedule: ${result.count} page(s) → ${scheduledFor.toISOString()}`,
+    );
     await this.invalidateCache();
     await this.revalidateByIds(normalized);
     return result;
   }
 
   /** Bulk reorder pages (set sortOrder for each). Validates size and handles missing pages. */
-  async bulkReorder(items: Array<{ id: string; sortOrder: number }>): Promise<{ count: number; errors: Array<{ id: string; error: string }> }> {
-    if (items.length === 0) throw new PageError('No items provided', 'EMPTY_IDS', 400);
+  async bulkReorder(
+    items: Array<{ id: string; sortOrder: number }>,
+  ): Promise<{ count: number; errors: Array<{ id: string; error: string }> }> {
+    if (items.length === 0)
+      throw new PageError("No items provided", "EMPTY_IDS", 400);
     if (items.length > PAGE_LIMITS.MAX_BULK_SIZE) {
-      throw new PageError(`Maximum ${PAGE_LIMITS.MAX_BULK_SIZE} items per batch`, 'BULK_LIMIT_EXCEEDED', 400);
+      throw new PageError(
+        `Maximum ${PAGE_LIMITS.MAX_BULK_SIZE} items per batch`,
+        "BULK_LIMIT_EXCEEDED",
+        400,
+      );
     }
 
     let count = 0;
@@ -1241,9 +1447,11 @@ export class PageService implements PagesConfigConsumer {
 
     for (const item of items) {
       try {
-        const existing = await this.prisma.page.findUnique({ where: { id: item.id } });
+        const existing = await this.prisma.page.findUnique({
+          where: { id: item.id },
+        });
         if (!existing) {
-          errors.push({ id: item.id, error: 'Page not found' });
+          errors.push({ id: item.id, error: "Page not found" });
           continue;
         }
         await this.prisma.page.update({
@@ -1252,11 +1460,16 @@ export class PageService implements PagesConfigConsumer {
         });
         count++;
       } catch (err) {
-        errors.push({ id: item.id, error: err instanceof Error ? err.message : String(err) });
+        errors.push({
+          id: item.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
 
-    this.logger?.log(`Bulk reorder: ${count} page(s), ${errors.length} error(s)`);
+    this.logger?.log(
+      `Bulk reorder: ${count} page(s), ${errors.length} error(s)`,
+    );
     await this.invalidateCache();
     return { count, errors };
   }
@@ -1266,14 +1479,18 @@ export class PageService implements PagesConfigConsumer {
    * System pages are skipped — their hierarchy position should be
    * managed explicitly if needed.
    */
-  async bulkMove(ids: string[], parentId: string | null): Promise<{ count: number; errors: Array<{ id: string; error: string }> }> {
+  async bulkMove(
+    ids: string[],
+    parentId: string | null,
+  ): Promise<{ count: number; errors: Array<{ id: string; error: string }> }> {
     const cfg = await this.resolveConfig();
     if (!cfg.enableHierarchy) {
-      throw new PageError('Hierarchy is disabled', 'HIERARCHY_DISABLED', 400);
+      throw new PageError("Hierarchy is disabled", "HIERARCHY_DISABLED", 400);
     }
 
     const normalized = normalizeIds(ids);
-    if (normalized.length === 0) throw new PageError('No valid IDs provided', 'EMPTY_IDS', 400);
+    if (normalized.length === 0)
+      throw new PageError("No valid IDs provided", "EMPTY_IDS", 400);
 
     let count = 0;
     const errors: Array<{ id: string; error: string }> = [];
@@ -1283,17 +1500,20 @@ export class PageService implements PagesConfigConsumer {
         // Skip system pages in bulk move
         const page = await this.prisma.page.findUnique({ where: { id } });
         if (!page) {
-          errors.push({ id, error: 'Page not found' });
+          errors.push({ id, error: "Page not found" });
           continue;
         }
         if ((page as Page).isSystem) {
-          errors.push({ id, error: 'System pages cannot be bulk-moved' });
+          errors.push({ id, error: "System pages cannot be bulk-moved" });
           continue;
         }
         await this.movePage(id, parentId);
         count++;
       } catch (err) {
-        errors.push({ id, error: err instanceof Error ? err.message : String(err) });
+        errors.push({
+          id,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
 
@@ -1302,9 +1522,13 @@ export class PageService implements PagesConfigConsumer {
   }
 
   /** Bulk set template for pages. */
-  async bulkSetTemplate(ids: string[], template: Page['template']): Promise<{ count: number }> {
+  async bulkSetTemplate(
+    ids: string[],
+    template: Page["template"],
+  ): Promise<{ count: number }> {
     const normalized = normalizeIds(ids);
-    if (normalized.length === 0) throw new PageError('No valid IDs provided', 'EMPTY_IDS', 400);
+    if (normalized.length === 0)
+      throw new PageError("No valid IDs provided", "EMPTY_IDS", 400);
 
     const result = await this.prisma.page.updateMany({
       where: { id: { in: normalized }, deletedAt: null },
@@ -1318,16 +1542,22 @@ export class PageService implements PagesConfigConsumer {
   }
 
   /** Bulk set visibility for pages. */
-  async bulkSetVisibility(ids: string[], visibility: Page['visibility']): Promise<{ count: number }> {
+  async bulkSetVisibility(
+    ids: string[],
+    visibility: Page["visibility"],
+  ): Promise<{ count: number }> {
     const normalized = normalizeIds(ids);
-    if (normalized.length === 0) throw new PageError('No valid IDs provided', 'EMPTY_IDS', 400);
+    if (normalized.length === 0)
+      throw new PageError("No valid IDs provided", "EMPTY_IDS", 400);
 
     const result = await this.prisma.page.updateMany({
       where: { id: { in: normalized }, deletedAt: null },
       data: { visibility },
     });
 
-    this.logger?.log(`Bulk visibility: ${result.count} page(s) → ${visibility}`);
+    this.logger?.log(
+      `Bulk visibility: ${result.count} page(s) → ${visibility}`,
+    );
     await this.invalidateCache();
     await this.revalidateByIds(normalized);
     return result;
@@ -1336,14 +1566,15 @@ export class PageService implements PagesConfigConsumer {
   /** Bulk restore soft-deleted pages. System pages excluded (cannot be deleted in the first place). */
   async bulkRestore(ids: string[]): Promise<{ count: number }> {
     const normalized = normalizeIds(ids);
-    if (normalized.length === 0) throw new PageError('No valid IDs provided', 'EMPTY_IDS', 400);
+    if (normalized.length === 0)
+      throw new PageError("No valid IDs provided", "EMPTY_IDS", 400);
 
     const result = await this.prisma.page.updateMany({
       where: {
         id: { in: normalized },
         deletedAt: { not: null },
       },
-      data: { deletedAt: null, status: 'DRAFT' },
+      data: { deletedAt: null, status: "DRAFT" },
     });
 
     this.logger?.log(`Bulk restore: ${result.count} page(s)`);
@@ -1360,15 +1591,22 @@ export class PageService implements PagesConfigConsumer {
     const cached = await this.cache?.get<PageStats>(CACHE_KEYS.pageStats());
     if (cached) return cached;
 
-    const [total, draft, published, scheduled, archived, system, deleted] = await Promise.all([
-      this.prisma.page.count({ where: { deletedAt: null } }),
-      this.prisma.page.count({ where: { status: 'DRAFT', deletedAt: null } }),
-      this.prisma.page.count({ where: { status: 'PUBLISHED', deletedAt: null } }),
-      this.prisma.page.count({ where: { status: 'SCHEDULED', deletedAt: null } }),
-      this.prisma.page.count({ where: { status: 'ARCHIVED', deletedAt: null } }),
-      this.prisma.page.count({ where: { isSystem: true, deletedAt: null } }),
-      this.prisma.page.count({ where: { deletedAt: { not: null } } }),
-    ]);
+    const [total, draft, published, scheduled, archived, system, deleted] =
+      await Promise.all([
+        this.prisma.page.count({ where: { deletedAt: null } }),
+        this.prisma.page.count({ where: { status: "DRAFT", deletedAt: null } }),
+        this.prisma.page.count({
+          where: { status: "PUBLISHED", deletedAt: null },
+        }),
+        this.prisma.page.count({
+          where: { status: "SCHEDULED", deletedAt: null },
+        }),
+        this.prisma.page.count({
+          where: { status: "ARCHIVED", deletedAt: null },
+        }),
+        this.prisma.page.count({ where: { isSystem: true, deletedAt: null } }),
+        this.prisma.page.count({ where: { deletedAt: { not: null } } }),
+      ]);
 
     const stats: PageStats = {
       total,
@@ -1395,7 +1633,7 @@ export class PageService implements PagesConfigConsumer {
    */
   async generateUniqueSlug(base: string, excludeId?: string): Promise<string> {
     let slug = sanitizeSlug(base);
-    if (!slug) slug = 'page';
+    if (!slug) slug = "page";
 
     // Block reserved system slugs for custom pages
     if (RESERVED_SLUGS.has(slug) && !excludeId) {
@@ -1449,7 +1687,9 @@ export class PageService implements PagesConfigConsumer {
   /** Rebuild paths of all descendants after a parent slug/path change. */
   private async rebuildDescendantPaths(parentId: string): Promise<void> {
     const cfg = await this.resolveConfig();
-    const parent = await this.prisma.page.findUnique({ where: { id: parentId } });
+    const parent = await this.prisma.page.findUnique({
+      where: { id: parentId },
+    });
     if (!parent) return;
 
     const parentPage = parent as Page;
@@ -1475,11 +1715,13 @@ export class PageService implements PagesConfigConsumer {
   /** Invalidate all page-related caches. */
   private async invalidateCache(): Promise<void> {
     try {
-      await this.cache?.flush(`${CACHE_KEYS.pageById('').split(':').slice(0, 2).join(':')}:*`);
+      await this.cache?.flush(
+        `${CACHE_KEYS.pageById("").split(":").slice(0, 2).join(":")}:*`,
+      );
     } catch {
       // Fallback: flush entire pages namespace
       try {
-        await this.cache?.flush('pages:*');
+        await this.cache?.flush("pages:*");
       } catch {
         // Cache flush failed — non-fatal
       }
@@ -1492,7 +1734,9 @@ export class PageService implements PagesConfigConsumer {
     try {
       await this.revalidate(paths.filter(Boolean));
     } catch (err) {
-      this.logger?.warn(`Revalidation failed: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger?.warn(
+        `Revalidation failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -1503,12 +1747,14 @@ export class PageService implements PagesConfigConsumer {
       const pages = await this.prisma.page.findMany({
         where: { id: { in: ids } },
       });
-      const paths = (pages as Page[]).map(p => p.path).filter(Boolean);
+      const paths = (pages as Page[]).map((p) => p.path).filter(Boolean);
       if (paths.length > 0) {
         await this.revalidate(paths);
       }
     } catch (err) {
-      this.logger?.warn(`Revalidation by IDs failed: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger?.warn(
+        `Revalidation by IDs failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 }

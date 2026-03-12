@@ -4,7 +4,9 @@ import { z } from "zod";
 const isProduction = process.env.NODE_ENV === "production";
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().url("DATABASE_URL must be a valid connection string"),
+  DATABASE_URL: z
+    .string()
+    .url("DATABASE_URL must be a valid connection string"),
 
   DATABASE_URL_UNPOOLED: z.string().url().optional(),
 
@@ -13,7 +15,9 @@ const envSchema = z.object({
 
   // Auth — AUTH_SECRET is required in production (NextAuth v5 mandatory)
   AUTH_SECRET: isProduction
-    ? z.string().min(32, "AUTH_SECRET must be at least 32 characters in production")
+    ? z
+        .string()
+        .min(32, "AUTH_SECRET must be at least 32 characters in production")
     : z.string().min(1).optional(),
   NEXTAUTH_SECRET: z.string().min(1).optional(), // legacy alias
   NEXTAUTH_URL: z.string().url().optional(),
@@ -30,7 +34,11 @@ const envSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
 
   OPENAI_API_KEY: z.string().min(1).optional(),
-  CRON_SECRET: z.string().min(1).optional(),
+  CRON_SECRET: isProduction
+    ? z
+        .string()
+        .min(16, "CRON_SECRET must be at least 16 characters in production")
+    : z.string().min(1).optional(),
   CLOUDFLARE_TURNSTILE_SECRET: z.string().min(1).optional(),
 
   // Captcha secret keys (server-side verification)
@@ -52,7 +60,9 @@ const envSchema = z.object({
   S3_ENDPOINT: z.string().url().optional(),
   S3_PUBLIC_URL: z.string().url().optional(),
 
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
 });
 
 function parseEnv() {
@@ -63,9 +73,7 @@ function parseEnv() {
       .map((i) => `  ✗ ${i.path.join(".")}: ${i.message}`)
       .join("\n");
 
-    console.error(
-      `\n❌ Invalid environment variables:\n${formatted}\n`,
-    );
+    console.error(`\n❌ Invalid environment variables:\n${formatted}\n`);
     throw new Error("Missing or invalid environment variables — see above.");
   }
 

@@ -131,8 +131,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { tagIds, ...pageData } = parsed.data;
-    const page = await pageService.createPage({ ...pageData, tagIds });
+    const page = await pageService.createPage(parsed.data);
 
     // Auto-include this new page in ad slot pageTypes
     if (page.slug) {

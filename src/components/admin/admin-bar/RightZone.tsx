@@ -9,6 +9,7 @@ import {
   Rocket,
   Eye,
   Keyboard,
+  Search,
 } from "lucide-react";
 import { useAdminBar } from "./AdminBarProvider";
 import { NewDropdown } from "./NewDropdown";
@@ -182,6 +183,18 @@ export function RightZone({
         >
           <Keyboard className="h-3.5 w-3.5" />
         </span>
+      )}
+
+      {/* Search — public pages only */}
+      {!route.isAdmin && (
+        <Link
+          href="/search"
+          onClick={closeDropdown}
+          className="flex items-center gap-1 rounded px-2 py-1 text-sm text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <Search className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Search</span>
+        </Link>
       )}
 
       {/* User dropdown */}

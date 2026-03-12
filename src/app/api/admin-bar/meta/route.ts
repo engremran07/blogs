@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/server/auth";
+import { requireAuth } from "@/server/api-auth";
 import { prisma } from "@/server/db/prisma";
 
 /**
@@ -12,20 +12,8 @@ import { prisma } from "@/server/db/prisma";
  * Auth-gated: requires EDITOR / ADMINISTRATOR / SUPER_ADMIN.
  */
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json(
-      { success: false, error: "Authentication required" },
-      { status: 401 },
-    );
-  }
-  const role = session.user.role;
-  if (!["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"].includes(role)) {
-    return NextResponse.json(
-      { success: false, error: "Forbidden" },
-      { status: 403 },
-    );
-  }
+  const { userId: _userId, userRole: _userRole, errorResponse } = await requireAuth({ level: "moderator" });
+  if (errorResponse) return errorResponse;
 
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type"); // "post" | "page"

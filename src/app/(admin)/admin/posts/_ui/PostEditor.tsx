@@ -730,7 +730,16 @@ export default function PostEditor({
                     label="Canonical URL"
                     value={form.canonicalUrl}
                     onChange={(e) => update("canonicalUrl", e.target.value)}
-                    placeholder="https://..."
+                    placeholder={
+                      form.slug
+                        ? `${typeof window !== "undefined" ? window.location.origin : ""}/blog/${form.slug}`
+                        : "https://..."
+                    }
+                    hint={
+                      form.slug
+                        ? `Auto: ${typeof window !== "undefined" ? window.location.origin : ""}/blog/${form.slug}`
+                        : undefined
+                    }
                   />
                   <div className="flex gap-6">
                     <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -775,7 +784,12 @@ export default function PostEditor({
                     label="OG Image URL"
                     value={form.ogImage}
                     onChange={(e) => update("ogImage", e.target.value)}
-                    placeholder="https://..."
+                    placeholder={form.featuredImage || "https://..."}
+                    hint={
+                      form.featuredImage && !form.ogImage
+                        ? "Defaults to featured image"
+                        : undefined
+                    }
                   />
                   {/* Search Preview */}
                   <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-600 dark:bg-gray-900">

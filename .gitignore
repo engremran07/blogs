@@ -53,3 +53,6 @@ yarn-error.log*
 jest.config.ts
 vitest.config.ts
 playwright.config.ts
+
+# Claude Code temp files
+tmpclaude-*

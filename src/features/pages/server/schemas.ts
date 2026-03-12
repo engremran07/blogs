@@ -3,18 +3,22 @@
 // Covers: pages, bulk operations, listing filters, admin settings.
 // Framework-agnostic — import { z } from 'zod'.
 
-import { z } from 'zod';
+import { z } from "zod";
 import {
-  PAGE_STATUSES, PAGE_TEMPLATES, PAGE_VISIBILITIES,
-  PAGE_SORT_FIELDS, SORT_ORDERS, SYSTEM_PAGE_KEYS,
-} from '../types';
-import { PAGE_LIMITS } from './constants';
+  PAGE_STATUSES,
+  PAGE_TEMPLATES,
+  PAGE_VISIBILITIES,
+  PAGE_SORT_FIELDS,
+  SORT_ORDERS,
+  SYSTEM_PAGE_KEYS,
+} from "../types";
+import { PAGE_LIMITS } from "./constants";
 
 /* ========================================================================== */
 /*  COMMON                                                                    */
 /* ========================================================================== */
 
-const idSchema = z.string().min(1, 'ID is required');
+const idSchema = z.string().min(1, "ID is required");
 
 const idArraySchema = z
   .array(z.string().min(1))
@@ -22,7 +26,12 @@ const idArraySchema = z
 
 const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(PAGE_LIMITS.MAX_PAGES_PER_PAGE).default(20),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(PAGE_LIMITS.MAX_PAGES_PER_PAGE)
+    .default(20),
 });
 
 const urlOrNull = z.string().url().nullish();
@@ -32,16 +41,23 @@ const urlOrNull = z.string().url().nullish();
 /* ========================================================================== */
 
 export const CreatePageSchema = z.object({
-  title: z.string()
-    .min(PAGE_LIMITS.TITLE_MIN_LENGTH, `Title must be at least ${PAGE_LIMITS.TITLE_MIN_LENGTH} characters`)
-    .max(PAGE_LIMITS.TITLE_MAX_LENGTH, `Title must be at most ${PAGE_LIMITS.TITLE_MAX_LENGTH} characters`)
-    .transform(s => s.trim()),
+  title: z
+    .string()
+    .min(
+      PAGE_LIMITS.TITLE_MIN_LENGTH,
+      `Title must be at least ${PAGE_LIMITS.TITLE_MIN_LENGTH} characters`,
+    )
+    .max(
+      PAGE_LIMITS.TITLE_MAX_LENGTH,
+      `Title must be at most ${PAGE_LIMITS.TITLE_MAX_LENGTH} characters`,
+    )
+    .transform((s) => s.trim()),
   slug: z.string().max(200).nullish(),
-  content: z.string().default(''),
+  content: z.string().default(""),
   excerpt: z.string().max(PAGE_LIMITS.EXCERPT_MAX_LENGTH).nullish(),
-  status: z.enum(PAGE_STATUSES).default('DRAFT'),
-  template: z.enum(PAGE_TEMPLATES).default('DEFAULT'),
-  visibility: z.enum(PAGE_VISIBILITIES).default('PUBLIC'),
+  status: z.enum(PAGE_STATUSES).default("DRAFT"),
+  template: z.enum(PAGE_TEMPLATES).default("DEFAULT"),
+  visibility: z.enum(PAGE_VISIBILITIES).default("PUBLIC"),
   authorId: idSchema,
 
   // SEO
@@ -73,17 +89,15 @@ export const CreatePageSchema = z.object({
 
   // Scheduling
   scheduledFor: z.coerce.date().nullish(),
-
-  // Tags
-  tagIds: z.array(z.string().min(1)).default([]),
 });
 export type CreatePagePayload = z.infer<typeof CreatePageSchema>;
 
 export const UpdatePageSchema = z.object({
-  title: z.string()
+  title: z
+    .string()
     .min(PAGE_LIMITS.TITLE_MIN_LENGTH)
     .max(PAGE_LIMITS.TITLE_MAX_LENGTH)
-    .transform(s => s.trim())
+    .transform((s) => s.trim())
     .optional(),
   content: z.string().optional(),
   excerpt: z.string().max(PAGE_LIMITS.EXCERPT_MAX_LENGTH).nullish(),
@@ -121,9 +135,6 @@ export const UpdatePageSchema = z.object({
   // Scheduling
   scheduledFor: z.coerce.date().nullish(),
 
-  // Tags
-  tagIds: z.array(z.string().min(1)).optional(),
-
   // Revision note
   changeNote: z.string().max(PAGE_LIMITS.CHANGE_NOTE_MAX).nullish(),
 });
@@ -142,8 +153,8 @@ export const PageListSchema = paginationSchema.extend({
   isSystem: z.coerce.boolean().optional(),
   systemKey: z.enum(SYSTEM_PAGE_KEYS).optional(),
   authorId: z.string().optional(),
-  sortBy: z.enum(PAGE_SORT_FIELDS).default('sortOrder'),
-  sortOrder: z.enum(SORT_ORDERS).default('asc'),
+  sortBy: z.enum(PAGE_SORT_FIELDS).default("sortOrder"),
+  sortOrder: z.enum(SORT_ORDERS).default("asc"),
   includeDeleted: z.coerce.boolean().default(false),
 });
 export type PageListPayload = z.infer<typeof PageListSchema>;
@@ -172,10 +183,14 @@ export type BulkSchedulePayload = z.infer<typeof BulkScheduleSchema>;
 
 export const BulkReorderSchema = z.object({
   /** Array of { id, sortOrder } tuples. */
-  items: z.array(z.object({
-    id: z.string().min(1),
-    sortOrder: z.number().int().min(0),
-  })).max(PAGE_LIMITS.MAX_BULK_SIZE),
+  items: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        sortOrder: z.number().int().min(0),
+      }),
+    )
+    .max(PAGE_LIMITS.MAX_BULK_SIZE),
 });
 export type BulkReorderPayload = z.infer<typeof BulkReorderSchema>;
 
@@ -241,4 +256,6 @@ export const UpdatePageSettingsSchema = z.object({
   defaultVisibility: z.enum(PAGE_VISIBILITIES).optional(),
   defaultStatus: z.enum(PAGE_STATUSES).optional(),
 });
-export type UpdatePageSettingsPayload = z.infer<typeof UpdatePageSettingsSchema>;
+export type UpdatePageSettingsPayload = z.infer<
+  typeof UpdatePageSettingsSchema
+>;

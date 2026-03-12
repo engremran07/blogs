@@ -574,7 +574,6 @@ model Tag {
   protected   Boolean  @default(false)
 
   posts       Post[]   @relation("PostTags")
-  pages       Page[]   @relation("PageTags")
   followers   TagFollow[]
 
   @@index([slug])
@@ -1024,7 +1023,6 @@ model Page {
 
   // Relations
   revisions PageRevision[]
-  tags      Tag[]          @relation("PageTags")
 
   @@index([status])
   @@index([slug])

@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
 
     if (!parsed.success) {
       const details = parsed.error.flatten().fieldErrors;
-      logger.error("[api/tags/autocomplete] Validation failed:", { 
+      logger.error("[api/tags/autocomplete] Validation failed:", {
         error: details,
         params: Object.fromEntries(searchParams)
       });

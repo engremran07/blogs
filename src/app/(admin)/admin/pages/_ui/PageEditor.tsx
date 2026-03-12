@@ -10,7 +10,6 @@ import {
   ChevronDown,
   ChevronUp,
   Image as ImageIcon,
-  Code,
   Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -18,10 +17,15 @@ import { Input, Textarea, Select } from "@/components/ui/FormFields";
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { EditorStatusProvider } from "@/components/admin/EditorContext";
-import TagAutocomplete from "@/components/admin/TagAutocomplete";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import type { MediaItem } from "@/features/media/types";
+
+const SITE_URL = (
+  typeof window !== "undefined"
+    ? window.location.origin
+    : process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
+).replace(/\/$/, "");
 
 const RichTextEditor = dynamic(() => import("@/features/editor"), {
   ssr: false,
@@ -57,7 +61,6 @@ interface PageForm {
   title: string;
   slug: string;
   content: string;
-  excerpt: string;
   status: string;
   template: string;
   visibility: string;
@@ -80,28 +83,15 @@ interface PageForm {
   sortOrder: number;
   // Visibility guard
   password: string;
-  // Code injection
-  customCss: string;
-  customJs: string;
-  customHead: string;
-  // Tags
-  tagIds: string[];
   // Metrics (computed)
   wordCount: number;
   readingTime: number;
-}
-
-interface TagItem {
-  id: string;
-  name: string;
-  slug: string;
 }
 
 const defaultForm: PageForm = {
   title: "",
   slug: "",
   content: "",
-  excerpt: "",
   status: "DRAFT",
   template: "DEFAULT",
   visibility: "PUBLIC",
@@ -119,10 +109,6 @@ const defaultForm: PageForm = {
   parentId: "",
   sortOrder: 0,
   password: "",
-  customCss: "",
-  customJs: "",
-  customHead: "",
-  tagIds: [],
   wordCount: 0,
   readingTime: 0,
 };
@@ -140,16 +126,17 @@ export default function PageEditor({
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [autoSlug, setAutoSlug] = useState(isNew);
   const [seoOpen, setSeoOpen] = useState(false);
-  const [codeOpen, setCodeOpen] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<TagItem[]>([]);
 
   const [form, setForm] = useState<PageForm>({ ...defaultForm });
 
   // Ref always points to the latest form so async handlers never see stale state
   const formRef = useRef(form);
   formRef.current = form;
+
+  // Computed canonical URL from slug
+  const computedCanonicalUrl = form.slug ? `${SITE_URL}/${form.slug}` : "";
 
   useEffect(() => {
     if (!isNew && pageId) {
@@ -158,17 +145,10 @@ export default function PageEditor({
         .then((d) => {
           if (d.success && d.data) {
             const pg = d.data;
-            const pageTags = (pg.tags || []).map((t: TagItem) => ({
-              id: t.id,
-              name: t.name,
-              slug: t.slug,
-            }));
-            setSelectedTags(pageTags);
             setForm({
               title: pg.title || "",
               slug: pg.slug || "",
               content: pg.content || "",
-              excerpt: pg.excerpt || "",
               status: pg.status || "DRAFT",
               template: pg.template || "DEFAULT",
               visibility: pg.visibility || "PUBLIC",
@@ -188,10 +168,6 @@ export default function PageEditor({
               parentId: pg.parentId || "",
               sortOrder: pg.sortOrder ?? 0,
               password: pg.password || "",
-              customCss: pg.customCss || "",
-              customJs: pg.customJs || "",
-              customHead: pg.customHead || "",
-              tagIds: pageTags.map((t: TagItem) => t.id),
               wordCount: pg.wordCount ?? 0,
               readingTime: pg.readingTime ?? 0,
             });
@@ -222,7 +198,6 @@ export default function PageEditor({
       const body: Record<string, unknown> = {
         title: f.title,
         content: f.content,
-        excerpt: f.excerpt || undefined,
         status: status || f.status,
         template: f.template,
         visibility: f.visibility,
@@ -243,15 +218,7 @@ export default function PageEditor({
         sortOrder: f.sortOrder,
         // Visibility guard
         password:
-          f.visibility === "PASSWORD_PROTECTED"
-            ? f.password || null
-            : null,
-        // Code injection
-        customCss: f.customCss || null,
-        customJs: f.customJs || null,
-        customHead: f.customHead || null,
-        // Tags
-        tagIds: f.tagIds,
+          f.visibility === "PASSWORD_PROTECTED" ? f.password || null : null,
         // Metrics
         wordCount: f.wordCount,
         readingTime: f.readingTime,
@@ -408,16 +375,6 @@ export default function PageEditor({
                 maxHeight="800px"
               />
             </div>
-            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-              <Textarea
-                label="Excerpt"
-                value={form.excerpt}
-                onChange={(e) => update("excerpt", e.target.value)}
-                placeholder="Short summary..."
-                rows={3}
-                hint="Optional. Used in page listings and meta descriptions."
-              />
-            </div>
 
             {/* SEO Section */}
             <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
@@ -466,18 +423,32 @@ export default function PageEditor({
                     rows={2}
                     maxLength={200}
                   />
-                  <Input
-                    label="OG Image URL"
-                    value={form.ogImage}
-                    onChange={(e) => update("ogImage", e.target.value)}
-                    placeholder="https://..."
-                  />
-                  <Input
-                    label="Canonical URL"
-                    value={form.canonicalUrl}
-                    onChange={(e) => update("canonicalUrl", e.target.value)}
-                    placeholder="https://..."
-                  />
+                  <div>
+                    <Input
+                      label="OG Image URL"
+                      value={form.ogImage}
+                      onChange={(e) => update("ogImage", e.target.value)}
+                      placeholder={form.featuredImage || "https://..."}
+                      hint={
+                        form.featuredImage && !form.ogImage
+                          ? "Defaults to featured image"
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      label="Canonical URL"
+                      value={form.canonicalUrl}
+                      onChange={(e) => update("canonicalUrl", e.target.value)}
+                      placeholder={computedCanonicalUrl || "https://..."}
+                      hint={
+                        computedCanonicalUrl
+                          ? `Auto: ${computedCanonicalUrl}`
+                          : undefined
+                      }
+                    />
+                  </div>
                   <div className="flex gap-6">
                     <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                       <input
@@ -505,77 +476,13 @@ export default function PageEditor({
                       {form.metaTitle || form.title || "Page Title"}
                     </p>
                     <p className="text-xs text-green-700 dark:text-green-400">
-                      myblog.com/{form.slug || "page-slug"}
+                      {computedCanonicalUrl ||
+                        `${SITE_URL}/${form.slug || "page-slug"}`}
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
                       {form.metaDescription ||
-                        form.excerpt ||
                         "Page description will appear here..."}
                     </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Code Injection Section */}
-            <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-              <button
-                onClick={() => setCodeOpen(!codeOpen)}
-                className="flex w-full items-center justify-between p-6"
-              >
-                <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
-                  <Code className="h-4 w-4" /> Code Injection
-                </h3>
-                {codeOpen ? (
-                  <ChevronUp className="h-5 w-5 text-gray-400" />
-                ) : (
-                  <ChevronDown className="h-5 w-5 text-gray-400" />
-                )}
-              </button>
-              {codeOpen && (
-                <div className="space-y-4 border-t border-gray-200 p-6 dark:border-gray-700">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Add custom CSS, JavaScript, or HTML head tags to this page
-                    only.
-                  </p>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Custom CSS
-                    </label>
-                    <textarea
-                      value={form.customCss}
-                      onChange={(e) => update("customCss", e.target.value)}
-                      placeholder=".my-class { color: red; }"
-                      rows={4}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-600"
-                      spellCheck={false}
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Custom JavaScript
-                    </label>
-                    <textarea
-                      value={form.customJs}
-                      onChange={(e) => update("customJs", e.target.value)}
-                      placeholder="console.log('Hello from page');"
-                      rows={4}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-600"
-                      spellCheck={false}
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Custom Head Tags
-                    </label>
-                    <textarea
-                      value={form.customHead}
-                      onChange={(e) => update("customHead", e.target.value)}
-                      placeholder='<meta name="custom" content="value" />'
-                      rows={3}
-                      className="w-full rounded-lg border border-gray-300 bg-gray-900 p-3 font-mono text-sm text-green-400 placeholder-gray-600 focus:border-primary focus:ring-1 focus:ring-primary dark:border-gray-600"
-                      spellCheck={false}
-                    />
                   </div>
                 </div>
               )}
@@ -701,22 +608,6 @@ export default function PageEditor({
               </div>
             </div>
 
-            {/* Tags */}
-            <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-              <h3 className="mb-3 font-semibold text-gray-900 dark:text-white">
-                Tags
-              </h3>
-              <TagAutocomplete
-                selectedTagIds={form.tagIds}
-                selectedTags={selectedTags}
-                onTagsChange={(tagIds, tags) => {
-                  setForm((prev) => ({ ...prev, tagIds }));
-                  setSelectedTags(tags);
-                }}
-                placeholder="Search tags..."
-              />
-            </div>
-
             {/* Page Info */}
             {!isNew && (
               <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
@@ -826,9 +717,6 @@ export default function PageEditor({
               <h1>{form.title}</h1>
               <div dangerouslySetInnerHTML={{ __html: form.content }} />
             </article>
-            {form.customCss && (
-              <style dangerouslySetInnerHTML={{ __html: form.customCss }} />
-            )}
           </div>
         </Modal>
       </div>

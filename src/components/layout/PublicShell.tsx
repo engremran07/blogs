@@ -129,13 +129,15 @@ export function PublicShell({
 
   return (
     <div className={`flex min-h-screen flex-col${hasAdminBar ? " pt-11" : ""}`}>
-      {settings && <TopBar settings={settings} socialLinks={socialLinks} />}
-      <Header
-        siteName={siteName}
-        logoUrl={logoUrl}
-        showDarkModeToggle={showDarkModeToggle}
-        menuItems={headerMenuItems}
-      />
+      {settings && !hasAdminBar && <TopBar settings={settings} socialLinks={socialLinks} />}
+      {!hasAdminBar && (
+        <Header
+          siteName={siteName}
+          logoUrl={logoUrl}
+          showDarkModeToggle={showDarkModeToggle}
+          menuItems={headerMenuItems}
+        />
+      )}
       {headerAdSlot}
       <main className="flex-1">{children}</main>
       {footerAdSlot}

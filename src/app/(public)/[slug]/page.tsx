@@ -65,6 +65,7 @@ export async function generateMetadata({
       ogTitle: true,
       ogDescription: true,
       ogImage: true,
+      featuredImage: true,
       canonicalUrl: true,
       noIndex: true,
       noFollow: true,
@@ -80,6 +81,8 @@ export async function generateMetadata({
   const title = page.metaTitle || page.title;
   const description =
     page.metaDescription || page.excerpt || `${page.title} — ${siteName}`;
+
+  const ogImage = page.ogImage || page.featuredImage;
 
   return {
     title,
@@ -98,11 +101,9 @@ export async function generateMetadata({
       type: "website",
       siteName,
       locale: "en_US",
-      ...(page.ogImage
+      ...(ogImage
         ? {
-            images: [
-              { url: page.ogImage, width: 1200, height: 630, alt: title },
-            ],
+            images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
           }
         : {}),
     },
@@ -110,7 +111,7 @@ export async function generateMetadata({
       card: "summary",
       title: page.ogTitle || title,
       description: page.ogDescription || description,
-      ...(page.ogImage ? { images: [page.ogImage] } : {}),
+      ...(ogImage ? { images: [ogImage] } : {}),
     },
   };
 }
@@ -164,7 +165,9 @@ export default async function CmsPage({
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
-      {page.customCss && <style dangerouslySetInnerHTML={{ __html: page.customCss }} />}
+      {page.customCss && (
+        <style dangerouslySetInnerHTML={{ __html: page.customCss }} />
+      )}
 
       {/* Page Header */}
       <header className="mb-10 text-center">

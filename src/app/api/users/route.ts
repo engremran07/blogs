@@ -202,6 +202,95 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// ─── Admin-only user creation schema ─────────────────────────────────────────
+const createUserSchema = z.object({
+  username: z.string().trim().min(3).max(50),
+  email: z.string().email().toLowerCase(),
+  password: z.string().min(1),
+  role: z.enum(USER_ROLES).default("SUBSCRIBER"),
+  displayName: z.string().trim().max(100).nullable().optional(),
+  firstName: z.string().trim().max(100).nullable().optional(),
+  lastName: z.string().trim().max(100).nullable().optional(),
+  nickname: z.string().trim().max(100).nullable().optional(),
+  bio: z.string().max(1000).nullable().optional(),
+  website: z.string().url().or(z.literal("")).nullable().optional(),
+  phoneNumber: z.string().max(30).nullable().optional(),
+  customCapabilities: z.array(z.string()).optional(),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const { userRole, errorResponse } = await requireAuth({ level: "admin" });
+    if (errorResponse) return errorResponse;
+
+    const body = await req.json();
+    const validation = createUserSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: "Validation failed", details: validation.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const { password, role, customCapabilities, ...fields } = validation.data;
+
+    // Only SUPER_ADMIN can create SUPER_ADMIN users
+    if (role === "SUPER_ADMIN" && userRole !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { success: false, error: "Only Super Admins can create Super Admin users" },
+        { status: 403 },
+      );
+    }
+
+    // Check username uniqueness
+    const existingUsername = await prisma.user.findUnique({ where: { username: fields.username } });
+    if (existingUsername) {
+      return NextResponse.json(
+        { success: false, error: "Username already taken" },
+        { status: 409 },
+      );
+    }
+
+    // Check email uniqueness
+    const existingEmail = await prisma.user.findUnique({ where: { email: fields.email } });
+    if (existingEmail) {
+      return NextResponse.json(
+        { success: false, error: "Email already in use" },
+        { status: 409 },
+      );
+    }
+
+    // Validate and hash password
+    validatePasswordStrength(password, DEFAULT_USER_CONFIG);
+    const hashedPassword = await hashPassword(password);
+
+    const user = await prisma.user.create({
+      data: {
+        ...fields,
+        password: hashedPassword,
+        role,
+        isEmailVerified: true,
+        ...(customCapabilities ? { customCapabilities } : {}),
+      },
+      select: SAFE_SELECT,
+    });
+
+    return NextResponse.json({ success: true, data: user }, { status: 201 });
+  } catch (error: unknown) {
+    if ((error as { name?: string })?.name === "ValidationError") {
+      return NextResponse.json(
+        { success: false, error: (error as Error).message },
+        { status: 400 },
+      );
+    }
+    logger.error("[api/users] POST error:", { error });
+    return NextResponse.json(
+      { success: false, error: "Failed to create user" },
+      { status: 500 },
+    );
+  }
+}
+
 export async function PATCH(req: NextRequest) {
   try {
     const { userId, userRole, errorResponse } = await requireAuth({

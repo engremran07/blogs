@@ -238,9 +238,6 @@ export interface CreatePageInput {
 
   // Scheduling
   scheduledFor?: Date | null;
-
-  // Tags
-  tagIds?: string[];
 }
 
 export interface UpdatePageInput {
@@ -280,9 +277,6 @@ export interface UpdatePageInput {
 
   // Scheduling
   scheduledFor?: Date | null;
-
-  // Tags
-  tagIds?: string[];
 
   // Revision note
   changeNote?: string | null;

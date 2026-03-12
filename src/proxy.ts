@@ -122,7 +122,37 @@ let rateLimiter: {
 } | null = null;
 let rateLimiterInitialised = false;
 
+// ── In-memory fallback rate limiter ─────────────────────────────────────────
+const MEMORY_RATE_LIMIT = 30;
+const MEMORY_RATE_WINDOW_MS = 60_000;
+const inMemoryRateMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkInMemoryRateLimit(ip: string): boolean {
+  const now = Date.now();
+
+  // Periodically clean expired entries (every call, cheap for small maps)
+  for (const [key, entry] of inMemoryRateMap) {
+    if (now >= entry.resetAt) {
+      inMemoryRateMap.delete(key);
+    }
+  }
+
+  const existing = inMemoryRateMap.get(ip);
+  if (!existing || now >= existing.resetAt) {
+    inMemoryRateMap.set(ip, { count: 1, resetAt: now + MEMORY_RATE_WINDOW_MS });
+    return false; // not rate-limited
+  }
+
+  existing.count += 1;
+  return existing.count > MEMORY_RATE_LIMIT;
+}
+
 async function checkRateLimit(req: NextRequest): Promise<boolean> {
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "127.0.0.1";
+
   if (!rateLimiterInitialised) {
     rateLimiterInitialised = true;
     try {
@@ -140,21 +170,19 @@ async function checkRateLimit(req: NextRequest): Promise<boolean> {
         });
       }
     } catch {
-      // No Redis configured — skip rate limiting
+      // No Redis configured — fall through to in-memory limiter
     }
   }
 
-  if (!rateLimiter) return false;
+  // If no Redis rate limiter, use in-memory fallback (never fail open)
+  if (!rateLimiter) return checkInMemoryRateLimit(ip);
 
   try {
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      "127.0.0.1";
     const { success } = await rateLimiter.limit(ip);
     return !success;
   } catch {
-    return false; // Fail open — don't block if Redis is down
+    // Redis call failed — fall back to in-memory limiter instead of failing open
+    return checkInMemoryRateLimit(ip);
   }
 }
 

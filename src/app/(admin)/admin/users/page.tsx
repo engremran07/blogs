@@ -221,50 +221,26 @@ export default function AdminUsersPage() {
     }
     setCreating(true);
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createForm),
+        body: JSON.stringify({
+          username: createForm.username,
+          email: createForm.email,
+          password: createForm.password,
+          role: createForm.role,
+          firstName: createForm.firstName || null,
+          lastName: createForm.lastName || null,
+          displayName: createForm.displayName || null,
+          nickname: createForm.nickname || null,
+          bio: createForm.bio || null,
+          website: createForm.website || null,
+          phoneNumber: createForm.phoneNumber || null,
+          customCapabilities: createForm.customCapabilities,
+        }),
       });
-      if (!res.ok) {
-        toast("Failed to create user", "error");
-        return;
-      }
       const data = await res.json();
-      if (data.success || data.data) {
-        // Set role, profile fields, and custom capabilities via PATCH
-        const needsPatch =
-          createForm.role !== "SUBSCRIBER" ||
-          createForm.firstName ||
-          createForm.lastName ||
-          createForm.displayName ||
-          createForm.nickname ||
-          createForm.bio ||
-          createForm.website ||
-          createForm.phoneNumber ||
-          createForm.customCapabilities.length > 0;
-
-        if (needsPatch && data.data?.id) {
-          await fetch("/api/users", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              id: data.data.id,
-              role: createForm.role,
-              firstName: createForm.firstName || null,
-              lastName: createForm.lastName || null,
-              displayName: createForm.displayName || null,
-              nickname: createForm.nickname || null,
-              bio: createForm.bio || null,
-              website: createForm.website || null,
-              phoneNumber: createForm.phoneNumber || null,
-              customCapabilities: createForm.customCapabilities,
-            }),
-          }).then((r) => {
-            if (!r.ok)
-              toast("User created but failed to set profile/role", "error");
-          });
-        }
+      if (data.success) {
         toast("User created!", "success");
         setCreateOpen(false);
         setCreateForm({

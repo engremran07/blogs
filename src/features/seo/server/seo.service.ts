@@ -200,12 +200,12 @@ export class SeoService {
 
       // Site-wide scope — include both posts and pages
       const posts = await this.deps.post.findMany({
-        where: { status: "PUBLISHED" },
+        where: { status: "PUBLISHED", deletedAt: null },
         include: { categories: true, tags: true },
       });
 
       const pages = await this.deps.page.findMany({
-        where: { status: "PUBLISHED" },
+        where: { status: "PUBLISHED", deletedAt: null },
       });
 
       const allSuggestions: SeoSuggestion[] = [];
@@ -364,14 +364,14 @@ export class SeoService {
       const halfLimit = Math.ceil(limit / 2);
 
       const posts = await this.deps.post.findMany({
-        where: { status: "PUBLISHED" },
+        where: { status: "PUBLISHED", deletedAt: null },
         include: { categories: true, tags: true },
         take: halfLimit,
         orderBy: { updatedAt: "desc" },
       });
 
       const pages = await this.deps.page.findMany({
-        where: { status: "PUBLISHED" },
+        where: { status: "PUBLISHED", deletedAt: null },
         take: limit - posts.length,
         orderBy: { updatedAt: "desc" },
       });
@@ -411,12 +411,12 @@ export class SeoService {
   ): Promise<ApiResponse<{ total: number }>> {
     try {
       const posts = await this.deps.post.findMany({
-        where: { status: "PUBLISHED" },
+        where: { status: "PUBLISHED", deletedAt: null },
         include: { tags: true, categories: true },
       });
 
       const pages = await this.deps.page.findMany({
-        where: { status: "PUBLISHED" },
+        where: { status: "PUBLISHED", deletedAt: null },
       });
 
       const allTerms = new Map<string, { intent: string; source: string }>();
@@ -581,11 +581,11 @@ export class SeoService {
       const categories = await this.deps.category.findMany();
       const tags = await this.deps.tag.findMany();
       const posts = await this.deps.post.findMany({
-        where: { status: "PUBLISHED" },
+        where: { status: "PUBLISHED", deletedAt: null },
         include: { categories: true, tags: true },
       });
       const pages = await this.deps.page.findMany({
-        where: { status: "PUBLISHED" },
+        where: { status: "PUBLISHED", deletedAt: null },
       });
 
       // Merge posts and pages into a single content list for co-occurrence
@@ -1136,14 +1136,14 @@ export class SeoService {
       const halfLimit = Math.ceil(limit / 2);
 
       const posts = await this.deps.post.findMany({
-        where: { status: "PUBLISHED" },
+        where: { status: "PUBLISHED", deletedAt: null },
         include: { categories: true, tags: true },
         take: halfLimit,
         orderBy: { updatedAt: "asc" },
       });
 
       const pages = await this.deps.page.findMany({
-        where: { status: "PUBLISHED" },
+        where: { status: "PUBLISHED", deletedAt: null },
         take: limit - posts.length,
         orderBy: { updatedAt: "asc" },
       });
@@ -1450,7 +1450,7 @@ export class SeoService {
       // Posts
       if (normalizedConfig.includePosts) {
         const posts = await this.deps.post.findMany({
-          where: { status: "PUBLISHED" },
+          where: { status: "PUBLISHED", deletedAt: null },
           select: {
             slug: true,
             updatedAt: true,
@@ -1484,7 +1484,7 @@ export class SeoService {
       // Pages
       if (normalizedConfig.includePages) {
         const pages = await this.deps.page.findMany({
-          where: { status: "PUBLISHED" },
+          where: { status: "PUBLISHED", deletedAt: null },
           select: { slug: true, updatedAt: true },
         });
         allEntries.push(

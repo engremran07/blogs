@@ -173,8 +173,7 @@ export async function PATCH(
       );
     }
 
-    const { tagIds, ...pageData } = parsed.data;
-    const page = await pageService.updatePage(id, { ...pageData, tagIds });
+    const page = await pageService.updatePage(id, parsed.data);
 
     // Interlink lifecycle: handle slug/content/status changes
     const interlinkChanges: {

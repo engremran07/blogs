@@ -4,26 +4,32 @@ import {
   MessageSquare,
   Users,
   Eye,
-  TrendingUp,
-  Clock,
   Image,
   Search,
   AlertTriangle,
   CheckCircle,
   Link2,
+  RefreshCw,
+  BarChart3,
+  FilePlus2,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
-import type { AdminPostItem, AdminCommentItem } from "@/types/prisma-helpers";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin Dashboard" };
 
 export default async function AdminDashboard() {
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
   const [
     postCount,
     publishedCount,
     draftCount,
-    commentCount,
+    scheduledCount,
+    _commentCount,
     pendingComments,
     userCount,
     totalViews,
@@ -40,10 +46,18 @@ export default async function AdminDashboard() {
     redirectHits,
     tagCount,
     pageCount,
+    publishedPageCount,
+    // Analytics queries
+    postsThisWeek,
+    postsThisMonth,
+    _pageViews,
   ] = await Promise.all([
     prisma.post.count({ where: { deletedAt: null } }),
     prisma.post.count({ where: { status: "PUBLISHED", deletedAt: null } }),
     prisma.post.count({ where: { status: "DRAFT", deletedAt: null } }),
+    prisma.post
+      .count({ where: { status: "SCHEDULED", deletedAt: null } })
+      .catch(() => 0),
     prisma.comment.count({ where: { deletedAt: null } }),
     prisma.comment.count({ where: { status: "PENDING", deletedAt: null } }),
     prisma.user.count(),
@@ -102,36 +116,94 @@ export default async function AdminDashboard() {
       .catch(() => ({ _sum: { hitCount: 0 } })),
     prisma.tag.count().catch(() => 0),
     prisma.page.count({ where: { deletedAt: null } }).catch(() => 0),
+    prisma.page
+      .count({ where: { status: "PUBLISHED", deletedAt: null } })
+      .catch(() => 0),
+    // Analytics
+    prisma.post
+      .count({
+        where: {
+          status: "PUBLISHED",
+          deletedAt: null,
+          publishedAt: { gte: weekAgo },
+        },
+      })
+      .catch(() => 0),
+    prisma.post
+      .count({
+        where: {
+          status: "PUBLISHED",
+          deletedAt: null,
+          publishedAt: { gte: monthAgo },
+        },
+      })
+      .catch(() => 0),
+    prisma.page
+      .aggregate({
+        _sum: { wordCount: true },
+        where: { deletedAt: null },
+      })
+      .catch(() => ({ _sum: { wordCount: 0 } })),
   ]);
 
-  const recentPosts = (await prisma.post.findMany({
-    where: { deletedAt: null },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-    select: {
-      id: true,
-      postNumber: true,
-      title: true,
-      slug: true,
-      status: true,
-      createdAt: true,
-      viewCount: true,
-    },
-  })) as AdminPostItem[];
+  // Recently updated content (posts + pages merged, ordered by updatedAt)
+  const [recentlyUpdatedPosts, recentlyUpdatedPages] = await Promise.all([
+    prisma.post.findMany({
+      where: { deletedAt: null },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        postNumber: true,
+        title: true,
+        slug: true,
+        status: true,
+        updatedAt: true,
+        viewCount: true,
+      },
+    }),
+    prisma.page.findMany({
+      where: { deletedAt: null },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        status: true,
+        updatedAt: true,
+      },
+    }),
+  ]);
 
-  const recentComments = (await prisma.comment.findMany({
-    where: { deletedAt: null },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-    select: {
-      id: true,
-      content: true,
-      authorName: true,
-      status: true,
-      createdAt: true,
-      post: { select: { title: true, slug: true } },
-    },
-  })) as AdminCommentItem[];
+  // Merge and sort by updatedAt
+  const recentlyUpdated = [
+    ...recentlyUpdatedPosts.map((p) => ({
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      status: p.status,
+      updatedAt: p.updatedAt,
+      type: "post" as const,
+      href: `/admin/posts/${p.postNumber}/edit`,
+      viewCount: p.viewCount,
+    })),
+    ...recentlyUpdatedPages.map((p) => ({
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      status: p.status,
+      updatedAt: p.updatedAt,
+      type: "page" as const,
+      href: `/admin/pages/${p.slug}/edit`,
+      viewCount: 0,
+    })),
+  ]
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )
+    .slice(0, 10);
 
   const stats = [
     {
@@ -142,18 +214,11 @@ export default async function AdminDashboard() {
       sub: `${publishedCount} published, ${draftCount} drafts`,
     },
     {
-      label: "Comments",
-      value: commentCount,
-      icon: MessageSquare,
-      color: "green",
-      sub: `${pendingComments} pending`,
-    },
-    {
-      label: "Users",
-      value: userCount,
-      icon: Users,
-      color: "purple",
-      sub: "registered",
+      label: "Total Pages",
+      value: pageCount,
+      icon: FilePlus2,
+      color: "indigo",
+      sub: `${publishedPageCount} published`,
     },
     {
       label: "Total Views",
@@ -161,6 +226,13 @@ export default async function AdminDashboard() {
       icon: Eye,
       color: "amber",
       sub: "all time",
+    },
+    {
+      label: "Users",
+      value: userCount,
+      icon: Users,
+      color: "purple",
+      sub: "registered",
     },
     {
       label: "Media Files",
@@ -173,6 +245,8 @@ export default async function AdminDashboard() {
 
   const colorMap: Record<string, string> = {
     blue: "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary",
+    indigo:
+      "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400",
     green:
       "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400",
     purple:
@@ -190,13 +264,21 @@ export default async function AdminDashboard() {
       "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary",
     ARCHIVED:
       "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
-    PENDING:
-      "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
-    APPROVED:
-      "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
-    SPAM: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-    REJECTED: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   };
+
+  function timeAgo(date: Date) {
+    const seconds = Math.floor(
+      (now.getTime() - new Date(date).getTime()) / 1000,
+    );
+    if (seconds < 60) return "just now";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(date).toLocaleDateString();
+  }
 
   return (
     <div>
@@ -236,6 +318,70 @@ export default async function AdminDashboard() {
             </p>
           </div>
         ))}
+      </div>
+
+      {/* Publishing Analytics */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-green-50 p-2 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+              <BarChart3 className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">
+                {postsThisWeek}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Published this week
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-blue-50 p-2 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+              <Calendar className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">
+                {postsThisMonth}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Published this month
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-amber-50 p-2 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+              <FileText className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">
+                {scheduledCount}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Scheduled posts
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-purple-50 p-2 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+              <MessageSquare className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">
+                {pendingComments}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Pending comments
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* SEO Health */}
@@ -361,135 +507,73 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Posts */}
-        <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+      {/* Recently Updated Content */}
+      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5 text-primary dark:text-primary" />
             <h2 className="font-semibold text-gray-900 dark:text-white">
-              Recent Posts
+              Recently Updated
             </h2>
+          </div>
+          <div className="flex gap-3">
             <Link
               href="/admin/posts"
               className="text-sm text-primary hover:underline dark:text-primary"
             >
-              View all
+              All posts
             </Link>
-          </div>
-          <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            {recentPosts.map((post) => (
-              <Link
-                key={post.id}
-                href={`/admin/posts/${post.postNumber}/edit`}
-                className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                    {post.title}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(post.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-xs text-gray-400">
-                    <Eye className="h-3 w-3" /> {post.viewCount}
-                  </span>
-                  <span
-                    className={`rounded px-2 py-0.5 text-xs font-medium ${statusColors[post.status] || ""}`}
-                  >
-                    {post.status}
-                  </span>
-                </div>
-              </Link>
-            ))}
-            {recentPosts.length === 0 && (
-              <p className="px-5 py-8 text-center text-sm text-gray-500">
-                No posts yet
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Comments */}
-        <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-900 dark:text-white">
-              Recent Comments
-            </h2>
             <Link
-              href="/admin/comments"
+              href="/admin/pages"
               className="text-sm text-primary hover:underline dark:text-primary"
             >
-              View all
+              All pages
             </Link>
-          </div>
-          <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            {recentComments.map((comment) => (
-              <div key={comment.id} className="px-5 py-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {comment.authorName || "Anonymous"}
-                  </p>
-                  <span
-                    className={`rounded px-2 py-0.5 text-xs font-medium ${statusColors[comment.status] || ""}`}
-                  >
-                    {comment.status}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
-                  {comment.content}
-                </p>
-                <p className="mt-1 text-xs text-gray-400">
-                  on {comment.post?.title || "Unknown"} &middot;{" "}
-                  {new Date(comment.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-            {recentComments.length === 0 && (
-              <p className="px-5 py-8 text-center text-sm text-gray-500">
-                No comments yet
-              </p>
-            )}
           </div>
         </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mt-8">
-        <h2 className="mb-4 font-semibold text-gray-900 dark:text-white">
-          Quick Actions
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              href: "/admin/posts/new",
-              label: "Write New Post",
-              icon: FileText,
-            },
-            { href: "/admin/media", label: "Media Library", icon: Image },
-            {
-              href: "/admin/comments",
-              label: `Moderate Comments (${pendingComments})`,
-              icon: MessageSquare,
-            },
-            {
-              href: "/admin/pages/new",
-              label: "Create New Page",
-              icon: TrendingUp,
-            },
-            { href: "/admin/settings", label: "Site Settings", icon: Clock },
-          ].map((action) => (
+        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+          {recentlyUpdated.map((item) => (
             <Link
-              key={action.href}
-              href={action.href}
-              className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-primary/30 hover:bg-primary/5 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-primary/60 dark:hover:bg-primary/10"
+              key={`${item.type}-${item.id}`}
+              href={item.href}
+              className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50"
             >
-              <action.icon className="h-5 w-5 text-primary dark:text-primary" />
-              <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {action.label}
-              </span>
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <span
+                  className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                    item.type === "post"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                      : "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"
+                  }`}
+                >
+                  {item.type}
+                </span>
+                <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                  {item.title}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                {item.type === "post" && item.viewCount > 0 && (
+                  <span className="flex items-center gap-1 text-xs text-gray-400">
+                    <Eye className="h-3 w-3" /> {item.viewCount}
+                  </span>
+                )}
+                <span
+                  className={`rounded px-2 py-0.5 text-xs font-medium ${statusColors[item.status] || ""}`}
+                >
+                  {item.status}
+                </span>
+                <span className="w-16 text-right text-xs text-gray-400">
+                  {timeAgo(item.updatedAt)}
+                </span>
+              </div>
             </Link>
           ))}
+          {recentlyUpdated.length === 0 && (
+            <p className="px-5 py-8 text-center text-sm text-gray-500">
+              No content yet
+            </p>
+          )}
         </div>
       </div>
     </div>

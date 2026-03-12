@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { clsx } from "clsx";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   LayoutDashboard,
   FileText,
@@ -16,13 +16,8 @@ import {
   ChevronLeft,
   Menu,
   ExternalLink,
-  PenSquare,
   Navigation,
   BarChart3,
-  LogOut,
-  User,
-  Mail,
-  Shield,
   ChevronDown,
   Image,
   FolderTree,
@@ -32,8 +27,6 @@ import {
   Home,
   ChevronRight,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { RoleBadge } from "@/components/ui/RoleBadge";
 
 interface SidebarLink {
   href: string;
@@ -108,19 +101,13 @@ export default function AdminShell({
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
-  const [userInfo, setUserInfo] = useState<Record<
-    string,
-    string | null
-  > | null>(null);
   const [moduleStatus, setModuleStatus] = useState<ModuleStatus>({
     comments: true,
     ads: true,
     distribution: true,
     captcha: true,
   });
-  const profileRef = useRef<HTMLDivElement>(null);
 
   // Auto-expand parent menus if a child is active
   useEffect(() => {
@@ -135,20 +122,6 @@ export default function AdminShell({
       setExpandedMenus((prev) => new Set([...prev, ...expanded]));
     }
   }, [pathname]);
-
-  // Fetch full user info for the profile dropdown
-  useEffect(() => {
-    if (session?.user?.id) {
-      fetch(`/api/users?id=${session.user.id}`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.success && data.data) {
-            setUserInfo(data.data);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [session?.user?.id]);
 
   // Fetch module enabled/disabled status for sidebar indicators
   const refreshModuleStatus = useCallback(() => {
@@ -181,18 +154,14 @@ export default function AdminShell({
       window.removeEventListener("module-status-changed", onModuleChange);
   }, []);
 
-  // Click-outside to close profile dropdown
+  // Listen for AdminBar sidebar toggle event (mobile)
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        profileRef.current &&
-        !profileRef.current.contains(e.target as Node)
-      ) {
-        setProfileOpen(false);
-      }
+    function onSidebarToggle() {
+      setMobileOpen((prev) => !prev);
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    window.addEventListener("admin-sidebar-toggle", onSidebarToggle);
+    return () =>
+      window.removeEventListener("admin-sidebar-toggle", onSidebarToggle);
   }, []);
 
   // Session is guaranteed by the server layout — show loading state briefly
@@ -365,137 +334,6 @@ export default function AdminShell({
 
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top Bar */}
-        <header className="flex h-16 items-center gap-4 border-b border-gray-200 bg-white px-4 dark:border-gray-700 dark:bg-gray-800 sm:px-6">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 lg:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-
-          <div className="flex-1" />
-
-          {/* Theme toggle */}
-          <ThemeToggle variant="icon" />
-
-          <Link
-            href="/admin/posts/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-          >
-            <PenSquare className="h-4 w-4" />
-            <span className="hidden sm:inline">New Post</span>
-          </Link>
-
-          <div className="relative" ref={profileRef}>
-            <button
-              onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-medium text-primary dark:bg-primary/20 dark:text-primary">
-                {(session.user?.name ||
-                  session.user?.email ||
-                  "A")[0].toUpperCase()}
-              </div>
-              <div className="hidden text-left sm:block">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 leading-tight">
-                  {session.user?.name || session.user?.email}
-                </p>
-                <RoleBadge
-                  role={session.user?.role || "SUBSCRIBER"}
-                  size="sm"
-                />
-              </div>
-              <ChevronDown
-                className={clsx(
-                  "h-4 w-4 text-gray-400 transition-transform hidden sm:block",
-                  profileOpen && "rotate-180",
-                )}
-              />
-            </button>
-
-            {profileOpen && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-80 rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                {/* User Header */}
-                <div className="border-b border-gray-200 p-4 dark:border-gray-700">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-bold text-primary dark:bg-primary/20 dark:text-primary">
-                      {(session.user?.name ||
-                        session.user?.email ||
-                        "A")[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 dark:text-white truncate">
-                        {userInfo?.displayName || userInfo?.firstName
-                          ? `${userInfo.firstName || ""} ${userInfo.lastName || ""}`.trim()
-                          : session.user?.name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        @
-                        {session.user?.username ||
-                          session.user?.email?.split("@")[0]}
-                      </p>
-                    </div>
-                    <RoleBadge
-                      role={session.user?.role || "SUBSCRIBER"}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-
-                {/* User Details */}
-                <div className="p-3 space-y-1">
-                  <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                    <Mail className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{session.user?.email}</span>
-                  </div>
-                  {userInfo?.jobTitle && (
-                    <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 dark:text-gray-400">
-                      <Shield className="h-4 w-4 shrink-0" />
-                      <span className="truncate">
-                        {userInfo.jobTitle}
-                        {userInfo.company ? ` at ${userInfo.company}` : ""}
-                      </span>
-                    </div>
-                  )}
-                  {userInfo?.bio && (
-                    <p className="px-3 py-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                      {userInfo.bio}
-                    </p>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="border-t border-gray-200 p-2 dark:border-gray-700">
-                  <Link
-                    href="/admin/users"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                  >
-                    <User className="h-4 w-4" />
-                    Manage Users
-                  </Link>
-                  <Link
-                    href="/admin/settings"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                  >
-                    <Settings className="h-4 w-4" />
-                    Settings
-                  </Link>
-                  <button
-                    onClick={() => signOut({ callbackUrl: "/login" })}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Sign Out
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </header>
-
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           {/* Auto Breadcrumbs */}

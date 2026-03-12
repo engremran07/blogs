@@ -263,7 +263,7 @@ export class AutoTaggingService {
     const minTagsRequired = opts.minTagsRequired ?? 1;
 
     const posts = (await this.prisma.post.findMany({
-      where: { status: "PUBLISHED" },
+      where: { status: "PUBLISHED", deletedAt: null },
       select: { id: true, title: true, _count: { select: { tags: true } } },
       orderBy: { createdAt: "desc" },
       take: maxPosts * 2,
