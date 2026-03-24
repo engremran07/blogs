@@ -345,7 +345,7 @@ export default function CronAdminPage() {
         </h2>
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-50">
-            <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
+            <label htmlFor="cron-secret" className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
               CRON_SECRET
             </label>
             <input
@@ -528,7 +528,7 @@ export default function CronAdminPage() {
           <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
             {history.map((log) => (
               <div key={log.id}>
-                <button
+                <button type="button"
                   onClick={() =>
                     setExpandedLogId(expandedLogId === log.id ? null : log.id)
                   }

@@ -31,7 +31,7 @@ export function UserDropdown({ session }: { session: Session }) {
 
   return (
     <div className="relative" data-admin-bar-dropdown>
-      <button
+      <button type="button"
         onClick={() => toggleDropdown(DROPDOWN_ID)}
         className="flex items-center gap-1.5 rounded px-1.5 py-1 text-sm transition-colors hover:bg-white/10"
         aria-expanded={isOpen}
@@ -107,7 +107,7 @@ export function UserDropdown({ session }: { session: Session }) {
 
           <div className="my-1 border-t border-white/5" />
 
-          <button
+          <button type="button"
             onClick={() => {
               closeDropdown();
               signOut({ callbackUrl: "/" });

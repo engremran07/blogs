@@ -362,7 +362,7 @@ export default function PostEditor({
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
+            <button type="button"
               onClick={() => router.push("/admin/posts")}
               className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
             >
@@ -689,7 +689,7 @@ export default function PostEditor({
 
             {/* SEO & OG */}
             <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-              <button
+              <button type="button"
                 onClick={() => setSeoOpen(!seoOpen)}
                 className="flex w-full items-center justify-between p-5"
               >

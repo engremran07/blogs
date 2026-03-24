@@ -244,7 +244,7 @@ export function AdRenderer({
     >
       {/* Close button for closeable ads */}
       {placement.closeable && (
-        <button
+        <button type="button"
           onClick={(e) => {
             e.stopPropagation();
             handleClose();

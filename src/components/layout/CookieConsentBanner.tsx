@@ -267,6 +267,7 @@ export function CookieConsentBanner({
               {/* Buttons */}
               <div className="mt-4 flex flex-wrap items-center gap-2 sm:justify-end">
                 <button
+                  type="button"
                   onClick={rejectAll}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
@@ -274,6 +275,7 @@ export function CookieConsentBanner({
                 </button>
                 {settings.gdprEnabled && (
                   <button
+                    type="button"
                     onClick={() => {
                       if (state) setDraft(state.categories);
                       setShowPrefs(true);
@@ -284,6 +286,7 @@ export function CookieConsentBanner({
                   </button>
                 )}
                 <button
+                  type="button"
                   onClick={acceptAll}
                   className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:ring-offset-gray-900"
                 >
@@ -324,9 +327,12 @@ export function CookieConsentBanner({
                 ).map((cat) => (
                   <label
                     key={cat.key}
+                    htmlFor={`cookie-${cat.key}`}
                     className="flex items-center gap-4 rounded-xl border border-gray-200 p-4 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50"
                   >
                     <input
+                      id={`cookie-${cat.key}`}
+                      name={`cookie-${cat.key}`}
                       type="checkbox"
                       checked={draft[cat.key]}
                       disabled={cat.locked}
@@ -356,12 +362,14 @@ export function CookieConsentBanner({
               </div>
               <div className="mt-5 flex gap-2 justify-end">
                 <button
+                  type="button"
                   onClick={() => setShowPrefs(false)}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
                   Back
                 </button>
                 <button
+                  type="button"
                   onClick={savePreferences}
                   className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:ring-offset-gray-900"
                 >

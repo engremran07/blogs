@@ -56,7 +56,7 @@ export function StickyAd({ placement, position = "bottom", closeable = true, cla
       <div className="relative w-full max-w-4xl px-4 py-2">
         <AdRenderer placement={placement} />
         {closeable && (
-          <button
+          <button type="button"
             onClick={handleClose}
             className="absolute -top-2 right-2 rounded-full bg-gray-800 p-1 text-white shadow-md transition-colors hover:bg-gray-700 dark:bg-gray-600"
             aria-label="Close ad"

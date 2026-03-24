@@ -4,9 +4,17 @@ import { useState, useEffect, useCallback, Fragment } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
-  MessageSquare, ThumbsUp, Send, Loader2,
-  ChevronDown, ChevronUp, ArrowUpDown,
-  ChevronLeft, ChevronRight, MoreHorizontal, Flag,
+  MessageSquare,
+  ThumbsUp,
+  Send,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Flag,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -45,9 +53,13 @@ interface CommentSectionProps {
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
 function Pagination({
-  page, totalPages, onChange,
+  page,
+  totalPages,
+  onChange,
 }: {
-  page: number; totalPages: number; onChange: (p: number) => void;
+  page: number;
+  totalPages: number;
+  onChange: (p: number) => void;
 }) {
   if (totalPages <= 1) return null;
 
@@ -67,8 +79,12 @@ function Pagination({
   }
 
   return (
-    <nav className="mt-6 flex items-center justify-center gap-1" aria-label="Comments pagination">
+    <nav
+      className="mt-6 flex items-center justify-center gap-1"
+      aria-label="Comments pagination"
+    >
       <button
+        type="button"
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
         className="inline-flex items-center rounded-lg border border-gray-200 px-2 py-1.5 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
@@ -83,6 +99,7 @@ function Pagination({
           </span>
         ) : (
           <button
+            type="button"
             key={p}
             onClick={() => onChange(p)}
             className={`min-w-8 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors ${
@@ -97,6 +114,7 @@ function Pagination({
         ),
       )}
       <button
+        type="button"
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
         className="inline-flex items-center rounded-lg border border-gray-200 px-2 py-1.5 text-sm text-gray-500 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
@@ -112,7 +130,11 @@ function Pagination({
 /*  CommentSection                                                            */
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
-export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSectionProps) {
+export function CommentSection({
+  postId,
+  maxDepth = 4,
+  perPage = 10,
+}: CommentSectionProps) {
   const { data: session } = useSession();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,16 +187,26 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
           const s = [...list];
           switch (mode) {
             case "newest":
-              s.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              s.sort(
+                (a, b) =>
+                  new Date(b.createdAt).getTime() -
+                  new Date(a.createdAt).getTime(),
+              );
               break;
             case "oldest":
-              s.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+              s.sort(
+                (a, b) =>
+                  new Date(a.createdAt).getTime() -
+                  new Date(b.createdAt).getTime(),
+              );
               break;
             case "popular":
               s.sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
               break;
           }
-          s.forEach((c) => { if (c.replies?.length) c.replies = doSort(c.replies, mode); });
+          s.forEach((c) => {
+            if (c.replies?.length) c.replies = doSort(c.replies, mode);
+          });
           return s;
         };
         setComments(doSort(roots, sort));
@@ -307,7 +339,9 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
 
   /* ── Time ago helper ─────────────────────────────────────────────────── */
   function timeAgo(dateStr: string): string {
-    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    const seconds = Math.floor(
+      (Date.now() - new Date(dateStr).getTime()) / 1000,
+    );
     if (seconds < 60) return "just now";
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m ago`;
@@ -316,7 +350,9 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
     const days = Math.floor(hours / 24);
     if (days < 30) return `${days}d ago`;
     return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short", day: "numeric", year: "numeric",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   }
 
@@ -369,6 +405,7 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
           {/* Actions bar */}
           <div className="mt-3 flex items-center gap-4">
             <button
+              type="button"
               onClick={() => handleVote(comment.id)}
               className="flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-primary dark:text-gray-400"
             >
@@ -376,13 +413,17 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
               {comment.upvotes > 0 && <span>{comment.upvotes}</span>}
             </button>
             <button
-              onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
+              type="button"
+              onClick={() =>
+                setReplyTo(replyTo === comment.id ? null : comment.id)
+              }
               className="text-xs text-gray-500 transition-colors hover:text-primary dark:text-gray-400"
             >
               Reply
             </button>
             {session?.user && (
               <button
+                type="button"
                 onClick={() => handleFlag(comment.id)}
                 className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-red-500 dark:text-gray-500"
                 title="Report this comment"
@@ -394,6 +435,7 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
             {/* Collapse / Expand toggle */}
             {(comment.replies?.length ?? 0) > 0 && (
               <button
+                type="button"
                 onClick={() => toggleCollapse(comment.id)}
                 className="ml-auto flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
               >
@@ -414,7 +456,10 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
 
           {/* Reply form (inline) */}
           {replyTo === comment.id && (
-            <form onSubmit={(e) => handleSubmit(e, comment.id)} className="mt-3">
+            <form
+              onSubmit={(e) => handleSubmit(e, comment.id)}
+              className="mt-3"
+            >
               <Textarea
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
@@ -428,10 +473,19 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
                 />
               </div>
               <div className="mt-2 flex justify-end gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setReplyTo(null)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setReplyTo(null)}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" loading={submitting} icon={<Send className="h-3 w-3" />}>
+                <Button
+                  type="submit"
+                  size="sm"
+                  loading={submitting}
+                  icon={<Send className="h-3 w-3" />}
+                >
                   Reply
                 </Button>
               </div>
@@ -440,23 +494,29 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
         </div>
 
         {/* Nested replies */}
-        {!isCollapsed && comment.replies && comment.replies.length > 0 && (
-          atMaxDepth ? (
+        {!isCollapsed &&
+          comment.replies &&
+          comment.replies.length > 0 &&
+          (atMaxDepth ? (
             /* At max depth, flatten remaining replies instead of further nesting */
             <div className="ml-4 sm:ml-6">
               <p className="mb-2 text-xs text-gray-400 dark:text-gray-500">
-                — Continued thread ({replyCount} more {replyCount === 1 ? "reply" : "replies"}) —
+                — Continued thread ({replyCount} more{" "}
+                {replyCount === 1 ? "reply" : "replies"}) —
               </p>
               {comment.replies.map((reply) => (
-                <Fragment key={reply.id}>{renderComment(reply, depth)}</Fragment>
+                <Fragment key={reply.id}>
+                  {renderComment(reply, depth)}
+                </Fragment>
               ))}
             </div>
           ) : (
             comment.replies.map((reply) => (
-              <Fragment key={reply.id}>{renderComment(reply, depth + 1)}</Fragment>
+              <Fragment key={reply.id}>
+                {renderComment(reply, depth + 1)}
+              </Fragment>
             ))
-          )
-        )}
+          ))}
       </div>
     );
   }
@@ -484,8 +544,12 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
           <div className="flex items-center gap-1 rounded-lg border border-gray-200 p-0.5 dark:border-gray-700">
             {(["newest", "oldest", "popular"] as SortMode[]).map((mode) => (
               <button
+                type="button"
                 key={mode}
-                onClick={() => { setSort(mode); setPage(1); }}
+                onClick={() => {
+                  setSort(mode);
+                  setPage(1);
+                }}
                 className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium capitalize transition-colors ${
                   sort === mode
                     ? "bg-primary text-white"
@@ -501,10 +565,15 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
       </div>
 
       {/* Comment Form */}
-      <form onSubmit={(e) => handleSubmit(e)} className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800/30">
+      <form
+        onSubmit={(e) => handleSubmit(e)}
+        className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800/30"
+      >
         {!session && (
           <div className="mb-4 grid gap-4 sm:grid-cols-2">
             <input
+              id="comment-guest-name"
+              name="guest-name"
               value={guestName}
               onChange={(e) => setGuestName(e.target.value)}
               placeholder="Your name"
@@ -512,6 +581,8 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
               className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
             <input
+              id="comment-guest-email"
+              name="guest-email"
               type="email"
               value={guestEmail}
               onChange={(e) => setGuestEmail(e.target.value)}
@@ -524,7 +595,11 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder={session ? "Share your thoughts…" : "Sign in or fill in your details to comment"}
+          placeholder={
+            session
+              ? "Share your thoughts…"
+              : "Sign in or fill in your details to comment"
+          }
           rows={3}
         />
         <div className="mt-4">
@@ -561,7 +636,9 @@ export function CommentSection({ postId, maxDepth = 4, perPage = 10 }: CommentSe
       ) : comments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-200 py-12 text-center dark:border-gray-700">
           <MessageSquare className="mx-auto mb-3 h-10 w-10 text-gray-300 dark:text-gray-600" />
-          <p className="font-medium text-gray-500 dark:text-gray-400">No comments yet</p>
+          <p className="font-medium text-gray-500 dark:text-gray-400">
+            No comments yet
+          </p>
           <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
             Be the first to share your thoughts!
           </p>

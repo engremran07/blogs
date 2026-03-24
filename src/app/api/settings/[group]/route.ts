@@ -10,6 +10,7 @@
  * PATCH → validates with the group's dedicated Zod schema and updates
  */
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/server/api-auth";
 import { siteSettingsService } from "@/server/wiring";
 import {
@@ -204,21 +205,20 @@ export async function PATCH(
     }
 
     const updatedBy = session.user.id ?? session.user.email ?? undefined;
+    const validatedData: Partial<SiteConfig> =
+      parsed.data as Partial<SiteConfig>;
     const result = await siteSettingsService.updateSettings(
-      parsed.data as Partial<SiteConfig>,
+      validatedData,
       updatedBy,
     );
 
     if (!result.success) {
-      const statusCode =
-        "error" in result &&
-        typeof result.error === "object" &&
-        result.error !== null &&
-        "statusCode" in result.error
-          ? (result.error as { statusCode: number }).statusCode
-          : 500;
+      const statusCode = result.error?.statusCode ?? 500;
       return NextResponse.json(result, { status: statusCode });
     }
+
+    // Invalidate Next.js cache so layout/pages pick up new settings
+    revalidatePath("/", "layout");
 
     // Return only the group's updated data
     const freshData = await spec.getter();

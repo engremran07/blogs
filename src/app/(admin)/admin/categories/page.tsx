@@ -721,6 +721,7 @@ export default function CategoriesPage() {
         >
           {/* Bulk checkbox */}
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               toggleSelect(cat.id);
@@ -737,6 +738,7 @@ export default function CategoriesPage() {
 
           {/* Drag handle */}
           <button
+            type="button"
             className="shrink-0 cursor-grab touch-none rounded p-0.5 text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400 active:cursor-grabbing"
             onMouseDown={(e) => e.stopPropagation()}
             title="Drag to reorder"
@@ -746,6 +748,7 @@ export default function CategoriesPage() {
 
           {/* Expand toggle */}
           <button
+            type="button"
             onClick={() => hasChildren && toggleExpand(cat.id)}
             className={`shrink-0 rounded p-0.5 ${
               hasChildren
@@ -790,6 +793,7 @@ export default function CategoriesPage() {
           {/* Reorder + Actions */}
           <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
             <button
+              type="button"
               onClick={() => moveCat(cat.id, "up")}
               title="Move up"
               className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
@@ -797,6 +801,7 @@ export default function CategoriesPage() {
               <ArrowUp className="h-3.5 w-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => moveCat(cat.id, "down")}
               title="Move down"
               className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
@@ -805,6 +810,7 @@ export default function CategoriesPage() {
             </button>
             {depth === 0 && findSiblings(tree, cat.id).length > 1 && (
               <button
+                type="button"
                 onClick={() => makeChild(cat.id)}
                 title="Make child of sibling"
                 className="rounded p-1 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-400"
@@ -814,6 +820,7 @@ export default function CategoriesPage() {
             )}
             <div className="mx-0.5 h-4 w-px bg-gray-200 dark:bg-gray-600" />
             <button
+              type="button"
               onClick={() => openCreate(cat.id)}
               title="Add child"
               className="rounded p-1 text-gray-400 hover:bg-primary/5 hover:text-primary dark:hover:bg-primary/10 dark:hover:text-primary"
@@ -821,6 +828,7 @@ export default function CategoriesPage() {
               <Plus className="h-4 w-4" />
             </button>
             <button
+              type="button"
               onClick={() => openEdit(cat)}
               title="Edit"
               className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
@@ -828,6 +836,7 @@ export default function CategoriesPage() {
               <Edit2 className="h-4 w-4" />
             </button>
             <button
+              type="button"
               onClick={() => setDeleteId(cat.id)}
               title="Delete"
               className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
@@ -882,6 +891,7 @@ export default function CategoriesPage() {
         <div className="flex items-center gap-2">
           {/* Select All / Deselect All */}
           <button
+            type="button"
             onClick={toggleSelectAll}
             className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
             title={
@@ -911,6 +921,7 @@ export default function CategoriesPage() {
               {bulkMenuOpen && (
                 <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
                   <button
+                    type="button"
                     onClick={() =>
                       setBulkConfirm({ action: "feature", label: "feature" })
                     }
@@ -919,6 +930,7 @@ export default function CategoriesPage() {
                     <Star className="h-4 w-4 text-yellow-500" /> Feature
                   </button>
                   <button
+                    type="button"
                     onClick={() =>
                       setBulkConfirm({
                         action: "unfeature",
@@ -931,6 +943,7 @@ export default function CategoriesPage() {
                   </button>
                   <hr className="my-1 border-gray-200 dark:border-gray-700" />
                   <button
+                    type="button"
                     onClick={() =>
                       setBulkConfirm({ action: "delete", label: "delete" })
                     }
@@ -1102,14 +1115,17 @@ export default function CategoriesPage() {
 
           {/* Row 4: Color picker */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="cat-color"
+              className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               <Palette className="mr-1 inline h-4 w-4" /> Color
             </label>
             <div className="flex flex-wrap items-center gap-2">
               {PRESET_COLORS.map((c) => (
                 <button
-                  key={c}
                   type="button"
+                  key={c}
                   onClick={() => setForm({ ...form, color: c })}
                   className={`h-7 w-7 rounded-full border-2 transition-transform hover:scale-110 ${
                     form.color === c

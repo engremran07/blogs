@@ -50,7 +50,10 @@ export function Modal({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" aria-hidden="true" />
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            aria-hidden="true"
+          />
         </TransitionChild>
 
         <div className="fixed inset-0 flex items-center justify-center p-4">
@@ -85,7 +88,9 @@ export function Modal({
                   </div>
                   {showClose && (
                     <button
+                      type="button"
                       onClick={onClose}
+                      aria-label="Close"
                       className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
                     >
                       <X className="h-5 w-5" />

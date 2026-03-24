@@ -397,6 +397,7 @@ function Toolbar({
     >
       {settings.enableFolders && (
         <button
+          type="button"
           className="mm-btn mm-btn--ghost mm-btn--icon"
           onClick={onToggleSidebar}
           aria-label={state.sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
@@ -410,7 +411,11 @@ function Toolbar({
         </button>
       )}
 
-      <button className="mm-btn mm-btn--primary" onClick={onUploadClick}>
+      <button
+        type="button"
+        className="mm-btn mm-btn--primary"
+        onClick={onUploadClick}
+      >
         <Upload size={16} />
         Upload
       </button>
@@ -433,6 +438,7 @@ function Toolbar({
           />
           {state.search && (
             <button
+              type="button"
               className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
               style={{ padding: "2px" }}
               onClick={() => dispatch({ type: "SET_SEARCH", payload: "" })}
@@ -474,6 +480,7 @@ function Toolbar({
         aria-label="View mode"
       >
         <button
+          type="button"
           className={`mm-btn mm-btn--icon ${
             state.viewMode === "grid" ? "mm-btn--active" : "mm-btn--ghost"
           }`}
@@ -484,6 +491,7 @@ function Toolbar({
           <Grid3X3 size={18} />
         </button>
         <button
+          type="button"
           className={`mm-btn mm-btn--icon ${
             state.viewMode === "list" ? "mm-btn--active" : "mm-btn--ghost"
           }`}
@@ -524,6 +532,7 @@ function TypeFilter({
   return (
     <div style={{ position: "relative" }}>
       <button
+        type="button"
         className={`mm-btn mm-btn--sm ${currentType ? "mm-btn--active" : ""}`}
         onClick={() => {
           /* cycle through types on click */
@@ -573,6 +582,7 @@ function SortControl({
   return (
     <div className="mm-toolbar__group">
       <button
+        type="button"
         className="mm-btn mm-btn--sm"
         onClick={handleClick}
         title={`Sort by ${sort.field}`}
@@ -584,6 +594,7 @@ function SortControl({
         </span>
       </button>
       <button
+        type="button"
         className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
         onClick={handleDirectionToggle}
         aria-label={sort.direction === "asc" ? "Ascending" : "Descending"}
@@ -619,23 +630,39 @@ function BulkActionsBar({
     <div className="mm-bulk-bar" role="toolbar" aria-label="Bulk actions">
       <span className="mm-bulk-bar__count">{count} selected</span>
       {count < totalItems && (
-        <button className="mm-btn mm-btn--sm" onClick={onSelectAll}>
+        <button
+          type="button"
+          className="mm-btn mm-btn--sm"
+          onClick={onSelectAll}
+        >
           <Check size={14} />
           Select all
         </button>
       )}
-      <button className="mm-btn mm-btn--sm" onClick={onDeselectAll}>
+      <button
+        type="button"
+        className="mm-btn mm-btn--sm"
+        onClick={onDeselectAll}
+      >
         <X size={14} />
         Clear
       </button>
       <span className="mm-toolbar__spacer" />
       {onDownload && (
-        <button className="mm-btn mm-btn--sm" onClick={onDownload}>
+        <button
+          type="button"
+          className="mm-btn mm-btn--sm"
+          onClick={onDownload}
+        >
           <Download size={14} />
           Download
         </button>
       )}
-      <button className="mm-btn mm-btn--danger mm-btn--sm" onClick={onDelete}>
+      <button
+        type="button"
+        className="mm-btn mm-btn--danger mm-btn--sm"
+        onClick={onDelete}
+      >
         <Trash2 size={14} />
         Delete
       </button>
@@ -679,6 +706,7 @@ function FolderSidebar({
         </span>
         {onCreateFolder && (
           <button
+            type="button"
             className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
             onClick={onCreateFolder}
             aria-label="Create folder"
@@ -1075,6 +1103,7 @@ function DetailPanel({
         }}
       >
         <button
+          type="button"
           className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
           onClick={onClose}
           aria-label="Close details"
@@ -1116,20 +1145,28 @@ function DetailPanel({
           flexWrap: "wrap",
         }}
       >
-        <button className="mm-btn mm-btn--sm" onClick={onEdit}>
+        <button type="button" className="mm-btn mm-btn--sm" onClick={onEdit}>
           <Pencil size={14} />
           Edit
         </button>
-        <button className="mm-btn mm-btn--sm" onClick={onCopyUrl}>
+        <button type="button" className="mm-btn mm-btn--sm" onClick={onCopyUrl}>
           <Copy size={14} />
           Copy URL
         </button>
         {onDownload && (
-          <button className="mm-btn mm-btn--sm" onClick={onDownload}>
+          <button
+            type="button"
+            className="mm-btn mm-btn--sm"
+            onClick={onDownload}
+          >
             <Download size={14} />
           </button>
         )}
-        <button className="mm-btn mm-btn--danger mm-btn--sm" onClick={onDelete}>
+        <button
+          type="button"
+          className="mm-btn mm-btn--danger mm-btn--sm"
+          onClick={onDelete}
+        >
           <Trash2 size={14} />
         </button>
       </div>
@@ -1356,6 +1393,7 @@ function Pagination({
         {from}–{to} of {totalItems}
       </span>
       <button
+        type="button"
         className="mm-btn mm-btn--icon mm-btn--sm"
         disabled={page <= 1}
         onClick={() => onChange(page - 1)}
@@ -1373,6 +1411,7 @@ function Pagination({
           </span>
         ) : (
           <button
+            type="button"
             key={p}
             className={`mm-btn mm-btn--sm ${
               p === page ? "mm-btn--active" : "mm-btn--ghost"
@@ -1385,6 +1424,7 @@ function Pagination({
         ),
       )}
       <button
+        type="button"
         className="mm-btn mm-btn--icon mm-btn--sm"
         disabled={page >= totalPages}
         onClick={() => onChange(page + 1)}
@@ -1505,6 +1545,7 @@ function EditModal({
                   Edit media
                 </DialogTitle>
                 <button
+                  type="button"
                   className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
                   onClick={onClose}
                   aria-label="Close"
@@ -1538,6 +1579,7 @@ function EditModal({
                   </label>
                   <textarea
                     id="mm-edit-alt"
+                    name="mm-edit-alt"
                     className="mm-detail__textarea"
                     value={altText}
                     onChange={(e) => setAltText(e.target.value)}
@@ -1580,6 +1622,7 @@ function EditModal({
                   </label>
                   <textarea
                     id="mm-edit-desc"
+                    name="mm-edit-desc"
                     className="mm-detail__textarea"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -1591,12 +1634,15 @@ function EditModal({
 
                 {/* Tags */}
                 <div>
-                  <label className="mm-detail__label">Tags</label>
+                  <label htmlFor="mm-edit-tags" className="mm-detail__label">
+                    Tags
+                  </label>
                   <div className="mm-tags" style={{ marginBottom: "0.5rem" }}>
                     {tags.map((tag) => (
                       <span key={tag} className="mm-tag">
                         {tag}
                         <button
+                          type="button"
                           className="mm-tag__remove"
                           onClick={() => handleRemoveTag(tag)}
                           aria-label={`Remove tag ${tag}`}
@@ -1621,6 +1667,7 @@ function EditModal({
                       maxLength={MEDIA_LIMITS.MAX_TAG_LENGTH}
                     />
                     <button
+                      type="button"
                       className="mm-btn mm-btn--sm"
                       onClick={handleAddTag}
                       disabled={!tagInput.trim()}
@@ -1632,10 +1679,16 @@ function EditModal({
               </div>
 
               <div className="mm-modal__footer">
-                <button className="mm-btn" onClick={onClose} disabled={saving}>
+                <button
+                  type="button"
+                  className="mm-btn"
+                  onClick={onClose}
+                  disabled={saving}
+                >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   className="mm-btn mm-btn--primary"
                   onClick={handleSave}
                   disabled={saving}
@@ -1731,6 +1784,7 @@ function UrlUploadModal({
                   Upload from URL
                 </DialogTitle>
                 <button
+                  type="button"
                   className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
                   onClick={onClose}
                   aria-label="Close"
@@ -1781,6 +1835,7 @@ function UrlUploadModal({
               </div>
               <div className="mm-modal__footer">
                 <button
+                  type="button"
                   className="mm-btn"
                   onClick={onClose}
                   disabled={uploading}
@@ -1788,6 +1843,7 @@ function UrlUploadModal({
                   Cancel
                 </button>
                 <button
+                  type="button"
                   className="mm-btn mm-btn--primary"
                   onClick={handleUpload}
                   disabled={!url.trim() || uploading}
@@ -1888,10 +1944,11 @@ function ConfirmDialog({
                 </p>
               </div>
               <div className="mm-modal__footer">
-                <button className="mm-btn" onClick={onCancel}>
+                <button type="button" className="mm-btn" onClick={onCancel}>
                   Cancel
                 </button>
                 <button
+                  type="button"
                   className={`mm-btn ${danger ? "mm-btn--danger" : "mm-btn--primary"}`}
                   onClick={onConfirm}
                 >
@@ -1969,6 +2026,7 @@ function CreateFolderDialog({
                   Create folder
                 </DialogTitle>
                 <button
+                  type="button"
                   className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
                   onClick={onCancel}
                   aria-label="Close"
@@ -1994,10 +2052,11 @@ function CreateFolderDialog({
                 />
               </div>
               <div className="mm-modal__footer">
-                <button className="mm-btn" onClick={onCancel}>
+                <button type="button" className="mm-btn" onClick={onCancel}>
                   Cancel
                 </button>
                 <button
+                  type="button"
                   className="mm-btn mm-btn--primary"
                   onClick={handleConfirm}
                   disabled={!name.trim()}
@@ -2546,6 +2605,7 @@ export function MediaManager(props: MediaManagerProps) {
       {settings.enableUrlUpload && onUploadFromUrl && (
         <div style={{ display: "flex", gap: "0.5rem", padding: "0 1rem" }}>
           <button
+            type="button"
             className="mm-btn mm-btn--ghost mm-btn--sm"
             onClick={() => setShowUrlUpload(true)}
           >
@@ -2602,6 +2662,7 @@ export function MediaManager(props: MediaManagerProps) {
           <AlertTriangle size={14} />
           <span style={{ flex: 1 }}>{state.error}</span>
           <button
+            type="button"
             className="mm-btn mm-btn--ghost mm-btn--icon mm-btn--sm"
             onClick={() => dispatch({ type: "SET_ERROR", payload: null })}
             aria-label="Dismiss error"
@@ -2758,12 +2819,14 @@ export function MediaManager(props: MediaManagerProps) {
           </span>
           <span className="mm-toolbar__spacer" />
           <button
+            type="button"
             className="mm-btn"
             onClick={() => dispatch({ type: "DESELECT_ALL" })}
           >
             Clear
           </button>
           <button
+            type="button"
             className="mm-btn mm-btn--primary"
             onClick={handlePickerConfirm}
           >

@@ -92,7 +92,9 @@ src/
 
 - Single admin bar across admin panel and frontend (no duplicate headers)
 - AdminShell provides sidebar + mobile toggle; AdminBar provides top bar functions
-- AdminBar has: LeftZone (nav), ContextZone (status), RightZone (theme, new, user, save)
+- AdminBar has: LeftZone (sidebar toggle, back button, site name, editor label), ContextZone (status), RightZone (theme, new, user, save)
+- On public pages, TopBar + Header always render below the admin bar (never hidden for logged-in admins)
+- Navigation lives in Header, NOT in the admin bar LeftZone — no breadcrumbs or public nav merging
 
 ### Cron
 

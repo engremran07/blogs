@@ -123,7 +123,7 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
     <div className={clsx("border-b border-gray-200 dark:border-gray-700", className)}>
       <nav className="-mb-px flex gap-4" aria-label="Tabs">
         {tabs.map((tab) => (
-          <button
+          <button type="button"
             key={tab.key}
             onClick={() => onChange(tab.key)}
             className={clsx(

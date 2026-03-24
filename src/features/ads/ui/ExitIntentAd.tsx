@@ -79,7 +79,7 @@ export function ExitIntentAd({
         className="relative mx-4 w-full max-w-md animate-in fade-in zoom-in-95 rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-800"
         onClick={(e) => e.stopPropagation()}
       >
-        <button
+        <button type="button"
           onClick={handleClose}
           className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-white shadow-lg transition-colors hover:bg-gray-700"
           aria-label="Close"

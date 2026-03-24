@@ -797,6 +797,7 @@ export default function AdsAdminPage() {
       <div className="mb-6 flex gap-1 overflow-x-auto rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
         {tabs.map((t) => (
           <button
+            type="button"
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
@@ -1001,6 +1002,7 @@ export default function AdsAdminPage() {
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
                           <button
+                            type="button"
                             onClick={() => toggleProviderKill(p)}
                             title={p.killSwitch ? "Re-enable" : "Kill"}
                             className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
@@ -1012,12 +1014,14 @@ export default function AdsAdminPage() {
                             )}
                           </button>
                           <button
+                            type="button"
                             onClick={() => openProviderEdit(p)}
                             className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
+                            type="button"
                             onClick={() =>
                               setDeleteTarget({
                                 type: "provider",
@@ -1130,12 +1134,14 @@ export default function AdsAdminPage() {
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
                           <button
+                            type="button"
                             onClick={() => openSlotEdit(s)}
                             className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
+                            type="button"
                             onClick={() =>
                               setDeleteTarget({
                                 type: "slot",
@@ -1319,12 +1325,14 @@ export default function AdsAdminPage() {
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-1">
                             <button
+                              type="button"
                               onClick={() => openPlacementEdit(pl)}
                               className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
                             <button
+                              type="button"
                               onClick={() =>
                                 setDeleteTarget({
                                   type: "placement",

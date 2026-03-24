@@ -163,7 +163,7 @@ export function TopBar({ settings, socialLinks }: { settings: TopBarSettings; so
             </div>
           )}
           {settings.topBarDismissible && (
-            <button
+            <button type="button"
               onClick={handleDismiss}
               className="ml-1 opacity-60 transition-opacity hover:opacity-100"
               aria-label="Dismiss top bar"

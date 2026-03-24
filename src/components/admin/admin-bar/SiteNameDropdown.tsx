@@ -68,7 +68,7 @@ export function SiteNameDropdown() {
 
   return (
     <div className="relative" data-admin-bar-dropdown>
-      <button
+      <button type="button"
         onClick={() => toggleDropdown(DROPDOWN_ID)}
         className="flex items-center gap-1.5 rounded px-2 py-1 text-sm font-semibold text-white transition-colors hover:bg-white/10"
         aria-expanded={isOpen}
@@ -172,7 +172,7 @@ export function SiteNameDropdown() {
           <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
             Tools
           </div>
-          <button
+          <button type="button"
             onClick={handleClearCache}
             className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
             role="menuitem"
@@ -180,7 +180,7 @@ export function SiteNameDropdown() {
             <Trash2 className="h-4 w-4" />
             Clear Cache
           </button>
-          <button
+          <button type="button"
             onClick={handleRebuild}
             className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
             role="menuitem"

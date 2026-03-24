@@ -49,7 +49,7 @@ function StatusPill({
   }
 
   return (
-    <button
+    <button type="button"
       onClick={toggleStatus}
       className={clsx(
         "flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide transition-colors",

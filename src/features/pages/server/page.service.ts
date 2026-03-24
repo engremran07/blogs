@@ -146,10 +146,8 @@ export class PageService implements PagesConfigConsumer {
     }
     const path = buildPagePath(slug, parentPath, cfg.pagesBaseUrl);
 
-    // Code injection guard
-    const customCss = cfg.allowCodeInjection
-      ? sanitizeCss(input.customCss ?? "") || null
-      : null;
+    // Code injection guard — customCss is always allowed (auto-extracted from uploads)
+    const customCss = sanitizeCss(input.customCss ?? "") || null;
     const customJs = cfg.allowCodeInjection ? (input.customJs ?? null) : null;
     const customHead = cfg.allowCodeInjection
       ? sanitizeHeadHtml(input.customHead ?? "") || null
@@ -465,10 +463,10 @@ export class PageService implements PagesConfigConsumer {
       data.password = input.password;
     }
 
-    // Code injection
+    // Code injection — customCss is always allowed (auto-extracted from uploads)
+    if (input.customCss !== undefined)
+      data.customCss = sanitizeCss(input.customCss ?? "") || null;
     if (cfg.allowCodeInjection) {
-      if (input.customCss !== undefined)
-        data.customCss = sanitizeCss(input.customCss ?? "") || null;
       if (input.customJs !== undefined) data.customJs = input.customJs;
       if (input.customHead !== undefined)
         data.customHead = sanitizeHeadHtml(input.customHead ?? "") || null;

@@ -204,7 +204,7 @@ export default function AdminShell({
               </span>
             </Link>
           )}
-          <button
+          <button type="button"
             onClick={() => setCollapsed(!collapsed)}
             className="hidden rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 lg:block"
           >
@@ -271,7 +271,7 @@ export default function AdminShell({
                       )}
                     </Link>
                     {hasChildren && !collapsed && (
-                      <button
+                      <button type="button"
                         onClick={() => {
                           setExpandedMenus((prev) => {
                             const next = new Set(prev);

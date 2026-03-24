@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -11,7 +12,13 @@ import { SocialShare } from "@/components/blog/SocialShare";
 import { TableOfContents } from "@/components/blog/TableOfContents";
 import { PostNavigation } from "@/components/blog/PostNavigation";
 import { BlogSidebar } from "@/components/blog/BlogSidebar";
-import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildPersonJsonLd, buildFaqJsonLd, serializeJsonLd } from "@/features/seo/server/json-ld.util";
+import {
+  buildArticleJsonLd,
+  buildBreadcrumbJsonLd,
+  buildPersonJsonLd,
+  buildFaqJsonLd,
+  serializeJsonLd,
+} from "@/features/seo/server/json-ld.util";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import { InArticleAd } from "@/features/ads/ui/InArticleAd";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -36,18 +43,33 @@ interface PostPageProps {
   searchParams: Promise<{ preview?: string }>;
 }
 
-export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PostPageProps): Promise<Metadata> {
   const { slug } = await params;
   const [post, settings] = await Promise.all([
     prisma.post.findUnique({
       where: { slug },
       select: {
-        title: true, excerpt: true, seoTitle: true, seoDescription: true,
-        featuredImage: true, featuredImageAlt: true, noIndex: true, noFollow: true,
-        ogTitle: true, ogDescription: true, ogImage: true,
-        twitterCard: true, twitterTitle: true, twitterDescription: true, twitterImage: true,
-        canonicalUrl: true, seoKeywords: true,
-        publishedAt: true, updatedAt: true,
+        title: true,
+        excerpt: true,
+        seoTitle: true,
+        seoDescription: true,
+        featuredImage: true,
+        featuredImageAlt: true,
+        noIndex: true,
+        noFollow: true,
+        ogTitle: true,
+        ogDescription: true,
+        ogImage: true,
+        twitterCard: true,
+        twitterTitle: true,
+        twitterDescription: true,
+        twitterImage: true,
+        canonicalUrl: true,
+        seoKeywords: true,
+        publishedAt: true,
+        updatedAt: true,
         author: { select: { displayName: true, username: true } },
         categories: { select: { name: true } },
         tags: { select: { name: true } },
@@ -58,12 +80,15 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   if (!post) return { title: "Post Not Found" };
 
   const siteName = settings?.siteName || "MyBlog";
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
+  ).replace(/\/$/, "");
   const pageUrl = `${baseUrl}/blog/${slug}`;
   const title = post.seoTitle || post.title;
   const description = post.seoDescription || post.excerpt || "";
   const ogImage = post.ogImage || post.featuredImage;
-  const authorName = post.author?.displayName || post.author?.username || undefined;
+  const authorName =
+    post.author?.displayName || post.author?.username || undefined;
 
   // Dynamic OG image fallback when no featured image exists
   const ogImageUrl = ogImage
@@ -71,9 +96,19 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
     : `${baseUrl}/api/og?${new URLSearchParams({
         title: post.title,
         ...(authorName ? { author: authorName } : {}),
-        ...(post.categories?.[0]?.name ? { category: post.categories[0].name } : {}),
+        ...(post.categories?.[0]?.name
+          ? { category: post.categories[0].name }
+          : {}),
         siteName,
-        ...(post.publishedAt ? { date: new Date(post.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) } : {}),
+        ...(post.publishedAt
+          ? {
+              date: new Date(post.publishedAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }),
+            }
+          : {}),
       }).toString()}`;
 
   return {
@@ -91,7 +126,14 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       type: "article",
       siteName,
       locale: "en_US",
-      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: post.featuredImageAlt || title }],
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: post.featuredImageAlt || title,
+        },
+      ],
       publishedTime: post.publishedAt?.toISOString(),
       modifiedTime: post.updatedAt?.toISOString(),
       authors: authorName ? [authorName] : undefined,
@@ -99,22 +141,49 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       tags: post.tags?.map((t) => t.name),
     },
     twitter: {
-      card: (post.twitterCard as "summary" | "summary_large_image") || "summary_large_image",
+      card:
+        (post.twitterCard as "summary" | "summary_large_image") ||
+        "summary_large_image",
       title: post.twitterTitle || post.ogTitle || title,
       description: post.twitterDescription || post.ogDescription || description,
       images: [post.twitterImage || ogImageUrl],
     },
-    ...((post as Record<string, unknown>).noIndex || (post as Record<string, unknown>).noFollow
-      ? { robots: { index: !(post as Record<string, unknown>).noIndex, follow: !(post as Record<string, unknown>).noFollow } }
+    ...((post as Record<string, unknown>).noIndex ||
+    (post as Record<string, unknown>).noFollow
+      ? {
+          robots: {
+            index: !(post as Record<string, unknown>).noIndex,
+            follow: !(post as Record<string, unknown>).noFollow,
+          },
+        }
       : {}),
   };
 }
 
-export default async function PostPage({ params, searchParams }: PostPageProps) {
+export default async function PostPage({
+  params,
+  searchParams,
+}: PostPageProps) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const { slug } = await params;
   const { preview } = await searchParams;
 
-  type PostDetail = PostListItem & { content: string; bio?: string; featuredImageAlt: string | null; updatedAt: Date; wordCount: number; seoTitle: string | null; seoDescription: string | null; author: { id: string; username: string; displayName: string | null; bio: string | null } | null; categories: CategoryItem[] };
+  type PostDetail = PostListItem & {
+    content: string;
+    bio?: string;
+    featuredImageAlt: string | null;
+    updatedAt: Date;
+    wordCount: number;
+    seoTitle: string | null;
+    seoDescription: string | null;
+    author: {
+      id: string;
+      username: string;
+      displayName: string | null;
+      bio: string | null;
+    } | null;
+    categories: CategoryItem[];
+  };
 
   // Check if this is an admin preview request
   const isPreviewRequest = preview === "true";
@@ -122,14 +191,19 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
 
   if (isPreviewRequest) {
     const session = await auth();
-    isAdmin = session?.user?.role === "ADMINISTRATOR" || session?.user?.role === "SUPER_ADMIN" || session?.user?.role === "EDITOR";
+    isAdmin =
+      session?.user?.role === "ADMINISTRATOR" ||
+      session?.user?.role === "SUPER_ADMIN" ||
+      session?.user?.role === "EDITOR";
   }
 
   const [post, settings, commentSettings] = await Promise.all([
     prisma.post.findUnique({
       where: isAdmin ? { slug } : { slug, status: "PUBLISHED" },
       include: {
-        author: { select: { id: true, username: true, displayName: true, bio: true } },
+        author: {
+          select: { id: true, username: true, displayName: true, bio: true },
+        },
         tags: { select: { id: true, name: true, slug: true } },
         categories: { select: { id: true, name: true, slug: true } },
       },
@@ -172,7 +246,9 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
   }
 
   const postUrl = `/blog/${post.slug}`;
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
+  ).replace(/\/$/, "");
   const fullPostUrl = `${baseUrl}/blog/${post.slug}`;
 
   // Build JSON-LD structured data
@@ -184,9 +260,15 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
     imageUrl: post.featuredImage || undefined,
     authorName: post.author?.displayName || post.author?.username || "Unknown",
     publisherName: siteName,
-    publisherLogoUrl: (settings as Record<string, unknown>)?.logoUrl as string | undefined,
-    publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : new Date().toISOString(),
-    modifiedAt: post.updatedAt ? new Date(post.updatedAt).toISOString() : undefined,
+    publisherLogoUrl: (settings as Record<string, unknown>)?.logoUrl as
+      | string
+      | undefined,
+    publishedAt: post.publishedAt
+      ? new Date(post.publishedAt).toISOString()
+      : new Date().toISOString(),
+    modifiedAt: post.updatedAt
+      ? new Date(post.updatedAt).toISOString()
+      : undefined,
     section: post.categories?.[0]?.name,
     tags: post.tags?.map((t: { name: string }) => t.name),
     wordCount: post.wordCount || undefined,
@@ -196,30 +278,47 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: "Home", url: baseUrl },
     { name: "Blog", url: `${baseUrl}/blog` },
-    ...(post.categories?.[0] ? [{ name: post.categories[0].name, url: `${baseUrl}/blog?category=${post.categories[0].slug}` }] : []),
+    ...(post.categories?.[0]
+      ? [
+          {
+            name: post.categories[0].name,
+            url: `${baseUrl}/blog?category=${post.categories[0].slug}`,
+          },
+        ]
+      : []),
     { name: post.title, url: fullPostUrl },
   ]);
 
   // Person JSON-LD for the author
-  const personJsonLd = post.author ? buildPersonJsonLd({
-    name: post.author.displayName || post.author.username,
-    url: `${baseUrl}/blog?author=${post.author.username}`,
-  }) : null;
+  const personJsonLd = post.author
+    ? buildPersonJsonLd({
+        name: post.author.displayName || post.author.username,
+        url: `${baseUrl}/blog?author=${post.author.username}`,
+      })
+    : null;
 
   // Auto-detect FAQ patterns in content (Q&A, details/summary, headings ending with ?)
   const faqItems: { question: string; answer: string }[] = [];
   if (post.content) {
     // Pattern 1: <details><summary>Question</summary>Answer</details>
-    const detailsRegex = /<details[^>]*>\s*<summary[^>]*>([^<]+)<\/summary>\s*([\s\S]*?)<\/details>/gi;
+    const detailsRegex =
+      /<details[^>]*>\s*<summary[^>]*>([^<]+)<\/summary>\s*([\s\S]*?)<\/details>/gi;
     let match;
     while ((match = detailsRegex.exec(post.content)) !== null) {
-      faqItems.push({ question: match[1].trim(), answer: match[2].replace(/<[^>]+>/g, '').trim() });
+      faqItems.push({
+        question: match[1].trim(),
+        answer: match[2].replace(/<[^>]+>/g, "").trim(),
+      });
     }
     // Pattern 2: Headings ending with ? followed by paragraph content
     if (faqItems.length === 0) {
-      const headingQRegex = /<h[2-4][^>]*>([^<]*\?)<\/h[2-4]>\s*<p[^>]*>([\s\S]*?)<\/p>/gi;
+      const headingQRegex =
+        /<h[2-4][^>]*>([^<]*\?)<\/h[2-4]>\s*<p[^>]*>([\s\S]*?)<\/p>/gi;
       while ((match = headingQRegex.exec(post.content)) !== null) {
-        faqItems.push({ question: match[1].trim(), answer: match[2].replace(/<[^>]+>/g, '').trim() });
+        faqItems.push({
+          question: match[1].trim(),
+          answer: match[2].replace(/<[^>]+>/g, "").trim(),
+        });
       }
     }
   }
@@ -229,21 +328,29 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       {/* JSON-LD Structured Data */}
       <script
+        nonce={nonce}
+        suppressHydrationWarning
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleJsonLd) }}
       />
       <script
+        nonce={nonce}
+        suppressHydrationWarning
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       {personJsonLd && (
         <script
+          nonce={nonce}
+          suppressHydrationWarning
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(personJsonLd) }}
         />
       )}
       {faqJsonLd && (
         <script
+          nonce={nonce}
+          suppressHydrationWarning
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
         />
@@ -252,8 +359,15 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
       {isPreview && (
         <div className="mb-6 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
           <Eye className="h-4 w-4" />
-          Preview Mode — This post is <span className="font-bold">{post.status}</span> and not visible to the public.
-          <Link href={`/admin/posts/${post.postNumber}/edit`} className="ml-auto text-amber-600 underline hover:text-amber-700 dark:text-amber-400">Edit Post</Link>
+          Preview Mode — This post is{" "}
+          <span className="font-bold">{post.status}</span> and not visible to
+          the public.
+          <Link
+            href={`/admin/posts/${post.postNumber}/edit`}
+            className="ml-auto text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
+          >
+            Edit Post
+          </Link>
         </div>
       )}
       <div className="flex gap-8">
@@ -269,12 +383,21 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
         {/* Main Content */}
         <article className="mx-auto max-w-4xl flex-1 min-w-0">
           {/* Visual Breadcrumbs */}
-          <Breadcrumbs items={[
-            { label: "Home", href: "/" },
-            { label: "Blog", href: "/blog" },
-            ...(post.categories?.[0] ? [{ label: post.categories[0].name, href: `/blog?category=${post.categories[0].slug}` }] : []),
-            { label: post.title },
-          ]} />
+          <Breadcrumbs
+            items={[
+              { label: "Home", href: "/" },
+              { label: "Blog", href: "/blog" },
+              ...(post.categories?.[0]
+                ? [
+                    {
+                      label: post.categories[0].name,
+                      href: `/blog?category=${post.categories[0].slug}`,
+                    },
+                  ]
+                : []),
+              { label: post.title },
+            ]}
+          />
 
           {/* Header */}
           <header className="mb-8">
@@ -289,13 +412,17 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
               {post.title}
             </h1>
             {post.excerpt && (
-              <p className="mt-4 text-xl text-gray-500 dark:text-gray-400">{post.excerpt}</p>
+              <p className="mt-4 text-xl text-gray-500 dark:text-gray-400">
+                {post.excerpt}
+              </p>
             )}
 
             <div className="mt-6 flex flex-wrap items-center gap-6 border-b border-gray-200 pb-6 dark:border-gray-700">
               <div className="flex items-center gap-3">
                 <Avatar
-                  fallback={post.author?.displayName || post.author?.username || "A"}
+                  fallback={
+                    post.author?.displayName || post.author?.username || "A"
+                  }
                   size="md"
                 />
                 <div>
@@ -303,7 +430,9 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
                     {post.author?.displayName || post.author?.username}
                   </p>
                   {post.author?.bio && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">{post.author.bio}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
+                      {post.author.bio}
+                    </p>
                   )}
                 </div>
               </div>
@@ -318,16 +447,25 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
                       })
                     : "Draft"}
                 </span>
-                {showUpdatedDate && post.updatedAt && post.publishedAt && new Date(post.updatedAt).getTime() - new Date(post.publishedAt).getTime() > 86400000 && (
-                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400" title="This article has been updated since it was first published">
-                    <RefreshCw className="h-4 w-4" />
-                    Updated {new Date(post.updatedAt).toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </span>
-                )}
+                {showUpdatedDate &&
+                  post.updatedAt &&
+                  post.publishedAt &&
+                  new Date(post.updatedAt).getTime() -
+                    new Date(post.publishedAt).getTime() >
+                    86400000 && (
+                    <span
+                      className="flex items-center gap-1 text-green-600 dark:text-green-400"
+                      title="This article has been updated since it was first published"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Updated{" "}
+                      {new Date(post.updatedAt).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                  )}
                 {post.readingTime > 0 && (
                   <span className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
@@ -412,20 +550,32 @@ export default async function PostPage({ params, searchParams }: PostPageProps) 
           {/* Post Navigation (Prev / Next) */}
           {showPostNav && (
             <div className="mt-10 border-t border-gray-200 pt-8 dark:border-gray-700">
-              <PostNavigation currentPostId={post.id} publishedAt={post.publishedAt} />
+              <PostNavigation
+                currentPostId={post.id}
+                publishedAt={post.publishedAt}
+              />
             </div>
           )}
 
           {/* Related Posts */}
-          {showRelated && (post.tags.length > 0 || post.categories.length > 0) && (
-            <div className="mt-10 border-t border-gray-200 pt-8 dark:border-gray-700">
-              <RelatedPosts postId={post.id} tagIds={post.tags.map((t) => t.id)} categoryIds={post.categories.map((c) => c.id)} />
-            </div>
-          )}
+          {showRelated &&
+            (post.tags.length > 0 || post.categories.length > 0) && (
+              <div className="mt-10 border-t border-gray-200 pt-8 dark:border-gray-700">
+                <RelatedPosts
+                  postId={post.id}
+                  tagIds={post.tags.map((t) => t.id)}
+                  categoryIds={post.categories.map((c) => c.id)}
+                />
+              </div>
+            )}
 
           {/* In-Content Ad */}
           <div className="mt-8">
-            <AdContainer position="IN_CONTENT" pageType="blog" showPlaceholder />
+            <AdContainer
+              position="IN_CONTENT"
+              pageType="blog"
+              showPlaceholder
+            />
           </div>
 
           {/* Before Comments Ad */}

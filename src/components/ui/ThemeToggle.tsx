@@ -49,7 +49,7 @@ export function ThemeToggle({
           const ModeIcon = value === "light" ? Sun : Moon;
           const label = value === "light" ? "Light" : "Dark";
           return (
-            <button
+            <button type="button"
               key={value}
               onClick={() => setTheme(value)}
               className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
@@ -72,7 +72,7 @@ export function ThemeToggle({
   /* ── AdminBar variant: single icon button on dark bg ── */
   if (variant === "adminbar") {
     return (
-      <button
+      <button type="button"
         onClick={toggle}
         className="flex items-center gap-1 rounded px-1.5 py-1 text-sm text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
         aria-label={`Theme: ${LABELS[current]}`}
@@ -85,7 +85,7 @@ export function ThemeToggle({
 
   /* ── Icon variant (default): single button that toggles ── */
   return (
-    <button
+    <button type="button"
       onClick={toggle}
       className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
       aria-label={`Theme: ${LABELS[current]}`}

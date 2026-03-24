@@ -78,67 +78,122 @@ function scoreBg(score: number) {
 }
 
 function StatusIcon({ status }: { status: Check["status"] }) {
-  if (status === "pass") return <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />;
-  if (status === "fail") return <XCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />;
-  if (status === "warn") return <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" />;
+  if (status === "pass")
+    return <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />;
+  if (status === "fail")
+    return <XCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />;
+  if (status === "warn")
+    return (
+      <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" />
+    );
   return <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />;
 }
 
 /* ─── Real-time Validation Rules ─── */
 
 type FieldStatus = "pass" | "fail" | "warn" | "idle";
-interface FieldCheck { status: FieldStatus; message: string }
+interface FieldCheck {
+  status: FieldStatus;
+  message: string;
+}
 
 function checkSeoTitle(value: string): FieldCheck {
   if (!value) return { status: "fail", message: "Missing — add an SEO title" };
-  if (value.length < 30) return { status: "warn", message: "Too short — aim for 50–60 characters" };
-  if (value.length > 60) return { status: "warn", message: "Too long — may be truncated in search results" };
-  if (value.length >= 50 && value.length <= 60) return { status: "pass", message: "Perfect length for search results" };
+  if (value.length < 30)
+    return { status: "warn", message: "Too short — aim for 50–60 characters" };
+  if (value.length > 60)
+    return {
+      status: "warn",
+      message: "Too long — may be truncated in search results",
+    };
+  if (value.length >= 50 && value.length <= 60)
+    return { status: "pass", message: "Perfect length for search results" };
   return { status: "pass", message: "Good length" };
 }
 
 function checkSeoDescription(value: string): FieldCheck {
-  if (!value) return { status: "fail", message: "Missing — add a meta description" };
-  if (value.length < 70) return { status: "warn", message: "Too short — aim for 120–160 characters" };
-  if (value.length > 160) return { status: "warn", message: "Too long — will be truncated in SERPs" };
-  if (value.length >= 120 && value.length <= 160) return { status: "pass", message: "Ideal length for search results" };
+  if (!value)
+    return { status: "fail", message: "Missing — add a meta description" };
+  if (value.length < 70)
+    return {
+      status: "warn",
+      message: "Too short — aim for 120–160 characters",
+    };
+  if (value.length > 160)
+    return { status: "warn", message: "Too long — will be truncated in SERPs" };
+  if (value.length >= 120 && value.length <= 160)
+    return { status: "pass", message: "Ideal length for search results" };
   return { status: "pass", message: "Good length" };
 }
 
 function checkKeywords(value: string): FieldCheck {
-  if (!value.trim()) return { status: "warn", message: "No keywords — add 3–5 focus keywords" };
-  const keywords = value.split(",").map(s => s.trim()).filter(Boolean);
-  if (keywords.length > 10) return { status: "warn", message: "Too many keywords — focus on 3–5 primary terms" };
-  if (keywords.length < 2) return { status: "warn", message: "Add more keywords — aim for 3–5 focus terms" };
-  if (keywords.length >= 3 && keywords.length <= 7) return { status: "pass", message: `${keywords.length} keywords — good focus` };
+  if (!value.trim())
+    return { status: "warn", message: "No keywords — add 3–5 focus keywords" };
+  const keywords = value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (keywords.length > 10)
+    return {
+      status: "warn",
+      message: "Too many keywords — focus on 3–5 primary terms",
+    };
+  if (keywords.length < 2)
+    return {
+      status: "warn",
+      message: "Add more keywords — aim for 3–5 focus terms",
+    };
+  if (keywords.length >= 3 && keywords.length <= 7)
+    return {
+      status: "pass",
+      message: `${keywords.length} keywords — good focus`,
+    };
   return { status: "pass", message: `${keywords.length} keywords set` };
 }
 
 function checkExcerpt(value: string): FieldCheck {
-  if (!value) return { status: "warn", message: "No excerpt — recommended for previews & social" };
-  if (value.length < 50) return { status: "warn", message: "Very short — aim for 50–160 characters" };
-  if (value.length > 300) return { status: "warn", message: "Quite long — keep it concise" };
+  if (!value)
+    return {
+      status: "warn",
+      message: "No excerpt — recommended for previews & social",
+    };
+  if (value.length < 50)
+    return {
+      status: "warn",
+      message: "Very short — aim for 50–160 characters",
+    };
+  if (value.length > 300)
+    return { status: "warn", message: "Quite long — keep it concise" };
   return { status: "pass", message: "Good excerpt length" };
 }
 
 function checkOgTitle(value: string, fallback: string): FieldCheck {
   const effective = value || fallback;
-  if (!effective) return { status: "fail", message: "No OG title or SEO title set" };
+  if (!effective)
+    return { status: "fail", message: "No OG title or SEO title set" };
   if (!value) return { status: "idle", message: "Will fall back to SEO title" };
-  if (value.length > 60) return { status: "warn", message: "Long — may be truncated on social" };
+  if (value.length > 60)
+    return { status: "warn", message: "Long — may be truncated on social" };
   return { status: "pass", message: "OG title set" };
 }
 
 function checkOgDescription(value: string, fallback: string): FieldCheck {
   const effective = value || fallback;
-  if (!effective) return { status: "warn", message: "No OG or meta description set" };
-  if (!value) return { status: "idle", message: "Will fall back to meta description" };
-  if (value.length > 200) return { status: "warn", message: "Long — may be truncated on social" };
+  if (!effective)
+    return { status: "warn", message: "No OG or meta description set" };
+  if (!value)
+    return { status: "idle", message: "Will fall back to meta description" };
+  if (value.length > 200)
+    return { status: "warn", message: "Long — may be truncated on social" };
   return { status: "pass", message: "OG description set" };
 }
 
 function checkOgImage(value: string): FieldCheck {
-  if (!value) return { status: "warn", message: "No image — social shares look better with images" };
+  if (!value)
+    return {
+      status: "warn",
+      message: "No image — social shares look better with images",
+    };
   try {
     new URL(value);
     return { status: "pass", message: "Image URL set" };
@@ -148,10 +203,12 @@ function checkOgImage(value: string): FieldCheck {
 }
 
 function checkCanonical(value: string): FieldCheck {
-  if (!value) return { status: "idle", message: "Default canonical — usually fine" };
+  if (!value)
+    return { status: "idle", message: "Default canonical — usually fine" };
   try {
     const u = new URL(value);
-    if (!["http:", "https:"].includes(u.protocol)) return { status: "fail", message: "Must be http or https URL" };
+    if (!["http:", "https:"].includes(u.protocol))
+      return { status: "fail", message: "Must be http or https URL" };
     return { status: "pass", message: "Custom canonical URL set" };
   } catch {
     return { status: "fail", message: "Invalid URL format" };
@@ -219,22 +276,34 @@ export default function SeoFixPage() {
 
   /* ─── Real-time field checks ─── */
 
-  const fieldChecks = useMemo(() => ({
-    seoTitle: checkSeoTitle(seoTitle),
-    seoDescription: checkSeoDescription(seoDescription),
-    keywords: checkKeywords(seoKeywords),
-    excerpt: checkExcerpt(excerpt),
-    ogTitle: checkOgTitle(ogTitle, seoTitle),
-    ogDescription: checkOgDescription(ogDescription, seoDescription),
-    ogImage: checkOgImage(ogImage),
-    canonical: checkCanonical(canonicalUrl),
-  }), [seoTitle, seoDescription, seoKeywords, excerpt, ogTitle, ogDescription, ogImage, canonicalUrl]);
+  const fieldChecks = useMemo(
+    () => ({
+      seoTitle: checkSeoTitle(seoTitle),
+      seoDescription: checkSeoDescription(seoDescription),
+      keywords: checkKeywords(seoKeywords),
+      excerpt: checkExcerpt(excerpt),
+      ogTitle: checkOgTitle(ogTitle, seoTitle),
+      ogDescription: checkOgDescription(ogDescription, seoDescription),
+      ogImage: checkOgImage(ogImage),
+      canonical: checkCanonical(canonicalUrl),
+    }),
+    [
+      seoTitle,
+      seoDescription,
+      seoKeywords,
+      excerpt,
+      ogTitle,
+      ogDescription,
+      ogImage,
+      canonicalUrl,
+    ],
+  );
 
   const realtimeScore = useMemo(() => {
     const checks = Object.values(fieldChecks);
     const total = checks.length;
-    const passed = checks.filter(c => c.status === "pass").length;
-    const idle = checks.filter(c => c.status === "idle").length;
+    const passed = checks.filter((c) => c.status === "pass").length;
+    const idle = checks.filter((c) => c.status === "idle").length;
     return Math.round(((passed + idle * 0.5) / total) * 100);
   }, [fieldChecks]);
 
@@ -247,7 +316,9 @@ export default function SeoFixPage() {
       const contentUrl = isPost ? `/api/posts/${id}` : `/api/pages/${id}`;
       const [contentRes, auditRes] = await Promise.all([
         fetch(contentUrl),
-        fetch(`/api/seo?action=${isPost ? "audit-post" : "audit-page"}&id=${id}`),
+        fetch(
+          `/api/seo?action=${isPost ? "audit-post" : "audit-page"}&id=${id}`,
+        ),
       ]);
 
       const contentData = await contentRes.json();
@@ -257,7 +328,9 @@ export default function SeoFixPage() {
         const c = contentData.data;
         setContent(c);
         setSeoTitle(isPost ? c.seoTitle || "" : c.metaTitle || "");
-        setSeoDescription(isPost ? c.seoDescription || "" : c.metaDescription || "");
+        setSeoDescription(
+          isPost ? c.seoDescription || "" : c.metaDescription || "",
+        );
         setExcerpt(c.excerpt || "");
         setOgTitle(c.ogTitle || "");
         setOgDescription(c.ogDescription || "");
@@ -285,7 +358,9 @@ export default function SeoFixPage() {
   async function generateSuggestions() {
     setGenerating(true);
     try {
-      const res = await fetch(`/api/seo?action=generate-meta&id=${id}&type=${isPost ? "post" : "page"}`);
+      const res = await fetch(
+        `/api/seo?action=generate-meta&id=${id}&type=${isPost ? "post" : "page"}`,
+      );
       const data = await res.json();
       if (data.success) {
         setSuggestions(data.data);
@@ -305,8 +380,10 @@ export default function SeoFixPage() {
   function applySuggestion(field: "title" | "description" | "keywords") {
     if (!suggestions) return;
     if (field === "title") setSeoTitle(suggestions.suggestedTitle);
-    if (field === "description") setSeoDescription(suggestions.suggestedDescription);
-    if (field === "keywords") setSeoKeywords(suggestions.keywords.map(k => k.term).join(", "));
+    if (field === "description")
+      setSeoDescription(suggestions.suggestedDescription);
+    if (field === "keywords")
+      setSeoKeywords(suggestions.keywords.map((k) => k.term).join(", "));
     toast("Applied suggestion", "success");
   }
 
@@ -320,7 +397,12 @@ export default function SeoFixPage() {
         ? {
             seoTitle: seoTitle || null,
             seoDescription: seoDescription || null,
-            seoKeywords: seoKeywords ? seoKeywords.split(",").map(s => s.trim()).filter(Boolean) : [],
+            seoKeywords: seoKeywords
+              ? seoKeywords
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : [],
             excerpt: excerpt || null,
             ogTitle: ogTitle || null,
             ogDescription: ogDescription || null,
@@ -378,9 +460,9 @@ export default function SeoFixPage() {
     );
   }
 
-  const failedChecks = audit?.checks.filter(c => c.status === "fail") || [];
-  const warnChecks = audit?.checks.filter(c => c.status === "warn") || [];
-  const passChecks = audit?.checks.filter(c => c.status === "pass") || [];
+  const failedChecks = audit?.checks.filter((c) => c.status === "fail") || [];
+  const warnChecks = audit?.checks.filter((c) => c.status === "warn") || [];
+  const passChecks = audit?.checks.filter((c) => c.status === "pass") || [];
 
   return (
     <div>
@@ -403,8 +485,18 @@ export default function SeoFixPage() {
           </div>
           <div className="flex items-center gap-3">
             {audit && (
-              <div className={clsx("flex items-center gap-2 rounded-lg px-3 py-2", scoreBg(audit.overallScore))}>
-                <span className={clsx("text-2xl font-bold", scoreColor(audit.overallScore))}>
+              <div
+                className={clsx(
+                  "flex items-center gap-2 rounded-lg px-3 py-2",
+                  scoreBg(audit.overallScore),
+                )}
+              >
+                <span
+                  className={clsx(
+                    "text-2xl font-bold",
+                    scoreColor(audit.overallScore),
+                  )}
+                >
                   {audit.overallScore}
                 </span>
                 <span className="text-xs text-gray-500">/100</span>
@@ -413,6 +505,7 @@ export default function SeoFixPage() {
             <Link
               href={isPost ? `/blog/${content.slug}` : `/${content.slug}`}
               target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               <Eye className="h-4 w-4" /> Preview
@@ -427,7 +520,9 @@ export default function SeoFixPage() {
           {/* SEO Fields Card */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900 dark:text-white">SEO Fields</h2>
+              <h2 className="font-semibold text-gray-900 dark:text-white">
+                SEO Fields
+              </h2>
               <Button
                 variant="outline"
                 size="sm"
@@ -443,91 +538,137 @@ export default function SeoFixPage() {
               {/* SEO Title */}
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="seo-fix-title"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     SEO Title
                   </label>
-                  <span className={clsx("text-xs", seoTitle.length > 60 ? "text-red-500" : seoTitle.length > 50 ? "text-yellow-500" : "text-gray-400")}>
+                  <span
+                    className={clsx(
+                      "text-xs",
+                      seoTitle.length > 60
+                        ? "text-red-500"
+                        : seoTitle.length > 50
+                          ? "text-yellow-500"
+                          : "text-gray-400",
+                    )}
+                  >
                     {seoTitle.length}/60
                   </span>
                 </div>
                 <input
+                  id="seo-fix-title"
+                  name="seo-fix-title"
                   type="text"
                   value={seoTitle}
                   onChange={(e) => setSeoTitle(e.target.value)}
                   placeholder={content.title}
                   className={clsx(
                     "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
-                    fieldChecks.seoTitle.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
-                    fieldChecks.seoTitle.status === "fail" ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700" :
-                    fieldChecks.seoTitle.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                    "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
+                    fieldChecks.seoTitle.status === "pass"
+                      ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700"
+                      : fieldChecks.seoTitle.status === "fail"
+                        ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700"
+                        : fieldChecks.seoTitle.status === "warn"
+                          ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700"
+                          : "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600",
                   )}
                 />
                 <div className="mt-1">
                   <FieldStatusBadge check={fieldChecks.seoTitle} />
                 </div>
-                {suggestions?.suggestedTitle && seoTitle !== suggestions.suggestedTitle && (
-                  <button
-                    onClick={() => applySuggestion("title")}
-                    className="mt-1 text-xs text-primary hover:underline dark:text-primary"
-                  >
-                    💡 Use: &quot;{suggestions.suggestedTitle.substring(0, 60)}&quot;
-                  </button>
-                )}
+                {suggestions?.suggestedTitle &&
+                  seoTitle !== suggestions.suggestedTitle && (
+                    <button
+                      type="button"
+                      onClick={() => applySuggestion("title")}
+                      className="mt-1 text-xs text-primary hover:underline dark:text-primary"
+                    >
+                      💡 Use: &quot;
+                      {suggestions.suggestedTitle.substring(0, 60)}&quot;
+                    </button>
+                  )}
               </div>
 
               {/* SEO Description */}
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="seo-fix-description"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     SEO Description
                   </label>
-                  <span className={clsx("text-xs", seoDescription.length > 160 ? "text-red-500" : seoDescription.length > 140 ? "text-yellow-500" : "text-gray-400")}>
+                  <span
+                    className={clsx(
+                      "text-xs",
+                      seoDescription.length > 160
+                        ? "text-red-500"
+                        : seoDescription.length > 140
+                          ? "text-yellow-500"
+                          : "text-gray-400",
+                    )}
+                  >
                     {seoDescription.length}/160
                   </span>
                 </div>
                 <textarea
+                  id="seo-fix-description"
+                  name="seo-fix-description"
                   value={seoDescription}
                   onChange={(e) => setSeoDescription(e.target.value)}
                   rows={3}
                   placeholder="Meta description for search engines..."
                   className={clsx(
                     "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
-                    fieldChecks.seoDescription.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
-                    fieldChecks.seoDescription.status === "fail" ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700" :
-                    fieldChecks.seoDescription.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                    "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
+                    fieldChecks.seoDescription.status === "pass"
+                      ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700"
+                      : fieldChecks.seoDescription.status === "fail"
+                        ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700"
+                        : fieldChecks.seoDescription.status === "warn"
+                          ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700"
+                          : "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600",
                   )}
                 />
                 <div className="mt-1">
                   <FieldStatusBadge check={fieldChecks.seoDescription} />
                 </div>
-                {suggestions?.suggestedDescription && seoDescription !== suggestions.suggestedDescription && (
-                  <button
-                    onClick={() => applySuggestion("description")}
-                    className="mt-1 text-xs text-primary hover:underline dark:text-primary"
-                  >
-                    💡 Use suggested description
-                  </button>
-                )}
+                {suggestions?.suggestedDescription &&
+                  seoDescription !== suggestions.suggestedDescription && (
+                    <button
+                      type="button"
+                      onClick={() => applySuggestion("description")}
+                      className="mt-1 text-xs text-primary hover:underline dark:text-primary"
+                    >
+                      💡 Use suggested description
+                    </button>
+                  )}
               </div>
 
               {/* Keywords (posts only) */}
               {isPost && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="seo-fix-keywords"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     SEO Keywords
                   </label>
                   <input
+                    id="seo-fix-keywords"
+                    name="seo-fix-keywords"
                     type="text"
                     value={seoKeywords}
                     onChange={(e) => setSeoKeywords(e.target.value)}
                     placeholder="keyword1, keyword2, keyword3"
                     className={clsx(
                       "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
-                      fieldChecks.keywords.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
-                      fieldChecks.keywords.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                      "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
+                      fieldChecks.keywords.status === "pass"
+                        ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700"
+                        : fieldChecks.keywords.status === "warn"
+                          ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700"
+                          : "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600",
                     )}
                   />
                   <div className="mt-1">
@@ -538,9 +679,12 @@ export default function SeoFixPage() {
                       <span className="text-xs text-gray-400">Suggested:</span>
                       {suggestions.keywords.slice(0, 8).map((kw) => (
                         <button
+                          type="button"
                           key={kw.term}
                           onClick={() => {
-                            const current = seoKeywords ? seoKeywords.split(",").map(s => s.trim()) : [];
+                            const current = seoKeywords
+                              ? seoKeywords.split(",").map((s) => s.trim())
+                              : [];
                             if (!current.includes(kw.term)) {
                               setSeoKeywords([...current, kw.term].join(", "));
                             }
@@ -558,19 +702,26 @@ export default function SeoFixPage() {
               {/* Excerpt (posts only) */}
               {isPost && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="seo-fix-excerpt"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Excerpt
                   </label>
                   <textarea
+                    id="seo-fix-excerpt"
+                    name="seo-fix-excerpt"
                     value={excerpt}
                     onChange={(e) => setExcerpt(e.target.value)}
                     rows={2}
                     placeholder="Brief summary of the post..."
                     className={clsx(
                       "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
-                      fieldChecks.excerpt.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
-                      fieldChecks.excerpt.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                      "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
+                      fieldChecks.excerpt.status === "pass"
+                        ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700"
+                        : fieldChecks.excerpt.status === "warn"
+                          ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700"
+                          : "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600",
                     )}
                   />
                   <div className="mt-1">
@@ -583,22 +734,34 @@ export default function SeoFixPage() {
 
           {/* Open Graph Card */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-4 font-semibold text-gray-900 dark:text-white">Open Graph / Social</h2>
+            <h2 className="mb-4 font-semibold text-gray-900 dark:text-white">
+              Open Graph / Social
+            </h2>
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">OG Title</label>
+                  <label
+                    htmlFor="seo-fix-og-title"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    OG Title
+                  </label>
                   <input
+                    id="seo-fix-og-title"
+                    name="seo-fix-og-title"
                     type="text"
                     value={ogTitle}
                     onChange={(e) => setOgTitle(e.target.value)}
                     placeholder={seoTitle || content.title}
                     className={clsx(
                       "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
-                      fieldChecks.ogTitle.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
-                      fieldChecks.ogTitle.status === "fail" ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700" :
-                      fieldChecks.ogTitle.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                      "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
+                      fieldChecks.ogTitle.status === "pass"
+                        ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700"
+                        : fieldChecks.ogTitle.status === "fail"
+                          ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700"
+                          : fieldChecks.ogTitle.status === "warn"
+                            ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700"
+                            : "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600",
                     )}
                   />
                   <div className="mt-1">
@@ -606,18 +769,28 @@ export default function SeoFixPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">OG Image URL</label>
+                  <label
+                    htmlFor="seo-fix-og-image"
+                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    OG Image URL
+                  </label>
                   <input
+                    id="seo-fix-og-image"
+                    name="seo-fix-og-image"
                     type="text"
                     value={ogImage}
                     onChange={(e) => setOgImage(e.target.value)}
                     placeholder="https://..."
                     className={clsx(
                       "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
-                      fieldChecks.ogImage.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
-                      fieldChecks.ogImage.status === "fail" ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700" :
-                      fieldChecks.ogImage.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                      "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
+                      fieldChecks.ogImage.status === "pass"
+                        ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700"
+                        : fieldChecks.ogImage.status === "fail"
+                          ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700"
+                          : fieldChecks.ogImage.status === "warn"
+                            ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700"
+                            : "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600",
                     )}
                   />
                   <div className="mt-1">
@@ -626,17 +799,28 @@ export default function SeoFixPage() {
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">OG Description</label>
+                <label
+                  htmlFor="seo-fix-og-description"
+                  className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  OG Description
+                </label>
                 <textarea
+                  id="seo-fix-og-description"
+                  name="seo-fix-og-description"
                   value={ogDescription}
                   onChange={(e) => setOgDescription(e.target.value)}
                   rows={2}
-                  placeholder={seoDescription || "Description for social sharing..."}
+                  placeholder={
+                    seoDescription || "Description for social sharing..."
+                  }
                   className={clsx(
                     "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
-                    fieldChecks.ogDescription.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
-                    fieldChecks.ogDescription.status === "warn" ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700" :
-                    "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
+                    fieldChecks.ogDescription.status === "pass"
+                      ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700"
+                      : fieldChecks.ogDescription.status === "warn"
+                        ? "border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500 dark:border-yellow-700"
+                        : "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600",
                   )}
                 />
                 <div className="mt-1">
@@ -644,17 +828,26 @@ export default function SeoFixPage() {
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Canonical URL</label>
+                <label
+                  htmlFor="seo-fix-canonical"
+                  className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Canonical URL
+                </label>
                 <input
+                  id="seo-fix-canonical"
+                  name="seo-fix-canonical"
                   type="text"
                   value={canonicalUrl}
                   onChange={(e) => setCanonicalUrl(e.target.value)}
                   placeholder="Leave empty for default"
                   className={clsx(
                     "w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 dark:bg-gray-700 dark:text-white",
-                    fieldChecks.canonical.status === "pass" ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700" :
-                    fieldChecks.canonical.status === "fail" ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700" :
-                    "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600"
+                    fieldChecks.canonical.status === "pass"
+                      ? "border-green-300 focus:border-green-500 focus:ring-green-500 dark:border-green-700"
+                      : fieldChecks.canonical.status === "fail"
+                        ? "border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-700"
+                        : "border-gray-300 focus:border-primary focus:ring-primary dark:border-gray-600",
                   )}
                 />
                 <div className="mt-1">
@@ -666,10 +859,18 @@ export default function SeoFixPage() {
 
           {/* Save */}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={fetchData} icon={<RefreshCw className="h-4 w-4" />}>
+            <Button
+              variant="outline"
+              onClick={fetchData}
+              icon={<RefreshCw className="h-4 w-4" />}
+            >
               Re-audit
             </Button>
-            <Button onClick={handleSave} loading={saving} icon={<Save className="h-4 w-4" />}>
+            <Button
+              onClick={handleSave}
+              loading={saving}
+              icon={<Save className="h-4 w-4" />}
+            >
               Save SEO Changes
             </Button>
           </div>
@@ -679,15 +880,24 @@ export default function SeoFixPage() {
         <div className="space-y-4">
           {/* Real-time Field Health */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-            <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Field Health (Live)</h3>
+            <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Field Health (Live)
+            </h3>
             <div className="flex items-center justify-center mb-3">
-              <div className={clsx("flex h-16 w-16 items-center justify-center rounded-full border-4 text-xl font-bold",
-                scoreBg(realtimeScore), scoreColor(realtimeScore),
-                realtimeScore >= 80 ? "border-green-300 dark:border-green-700" :
-                realtimeScore >= 60 ? "border-yellow-300 dark:border-yellow-700" :
-                realtimeScore >= 40 ? "border-orange-300 dark:border-orange-700" :
-                "border-red-300 dark:border-red-700"
-              )}>
+              <div
+                className={clsx(
+                  "flex h-16 w-16 items-center justify-center rounded-full border-4 text-xl font-bold",
+                  scoreBg(realtimeScore),
+                  scoreColor(realtimeScore),
+                  realtimeScore >= 80
+                    ? "border-green-300 dark:border-green-700"
+                    : realtimeScore >= 60
+                      ? "border-yellow-300 dark:border-yellow-700"
+                      : realtimeScore >= 40
+                        ? "border-orange-300 dark:border-orange-700"
+                        : "border-red-300 dark:border-red-700",
+                )}
+              >
                 {realtimeScore}
               </div>
             </div>
@@ -695,20 +905,33 @@ export default function SeoFixPage() {
               {[
                 { label: "SEO Title", check: fieldChecks.seoTitle },
                 { label: "Description", check: fieldChecks.seoDescription },
-                ...(isPost ? [{ label: "Keywords", check: fieldChecks.keywords }] : []),
-                ...(isPost ? [{ label: "Excerpt", check: fieldChecks.excerpt }] : []),
+                ...(isPost
+                  ? [{ label: "Keywords", check: fieldChecks.keywords }]
+                  : []),
+                ...(isPost
+                  ? [{ label: "Excerpt", check: fieldChecks.excerpt }]
+                  : []),
                 { label: "OG Title", check: fieldChecks.ogTitle },
                 { label: "OG Description", check: fieldChecks.ogDescription },
                 { label: "OG Image", check: fieldChecks.ogImage },
                 { label: "Canonical", check: fieldChecks.canonical },
               ].map(({ label, check }) => (
-                <div key={label} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-600 dark:text-gray-400">{label}</span>
-                  {check.status === "pass" ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                    : check.status === "fail" ? <XCircle className="h-3.5 w-3.5 text-red-500" />
-                    : check.status === "warn" ? <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" />
-                    : <Info className="h-3.5 w-3.5 text-gray-400" />
-                  }
+                <div
+                  key={label}
+                  className="flex items-center justify-between text-xs"
+                >
+                  <span className="text-gray-600 dark:text-gray-400">
+                    {label}
+                  </span>
+                  {check.status === "pass" ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                  ) : check.status === "fail" ? (
+                    <XCircle className="h-3.5 w-3.5 text-red-500" />
+                  ) : check.status === "warn" ? (
+                    <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" />
+                  ) : (
+                    <Info className="h-3.5 w-3.5 text-gray-400" />
+                  )}
                 </div>
               ))}
             </div>
@@ -717,28 +940,44 @@ export default function SeoFixPage() {
           {/* Score Card */}
           {audit && (
             <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
-              <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Audit Score</h3>
+              <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Audit Score
+              </h3>
               <div className="flex items-center justify-center">
-                <div className={clsx("flex h-20 w-20 items-center justify-center rounded-full border-4 text-2xl font-bold", scoreBg(audit.overallScore), scoreColor(audit.overallScore),
-                  audit.overallScore >= 80 ? "border-green-300 dark:border-green-700" :
-                  audit.overallScore >= 60 ? "border-yellow-300 dark:border-yellow-700" :
-                  audit.overallScore >= 40 ? "border-orange-300 dark:border-orange-700" :
-                  "border-red-300 dark:border-red-700"
-                )}>
+                <div
+                  className={clsx(
+                    "flex h-20 w-20 items-center justify-center rounded-full border-4 text-2xl font-bold",
+                    scoreBg(audit.overallScore),
+                    scoreColor(audit.overallScore),
+                    audit.overallScore >= 80
+                      ? "border-green-300 dark:border-green-700"
+                      : audit.overallScore >= 60
+                        ? "border-yellow-300 dark:border-yellow-700"
+                        : audit.overallScore >= 40
+                          ? "border-orange-300 dark:border-orange-700"
+                          : "border-red-300 dark:border-red-700",
+                  )}
+                >
                   {audit.overallScore}
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
                 <div>
-                  <p className="font-bold text-red-600 dark:text-red-400">{failedChecks.length}</p>
+                  <p className="font-bold text-red-600 dark:text-red-400">
+                    {failedChecks.length}
+                  </p>
                   <p className="text-gray-400">Fails</p>
                 </div>
                 <div>
-                  <p className="font-bold text-yellow-600 dark:text-yellow-400">{warnChecks.length}</p>
+                  <p className="font-bold text-yellow-600 dark:text-yellow-400">
+                    {warnChecks.length}
+                  </p>
                   <p className="text-gray-400">Warnings</p>
                 </div>
                 <div>
-                  <p className="font-bold text-green-600 dark:text-green-400">{passChecks.length}</p>
+                  <p className="font-bold text-green-600 dark:text-green-400">
+                    {passChecks.length}
+                  </p>
                   <p className="text-gray-400">Passed</p>
                 </div>
               </div>
@@ -749,7 +988,8 @@ export default function SeoFixPage() {
           {failedChecks.length > 0 && (
             <div className="rounded-xl border border-red-200 bg-red-50/50 p-5 dark:border-red-900/50 dark:bg-red-900/10">
               <h3 className="mb-3 text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-1">
-                <XCircle className="h-4 w-4" /> Failed Checks ({failedChecks.length})
+                <XCircle className="h-4 w-4" /> Failed Checks (
+                {failedChecks.length})
               </h3>
               <div className="space-y-3">
                 {failedChecks.map((check, i) => (
@@ -757,8 +997,12 @@ export default function SeoFixPage() {
                     <div className="flex items-start gap-2">
                       <StatusIcon status={check.status} />
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{check.name}</p>
-                        <p className="text-gray-600 dark:text-gray-400 text-xs">{check.message}</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {check.name}
+                        </p>
+                        <p className="text-gray-600 dark:text-gray-400 text-xs">
+                          {check.message}
+                        </p>
                         {check.recommendation && (
                           <p className="mt-0.5 text-blue-600 dark:text-blue-400 text-xs">
                             💡 {check.recommendation}
@@ -776,7 +1020,8 @@ export default function SeoFixPage() {
           {warnChecks.length > 0 && (
             <div className="rounded-xl border border-yellow-200 bg-yellow-50/50 p-5 dark:border-yellow-900/50 dark:bg-yellow-900/10">
               <h3 className="mb-3 text-sm font-semibold text-yellow-700 dark:text-yellow-400 flex items-center gap-1">
-                <AlertTriangle className="h-4 w-4" /> Warnings ({warnChecks.length})
+                <AlertTriangle className="h-4 w-4" /> Warnings (
+                {warnChecks.length})
               </h3>
               <div className="space-y-3">
                 {warnChecks.map((check, i) => (
@@ -784,8 +1029,12 @@ export default function SeoFixPage() {
                     <div className="flex items-start gap-2">
                       <StatusIcon status={check.status} />
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{check.name}</p>
-                        <p className="text-gray-600 dark:text-gray-400 text-xs">{check.message}</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {check.name}
+                        </p>
+                        <p className="text-gray-600 dark:text-gray-400 text-xs">
+                          {check.message}
+                        </p>
                         {check.recommendation && (
                           <p className="mt-0.5 text-blue-600 dark:text-blue-400 text-xs">
                             💡 {check.recommendation}
@@ -803,11 +1052,15 @@ export default function SeoFixPage() {
           {passChecks.length > 0 && (
             <div className="rounded-xl border border-green-200 bg-green-50/50 p-5 dark:border-green-900/50 dark:bg-green-900/10">
               <h3 className="mb-3 text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-1">
-                <CheckCircle2 className="h-4 w-4" /> Passed ({passChecks.length})
+                <CheckCircle2 className="h-4 w-4" /> Passed ({passChecks.length}
+                )
               </h3>
               <div className="space-y-1">
                 {passChecks.map((check, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400"
+                  >
                     <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
                     {check.name}
                   </div>

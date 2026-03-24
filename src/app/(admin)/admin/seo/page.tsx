@@ -509,7 +509,7 @@ export default function SeoAdminPage() {
         const delRes = await fetch(
           `/api/seo/redirects?id=${encodeURIComponent(redirectEditing)}`,
           {
-          method: "DELETE",
+            method: "DELETE",
           },
         );
         if (!delRes.ok) {
@@ -549,7 +549,7 @@ export default function SeoAdminPage() {
       const res = await fetch(
         `/api/seo/redirects?id=${encodeURIComponent(id)}`,
         {
-        method: "DELETE",
+          method: "DELETE",
         },
       );
       if (!res.ok) {
@@ -618,6 +618,7 @@ export default function SeoAdminPage() {
           </p>
         </div>
         <button
+          type="button"
           onClick={() =>
             tab === "overview"
               ? fetchOverview()
@@ -643,6 +644,7 @@ export default function SeoAdminPage() {
         {(["overview", "audit", "interlinking", "redirects"] as const).map(
           (t) => (
             <button
+              type="button"
               key={t}
               onClick={() => setTab(t)}
               className={clsx(
@@ -935,6 +937,7 @@ export default function SeoAdminPage() {
                       </p>
                       <div className="flex gap-1">
                         <button
+                          type="button"
                           disabled={overviewPage <= 1}
                           onClick={() => setOverviewPage(overviewPage - 1)}
                           className="rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -942,6 +945,7 @@ export default function SeoAdminPage() {
                           Prev
                         </button>
                         <button
+                          type="button"
                           disabled={overviewPage >= overviewTotalPages}
                           onClick={() => setOverviewPage(overviewPage + 1)}
                           className="rounded px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -1016,6 +1020,7 @@ export default function SeoAdminPage() {
                 className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 overflow-hidden"
               >
                 <button
+                  type="button"
                   onClick={() =>
                     setExpandedId(
                       expandedId === item.targetId ? null : item.targetId,
@@ -1137,6 +1142,7 @@ export default function SeoAdminPage() {
                             : `/${item.slug}`
                         }
                         target="_blank"
+                        rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                       >
                         <ExternalLink className="h-3.5 w-3.5" /> View
@@ -1319,6 +1325,7 @@ export default function SeoAdminPage() {
               <div className="flex gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
                 {(["overview", "links", "exclusions"] as const).map((st) => (
                   <button
+                    type="button"
                     key={st}
                     onClick={() => {
                       setInterlinkSubTab(st);
@@ -1359,6 +1366,7 @@ export default function SeoAdminPage() {
                         </p>
                       </div>
                       <button
+                        type="button"
                         onClick={async () => {
                           setAutoLinkRunning(true);
                           setAutoLinkResult(null);
@@ -1417,7 +1425,10 @@ export default function SeoAdminPage() {
                     </h2>
                     <div className="flex flex-wrap items-end gap-3">
                       <div className="flex-1 min-w-48">
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        <label
+                          htmlFor="seo-content-id"
+                          className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                        >
                           Content ID
                         </label>
                         <input
@@ -1429,7 +1440,10 @@ export default function SeoAdminPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        <label
+                          htmlFor="seo-type"
+                          className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                        >
                           Type
                         </label>
                         <select
@@ -1446,6 +1460,7 @@ export default function SeoAdminPage() {
                         </select>
                       </div>
                       <button
+                        type="button"
                         disabled={!scanContentId.trim() || scanLoading}
                         onClick={async () => {
                           setScanLoading(true);
@@ -1583,6 +1598,7 @@ export default function SeoAdminPage() {
                           </div>
                         )}
                         <button
+                          type="button"
                           onClick={async () => {
                             try {
                               const res = await fetch(
@@ -1897,6 +1913,7 @@ export default function SeoAdminPage() {
                                       {(link.status === "SUGGESTED" ||
                                         link.status === "APPROVED") && (
                                         <button
+                                          type="button"
                                           onClick={() =>
                                             handleApplyManualLink(link.id)
                                           }
@@ -1908,6 +1925,7 @@ export default function SeoAdminPage() {
                                       )}
                                       {link.status === "SUGGESTED" && (
                                         <button
+                                          type="button"
                                           onClick={() =>
                                             handleLinkAction(
                                               link.id,
@@ -1923,6 +1941,7 @@ export default function SeoAdminPage() {
                                       {(link.status === "SUGGESTED" ||
                                         link.status === "ACTIVE") && (
                                         <button
+                                          type="button"
                                           onClick={() =>
                                             handleLinkAction(
                                               link.id,
@@ -1937,6 +1956,7 @@ export default function SeoAdminPage() {
                                       )}
                                       {link.status === "ACTIVE" && (
                                         <button
+                                          type="button"
                                           onClick={() =>
                                             handleLinkAction(
                                               link.id,
@@ -1964,6 +1984,7 @@ export default function SeoAdminPage() {
                           </span>
                           <div className="flex gap-2">
                             <button
+                              type="button"
                               disabled={linksPage === 0}
                               onClick={() => {
                                 const p = Math.max(0, linksPage - 20);
@@ -1975,6 +1996,7 @@ export default function SeoAdminPage() {
                               Previous
                             </button>
                             <button
+                              type="button"
                               disabled={linksPage + 20 >= persistedTotal}
                               onClick={() => {
                                 const p = linksPage + 20;
@@ -2017,7 +2039,10 @@ export default function SeoAdminPage() {
                     {/* Add Phrase Exclusion */}
                     <div className="flex flex-wrap items-end gap-3 mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-900">
                       <div className="flex-1 min-w-40">
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        <label
+                          htmlFor="seo-phrase"
+                          className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                        >
                           Phrase
                         </label>
                         <input
@@ -2029,7 +2054,10 @@ export default function SeoAdminPage() {
                         />
                       </div>
                       <div className="flex-1 min-w-40">
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                        <label
+                          htmlFor="seo-reason-(optional)"
+                          className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                        >
                           Reason (optional)
                         </label>
                         <input
@@ -2041,6 +2069,7 @@ export default function SeoAdminPage() {
                         />
                       </div>
                       <button
+                        type="button"
                         onClick={handleAddExclusion}
                         disabled={!newExclPhrase.trim()}
                         className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
@@ -2082,6 +2111,7 @@ export default function SeoAdminPage() {
                               )}
                             </div>
                             <button
+                              type="button"
                               onClick={() => handleRemoveExclusion(ex.id)}
                               className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
                               title="Remove exclusion"
@@ -2116,7 +2146,10 @@ export default function SeoAdminPage() {
             </h3>
             <div className="grid gap-4 sm:grid-cols-4">
               <div className="sm:col-span-1">
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <label
+                  htmlFor="seo-from-path"
+                  className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                >
                   From Path
                 </label>
                 <input
@@ -2129,7 +2162,10 @@ export default function SeoAdminPage() {
                 />
               </div>
               <div className="sm:col-span-1">
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <label
+                  htmlFor="seo-to-path"
+                  className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                >
                   To Path
                 </label>
                 <input
@@ -2142,7 +2178,10 @@ export default function SeoAdminPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                <label
+                  htmlFor="seo-type"
+                  className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                >
                   Type
                 </label>
                 <select
@@ -2163,6 +2202,7 @@ export default function SeoAdminPage() {
               </div>
               <div className="flex items-end gap-2">
                 <button
+                  type="button"
                   onClick={saveRedirect}
                   disabled={
                     redirectSaving ||
@@ -2179,6 +2219,7 @@ export default function SeoAdminPage() {
                 </button>
                 {redirectEditing && (
                   <button
+                    type="button"
                     onClick={() => {
                       setRedirectEditing(null);
                       setRedirectForm({
@@ -2242,6 +2283,7 @@ export default function SeoAdminPage() {
                     </div>
                     <div className="flex gap-1 shrink-0">
                       <button
+                        type="button"
                         onClick={() => {
                           setRedirectEditing(r.id);
                           setRedirectForm({
@@ -2257,6 +2299,7 @@ export default function SeoAdminPage() {
                         <Database className="h-3.5 w-3.5" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => deleteRedirect(r.id)}
                         className="rounded p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30"
                         title="Delete"

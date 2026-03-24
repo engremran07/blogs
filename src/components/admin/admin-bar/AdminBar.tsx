@@ -44,7 +44,7 @@ function AdminBarInner() {
   // Preview mode — hide bar, show floating exit button
   if (previewMode) {
     return (
-      <button
+      <button type="button"
         onClick={exitPreview}
         className="fixed bottom-4 right-4 z-9999 flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-2xl ring-1 ring-white/10 transition-transform hover:scale-105"
         aria-label="Exit preview mode"

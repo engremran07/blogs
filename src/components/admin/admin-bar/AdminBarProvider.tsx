@@ -41,6 +41,8 @@ interface AdminBarContextValue {
   siteName: string;
   /** Current environment label */
   envLabel: "LIVE" | "STAGING" | "DEV";
+  /** Re-fetch site name from the server */
+  refreshSiteName: () => void;
 }
 
 const AdminBarCtx = createContext<AdminBarContextValue | null>(null);
@@ -68,6 +70,23 @@ export function AdminBarProvider({ children }: { children: ReactNode }) {
   );
   const [siteName, setSiteName] = useState(DEFAULT_SITE_NAME);
 
+  // Fetch site name from public settings
+  const fetchSiteName = useCallback(() => {
+    fetch("/api/settings/public")
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((res) => {
+        if (res.success && res.data?.siteName) {
+          setSiteName(res.data.siteName);
+        }
+      })
+      .catch(() => {
+        /* Public settings fetch failed — use defaults silently */
+      });
+  }, []);
+
   // Fetch admin bar + identity settings once
   useEffect(() => {
     fetch("/api/settings/admin-bar")
@@ -84,20 +103,18 @@ export function AdminBarProvider({ children }: { children: ReactNode }) {
         /* Settings fetch failed — use defaults silently */
       });
 
-    fetch("/api/settings/public")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((res) => {
-        if (res.success && res.data?.siteName) {
-          setSiteName(res.data.siteName);
-        }
-      })
-      .catch(() => {
-        /* Public settings fetch failed — use defaults silently */
-      });
-  }, []);
+    fetchSiteName();
+  }, [fetchSiteName]);
+
+  // Listen for settings-saved events to refresh site name
+  useEffect(() => {
+    function handleSettingsSaved() {
+      fetchSiteName();
+    }
+    window.addEventListener("admin-settings-saved", handleSettingsSaved);
+    return () =>
+      window.removeEventListener("admin-settings-saved", handleSettingsSaved);
+  }, [fetchSiteName]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -148,6 +165,7 @@ export function AdminBarProvider({ children }: { children: ReactNode }) {
       settings,
       siteName,
       envLabel: ENV_LABEL,
+      refreshSiteName: fetchSiteName,
     }),
     [
       activeDropdown,
@@ -159,6 +177,7 @@ export function AdminBarProvider({ children }: { children: ReactNode }) {
       exitPreview,
       settings,
       siteName,
+      fetchSiteName,
     ],
   );
 

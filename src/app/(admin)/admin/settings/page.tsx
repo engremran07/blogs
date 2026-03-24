@@ -48,6 +48,7 @@ import { Input, Textarea, Select } from "@/components/ui/FormFields";
 import { toast } from "@/components/ui/Toast";
 import Image from "next/image";
 import { Check, Sparkles, Home } from "lucide-react";
+import { applyThemeVarsToDOM } from "@/components/layout/Providers";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 /* ── Curated Color Presets ── */
@@ -527,6 +528,7 @@ function FileDropZone({
               <p className="text-xs text-gray-500">Drop or click to replace</p>
             </div>
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onRemove();
@@ -561,6 +563,19 @@ function FileDropZone({
   );
 }
 
+// ─── Live Theme Application ─────────────────────────────────────────────────
+
+function applyThemeCssVars(s: SiteSettings) {
+  applyThemeVarsToDOM({
+    primaryColor: s.primaryColor || "#3b82f6",
+    secondaryColor: s.secondaryColor || "#64748b",
+    accentColor: s.accentColor || "#f59e0b",
+    fontFamily: s.fontFamily || "system-ui, sans-serif",
+    headingFontFamily:
+      s.headingFontFamily || s.fontFamily || "system-ui, sans-serif",
+  });
+}
+
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function AdminSettingsPage() {
@@ -573,7 +588,9 @@ export default function AdminSettingsPage() {
 
   // Home page selector state
   const [homePageId, setHomePageId] = useState<string | null>(null);
-  const [homePages, setHomePages] = useState<{ id: string; title: string; slug: string; isHomePage: boolean }[]>([]);
+  const [homePages, setHomePages] = useState<
+    { id: string; title: string; slug: string; isHomePage: boolean }[]
+  >([]);
   const [homePagesLoaded, setHomePagesLoaded] = useState(false);
   const [savingHomePage, setSavingHomePage] = useState(false);
 
@@ -649,6 +666,10 @@ export default function AdminSettingsPage() {
       if (!prev) return prev;
       const next = { ...prev, [key]: value };
       setHasChanges(JSON.stringify(next) !== originalRef.current);
+
+      // Live-apply appearance CSS variables as the user edits
+      applyThemeCssVars(next);
+
       return next;
     });
   }
@@ -672,6 +693,12 @@ export default function AdminSettingsPage() {
         setSettings(data.data);
         originalRef.current = JSON.stringify(data.data);
         setHasChanges(false);
+
+        // Apply appearance changes in real-time by updating CSS custom properties
+        applyThemeCssVars(data.data);
+
+        // Notify admin bar to refresh site name
+        window.dispatchEvent(new Event("admin-settings-saved"));
       } else {
         toast(data.error || "Failed to save", "error");
       }
@@ -759,6 +786,7 @@ export default function AdminSettingsPage() {
         <nav className="inline-flex min-w-full gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-800">
           {TABS.map((tab) => (
             <button
+              type="button"
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
@@ -1494,11 +1522,16 @@ export default function AdminSettingsPage() {
             >
               <div className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    htmlFor="settings-landing-page"
+                    className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     Landing Page
                   </label>
                   <div className="flex items-center gap-3">
                     <select
+                      id="settings-landing-page"
+                      name="settings-landing-page"
                       value={homePageId || ""}
                       onChange={(e) => {
                         const val = e.target.value || null;
@@ -1531,7 +1564,9 @@ export default function AdminSettingsPage() {
 
                 {homePages.length === 0 && homePagesLoaded && (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
-                    <AlertCircle className="mb-1 inline h-4 w-4" /> No published pages found. Create and publish a page first to use it as your home page.
+                    <AlertCircle className="mb-1 inline h-4 w-4" /> No published
+                    pages found. Create and publish a page first to use it as
+                    your home page.
                   </div>
                 )}
               </div>
@@ -1565,6 +1600,7 @@ export default function AdminSettingsPage() {
                     },
                   ].map((opt) => (
                     <button
+                      type="button"
                       key={opt.value}
                       onClick={() => update("blogLayout", opt.value)}
                       className={`flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4 text-sm font-medium transition-all ${(settings.blogLayout || "grid") === opt.value ? "border-primary bg-primary/5 text-primary dark:border-primary dark:bg-primary/10 dark:text-primary" : "border-gray-200 text-gray-500 hover:border-gray-300 dark:border-gray-600 dark:text-gray-400"}`}
@@ -1594,6 +1630,7 @@ export default function AdminSettingsPage() {
                     <div className="flex gap-1">
                       {[1, 2, 3, 4].map((n) => (
                         <button
+                          type="button"
                           key={n}
                           onClick={() => update("blogColumns", n)}
                           className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${(settings.blogColumns || 2) === n ? "bg-primary text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"}`}

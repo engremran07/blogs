@@ -35,7 +35,7 @@ export function Sidebar({ className, defaultCollapsed = true, activePath, render
       role="navigation"
       aria-label="Sidebar navigation"
     >
-      <button
+      <button type="button"
         className="menu-sidebar__toggle"
         onClick={() => setCollapsed(!collapsed)}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -110,7 +110,7 @@ function SidebarItem({
           )}
         </a>
         {children.length > 0 && (
-          <button
+          <button type="button"
             className="menu-sidebar__expand"
             onClick={() => setExpanded(!expanded)}
             aria-label={expanded ? 'Collapse' : 'Expand'}

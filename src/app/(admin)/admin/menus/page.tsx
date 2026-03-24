@@ -353,7 +353,7 @@ export default function AdminMenusPage() {
             Menus
           </h2>
           {menus.map((menu) => (
-            <button
+            <button type="button"
               key={menu.id}
               onClick={() => setActiveMenuId(menu.id)}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
@@ -406,7 +406,7 @@ export default function AdminMenusPage() {
               </div>
             </div>
           ) : (
-            <button
+            <button type="button"
               onClick={() => setShowAddMenu(true)}
               className="flex w-full items-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-3 py-2.5 text-sm text-gray-500 hover:border-primary hover:text-primary dark:border-gray-600 dark:hover:border-primary"
             >
@@ -430,7 +430,7 @@ export default function AdminMenusPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
+                  <button type="button"
                     onClick={() => toggleMenuEnabled(activeMenu.id)}
                     className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       activeMenu.enabled
@@ -514,7 +514,7 @@ export default function AdminMenusPage() {
                               <option value="_self">Same Tab</option>
                               <option value="_blank">New Tab</option>
                             </select>
-                            <button
+                            <button type="button"
                               onClick={() =>
                                 updateMenuItem(
                                   activeMenu.id,
@@ -532,7 +532,7 @@ export default function AdminMenusPage() {
                                 <EyeOff className="h-4 w-4" />
                               )}
                             </button>
-                            <button
+                            <button type="button"
                               onClick={() =>
                                 deleteMenuItem(activeMenu.id, item.id)
                               }
@@ -547,7 +547,7 @@ export default function AdminMenusPage() {
                   </div>
                 )}
 
-                <button
+                <button type="button"
                   onClick={addMenuItem}
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 py-3 text-sm text-gray-500 hover:border-primary hover:text-primary dark:border-gray-600 dark:hover:border-primary"
                 >

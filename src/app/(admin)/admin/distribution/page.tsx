@@ -488,6 +488,7 @@ export default function DistributionAdminPage() {
       <div className="mb-6 flex gap-1 overflow-x-auto rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
         {tabDefs.map((t) => (
           <button
+            type="button"
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
@@ -699,6 +700,7 @@ export default function DistributionAdminPage() {
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
                         <button
+                          type="button"
                           onClick={() => validateChannel(ch.id)}
                           title="Validate"
                           className="rounded p-1.5 text-gray-400 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/30 dark:hover:text-green-400"
@@ -706,12 +708,14 @@ export default function DistributionAdminPage() {
                           <CheckCircle className="h-4 w-4" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => openEdit(ch)}
                           className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => setDeleteId(ch.id)}
                           className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
                         >
@@ -825,6 +829,7 @@ export default function DistributionAdminPage() {
                       <div className="flex items-center gap-1">
                         {["FAILED", "RATE_LIMITED"].includes(r.status) && (
                           <button
+                            type="button"
                             onClick={async () => {
                               try {
                                 const res = await fetch(
@@ -853,6 +858,7 @@ export default function DistributionAdminPage() {
                         )}
                         {["PENDING", "SCHEDULED"].includes(r.status) && (
                           <button
+                            type="button"
                             onClick={async () => {
                               try {
                                 const res = await fetch(

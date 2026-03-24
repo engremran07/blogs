@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/server/db/prisma";
@@ -82,9 +83,7 @@ export async function generateMetadata(): Promise<Metadata> {
         locale: "en_US",
         ...(ogImage
           ? {
-              images: [
-                { url: ogImage, width: 1200, height: 630, alt: title },
-              ],
+              images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
             }
           : {}),
       },
@@ -155,8 +154,9 @@ async function getFeaturedPost() {
   });
 }
 
-
 export default async function HomePage() {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   // Check if admin has set a custom page as the home page
   const customPage = await getCustomHomePage();
 
@@ -175,6 +175,8 @@ export default async function HomePage() {
     return (
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
         <script
+          nonce={nonce}
+          suppressHydrationWarning
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
         />
@@ -242,6 +244,8 @@ export default async function HomePage() {
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       {/* Organization JSON-LD */}
       <script
+        nonce={nonce}
+        suppressHydrationWarning
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: serializeJsonLd(organizationJsonLd),

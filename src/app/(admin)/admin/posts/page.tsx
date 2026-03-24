@@ -210,6 +210,9 @@ export default function AdminPostsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
+              id="search-posts"
+              name="search-posts"
+              autoComplete="off"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search posts..."
@@ -218,6 +221,8 @@ export default function AdminPostsPage() {
           </div>
         </form>
         <select
+          id="filter-status"
+          name="filter-status"
           value={statusFilter}
           onChange={(e) => {
             setStatusFilter(e.target.value);
@@ -244,6 +249,7 @@ export default function AdminPostsPage() {
             {bulkMenuOpen && (
               <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "publish", label: "publish" })
                   }
@@ -252,6 +258,7 @@ export default function AdminPostsPage() {
                   <Send className="h-4 w-4 text-green-500" /> Publish
                 </button>
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "draft", label: "move to draft" })
                   }
@@ -260,6 +267,7 @@ export default function AdminPostsPage() {
                   <FileText className="h-4 w-4 text-gray-500" /> Move to Draft
                 </button>
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "archive", label: "archive" })
                   }
@@ -269,6 +277,7 @@ export default function AdminPostsPage() {
                 </button>
                 <hr className="my-1 border-gray-200 dark:border-gray-700" />
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "delete", label: "delete" })
                   }
@@ -290,6 +299,7 @@ export default function AdminPostsPage() {
               <tr className="border-b border-gray-200 bg-gray-50 text-left dark:border-gray-700 dark:bg-gray-800/80">
                 <th className="px-3 py-3 w-10">
                   <button
+                    type="button"
                     onClick={toggleSelectAll}
                     className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                   >
@@ -338,6 +348,7 @@ export default function AdminPostsPage() {
                     >
                       <td className="px-3 py-3">
                         <button
+                          type="button"
                           onClick={() => toggleSelect(post.id)}
                           className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                         >
@@ -388,6 +399,7 @@ export default function AdminPostsPage() {
                                 : `/blog/${post.slug}?preview=true`
                             }
                             target="_blank"
+                            rel="noopener noreferrer"
                             className="rounded p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
                             title={
                               post.status === "PUBLISHED" ? "View" : "Preview"
@@ -403,6 +415,7 @@ export default function AdminPostsPage() {
                             <Edit2 className="h-4 w-4" />
                           </Link>
                           <button
+                            type="button"
                             onClick={() => setDeleteId(String(post.postNumber))}
                             className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                             title="Delete"

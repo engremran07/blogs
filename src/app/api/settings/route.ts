@@ -49,8 +49,9 @@ export async function PATCH(req: NextRequest) {
     }
 
     const updatedBy = session.user.id ?? session.user.email ?? undefined;
+    const validatedData = parsed.data;
     const result = await siteSettingsService.updateSettings(
-      parsed.data as Record<string, unknown>,
+      validatedData,
       updatedBy,
     );
 
@@ -81,12 +82,9 @@ export async function PATCH(req: NextRequest) {
     };
     const captchaSync: Record<string, unknown> = {};
     for (const f of captchaFields) {
-      if (
-        f in parsed.data &&
-        (parsed.data as Record<string, unknown>)[f] !== undefined
-      ) {
+      if (f in validatedData && validatedData[f] !== undefined) {
         const target = fieldMap[f] ?? f;
-        captchaSync[target] = (parsed.data as Record<string, unknown>)[f];
+        captchaSync[target] = validatedData[f];
       }
     }
     if (Object.keys(captchaSync).length > 0) {
@@ -116,24 +114,15 @@ export async function PATCH(req: NextRequest) {
     };
     const commentSync: Record<string, unknown> = {};
     for (const [siteField, commentField] of Object.entries(commentFieldMap)) {
-      if (
-        siteField in parsed.data &&
-        (parsed.data as Record<string, unknown>)[siteField] !== undefined
-      ) {
-        commentSync[commentField] = (parsed.data as Record<string, unknown>)[
-          siteField
-        ];
+      const val = validatedData[siteField as keyof typeof validatedData];
+      if (val !== undefined) {
+        commentSync[commentField] = val;
       }
     }
     // Special case: autoApproveComments (boolean) → autoApproveThreshold (int)
     // true = threshold 0 (always auto-approve), false = threshold 3 (require N approved first)
-    if (
-      "autoApproveComments" in parsed.data &&
-      parsed.data.autoApproveComments !== undefined
-    ) {
-      commentSync.autoApproveThreshold = (
-        parsed.data as Record<string, unknown>
-      ).autoApproveComments
+    if (validatedData.autoApproveComments !== undefined) {
+      commentSync.autoApproveThreshold = validatedData.autoApproveComments
         ? 0
         : 3;
     }
@@ -152,12 +141,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (!result.success) {
-      const statusCode =
-        "error" in result &&
-        typeof result.error === "object" &&
-        "statusCode" in result.error
-          ? result.error.statusCode
-          : 400;
+      const statusCode = result.error?.statusCode ?? 400;
       return NextResponse.json(result, { status: statusCode });
     }
 

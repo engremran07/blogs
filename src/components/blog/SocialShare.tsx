@@ -78,7 +78,7 @@ export function SocialShare({ title, url, compact = false }: SocialShareProps) {
           {link.icon}
         </a>
       ))}
-      <button
+      <button type="button"
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); copyLink(); }}
         title="Copy link"
         className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-all hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700"

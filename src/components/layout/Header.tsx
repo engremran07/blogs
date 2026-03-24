@@ -116,6 +116,7 @@ export function Header({
           {session ? (
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
               >
@@ -171,6 +172,7 @@ export function Header({
                       </Link>
                     )}
                     <button
+                      type="button"
                       onClick={() => {
                         setUserMenuOpen(false);
                         signOut();
@@ -196,7 +198,9 @@ export function Header({
 
           {/* Mobile toggle */}
           <button
+            type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle mobile menu"
             className="rounded-lg p-2 text-gray-500 md:hidden dark:text-gray-400"
           >
             {mobileOpen ? (

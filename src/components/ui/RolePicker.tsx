@@ -405,7 +405,10 @@ export function RolePicker({
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {label && (
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label
+          htmlFor="role-picker"
+          className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
           {label}
         </label>
       )}

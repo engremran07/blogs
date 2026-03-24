@@ -19,7 +19,7 @@ export default function PostError({
           "An unexpected error occurred while loading this post."}
       </p>
       <div className="mt-6 flex gap-3">
-        <button
+        <button type="button"
           onClick={reset}
           className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
         >

@@ -170,11 +170,17 @@ export function Footer({
             </p>
             <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
               <input
+                id="footer-newsletter-email"
+                name="email"
                 type="email"
+                autoComplete="email"
                 placeholder="your@email.com"
                 className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               />
-              <button className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90">
+              <button
+                type="submit"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+              >
                 Join
               </button>
             </form>

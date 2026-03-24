@@ -35,7 +35,7 @@ export function AdminPagination({ page, totalPages, total, pageSize = ADMIN_PAGE
         Showing {start}–{end} of {total}
       </p>
       <div className="flex items-center gap-1">
-        <button
+        <button type="button"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
           className="rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-300"
@@ -46,7 +46,7 @@ export function AdminPagination({ page, totalPages, total, pageSize = ADMIN_PAGE
           p === "ellipsis" ? (
             <span key={`ellipsis-${i}`} className="px-2 text-sm text-gray-400">…</span>
           ) : (
-            <button
+            <button type="button"
               key={p}
               onClick={() => onPageChange(p)}
               className={`rounded px-3 py-1.5 text-sm font-medium ${
@@ -59,7 +59,7 @@ export function AdminPagination({ page, totalPages, total, pageSize = ADMIN_PAGE
             </button>
           ),
         )}
-        <button
+        <button type="button"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           className="rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-300"

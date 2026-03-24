@@ -354,6 +354,7 @@ export function EditorToolbar({ editor, onImageUpload }: ToolbarProps) {
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        name="editor-image-upload"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

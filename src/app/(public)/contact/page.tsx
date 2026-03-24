@@ -1,13 +1,21 @@
+import { headers } from "next/headers";
 import { prisma } from "@/server/db/prisma";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import ContactForm from "./_ui/ContactForm";
-import { buildWebPageJsonLd, serializeJsonLd } from "@/features/seo/server/json-ld.util";
+import {
+  buildWebPageJsonLd,
+  serializeJsonLd,
+} from "@/features/seo/server/json-ld.util";
 import type { Metadata } from "next";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
+).replace(/\/$/, "");
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.siteSettings.findFirst({ select: { siteName: true } });
+  const settings = await prisma.siteSettings.findFirst({
+    select: { siteName: true },
+  });
   const siteName = settings?.siteName || "MyBlog";
 
   return {
@@ -31,6 +39,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ContactPage() {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   const settings = await prisma.siteSettings.findFirst({
     select: {
       siteName: true,
@@ -54,11 +64,19 @@ export default async function ContactPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(contactJsonLd) }} />
+      <script
+        nonce={nonce}
+        suppressHydrationWarning
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(contactJsonLd) }}
+      />
       <div className="mb-12 text-center">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Contact Us</h1>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+          Contact Us
+        </h1>
         <p className="mt-3 text-lg text-gray-600 dark:text-gray-400">
-          Have a question, suggestion, or want to collaborate? We&apos;d love to hear from you.
+          Have a question, suggestion, or want to collaborate? We&apos;d love to
+          hear from you.
         </p>
       </div>
 

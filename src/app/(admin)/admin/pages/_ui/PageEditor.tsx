@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Image as ImageIcon,
   Eye,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea, Select } from "@/components/ui/FormFields";
@@ -20,6 +21,8 @@ import { EditorStatusProvider } from "@/components/admin/EditorContext";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import type { MediaItem } from "@/features/media/types";
+import { convertJsxToHtml } from "@/shared/jsx-to-html.util";
+import { extractHtmlStyles } from "@/shared/html-style-extractor.util";
 
 const SITE_URL = (
   typeof window !== "undefined"
@@ -61,6 +64,7 @@ interface PageForm {
   title: string;
   slug: string;
   content: string;
+  customCss: string;
   status: string;
   template: string;
   visibility: string;
@@ -92,6 +96,7 @@ const defaultForm: PageForm = {
   title: "",
   slug: "",
   content: "",
+  customCss: "",
   status: "DRAFT",
   template: "DEFAULT",
   visibility: "PUBLIC",
@@ -116,9 +121,15 @@ const defaultForm: PageForm = {
 export default function PageEditor({
   pageId,
   isNew,
+  initialContent,
+  initialTitle,
+  initialCss,
 }: {
   pageId?: string;
   isNew: boolean;
+  initialContent?: string;
+  initialTitle?: string;
+  initialCss?: string;
 }) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -129,7 +140,18 @@ export default function PageEditor({
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
-  const [form, setForm] = useState<PageForm>({ ...defaultForm });
+  const [form, setForm] = useState<PageForm>(() => {
+    if (initialContent || initialTitle) {
+      return {
+        ...defaultForm,
+        title: initialTitle || "",
+        slug: initialTitle ? slugify(initialTitle) : "",
+        content: initialContent || "",
+        customCss: initialCss || "",
+      };
+    }
+    return { ...defaultForm };
+  });
 
   // Ref always points to the latest form so async handlers never see stale state
   const formRef = useRef(form);
@@ -149,6 +171,7 @@ export default function PageEditor({
               title: pg.title || "",
               slug: pg.slug || "",
               content: pg.content || "",
+              customCss: pg.customCss || "",
               status: pg.status || "DRAFT",
               template: pg.template || "DEFAULT",
               visibility: pg.visibility || "PUBLIC",
@@ -185,6 +208,50 @@ export default function PageEditor({
     });
   }
 
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = useCallback(
+    async (file: File) => {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      if (!ext || !["html", "htm", "jsx", "tsx"].includes(ext)) {
+        toast("Only .html, .htm, .jsx, and .tsx files are supported.", "error");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast("File size must be under 5 MB.", "error");
+        return;
+      }
+      try {
+        const text = await file.text();
+        let content: string;
+        let css = "";
+
+        if (ext === "html" || ext === "htm") {
+          // Extract styles and cleaned body content (replaces previous entirely)
+          const extracted = extractHtmlStyles(text);
+          content = extracted.content;
+          css = extracted.css;
+        } else {
+          // JSX / TSX — convert to HTML
+          content = convertJsxToHtml(text);
+        }
+
+        if (!content) {
+          toast("The uploaded file appears to be empty.", "error");
+          return;
+        }
+
+        // Replace both content and customCss (no stacking with previous upload)
+        setForm((prev) => ({ ...prev, content, customCss: css }));
+        toast("Content replaced from file.", "success");
+      } catch {
+        toast("Failed to read the uploaded file.", "error");
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   async function handleSave(status?: string) {
     // Read from ref to guarantee latest state (avoids stale closures from
     // React-Compiler auto-memoisation or batched state updates).
@@ -198,6 +265,7 @@ export default function PageEditor({
       const body: Record<string, unknown> = {
         title: f.title,
         content: f.content,
+        customCss: f.customCss || null,
         status: status || f.status,
         template: f.template,
         visibility: f.visibility,
@@ -281,13 +349,18 @@ export default function PageEditor({
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => router.push("/admin/pages")}
               className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              {isNew ? "New Page" : "Edit Page"}
+              {isNew
+                ? initialContent
+                  ? "Upload Page"
+                  : "New Page"
+                : "Edit Page"}
             </h1>
             {!isNew && (
               <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
@@ -346,9 +419,33 @@ export default function PageEditor({
               </div>
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Content
-              </label>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Content
+                </label>
+                <div>
+                  <input
+                    ref={uploadInputRef}
+                    type="file"
+                    accept=".html,.htm,.jsx,.tsx"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file);
+                      e.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => uploadInputRef.current?.click()}
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                    title="Replace content from an uploaded file"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Replace from File
+                  </button>
+                </div>
+              </div>
               <RichTextEditor
                 content={form.content}
                 onChange={(html, _text, wc) => {
@@ -379,6 +476,7 @@ export default function PageEditor({
             {/* SEO Section */}
             <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
               <button
+                type="button"
                 onClick={() => setSeoOpen(!seoOpen)}
                 className="flex w-full items-center justify-between p-6"
               >

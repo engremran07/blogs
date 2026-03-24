@@ -4,7 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Search as SearchIcon, Calendar, Eye, Clock, Loader2, X } from "lucide-react";
+import {
+  Search as SearchIcon,
+  Calendar,
+  Eye,
+  Clock,
+  Loader2,
+  X,
+} from "lucide-react";
 import { PostImageFallback } from "@/components/blog/PostImageFallback";
 
 interface SearchResult {
@@ -70,6 +77,8 @@ export default function SearchContent() {
         <div className="relative">
           <SearchIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
+            id="search-query"
+            name="q"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by title, content, or tag..."
@@ -78,7 +87,12 @@ export default function SearchContent() {
           {query && (
             <button
               type="button"
-              onClick={() => { setQuery(""); setResults([]); setSearched(false); }}
+              aria-label="Clear search"
+              onClick={() => {
+                setQuery("");
+                setResults([]);
+                setSearched(false);
+              }}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
               <X className="h-5 w-5" />
@@ -106,7 +120,8 @@ export default function SearchContent() {
         <div className="space-y-6">
           {searched && (
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {results.length} {results.length === 1 ? "result" : "results"} for &ldquo;{query}&rdquo;
+              {results.length} {results.length === 1 ? "result" : "results"} for
+              &ldquo;{query}&rdquo;
             </p>
           )}
           {results.map((post) => (
@@ -148,7 +163,11 @@ export default function SearchContent() {
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
                     {post.publishedAt
-                      ? new Date(post.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                      ? new Date(post.publishedAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
                       : "Draft"}
                   </span>
                   <span className="flex items-center gap-1">
@@ -158,7 +177,10 @@ export default function SearchContent() {
                     <Eye className="h-3.5 w-3.5" /> {post.viewCount}
                   </span>
                   {post.tags?.slice(0, 3).map((tag) => (
-                    <span key={tag.slug} className="rounded bg-gray-100 px-2 py-0.5 dark:bg-gray-700">
+                    <span
+                      key={tag.slug}
+                      className="rounded bg-gray-100 px-2 py-0.5 dark:bg-gray-700"
+                    >
                       {tag.name}
                     </span>
                   ))}

@@ -75,7 +75,7 @@ export function VignetteAd({
       )}
 
       {/* Close button */}
-      <button
+      <button type="button"
         onClick={handleClose}
         className="absolute top-4 right-4 flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 shadow-md transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
         aria-label="Close ad"

@@ -99,7 +99,7 @@ export function InterstitialAd({
         {/* Close button or countdown */}
         <div className="absolute -top-3 -right-3">
           {canClose ? (
-            <button
+            <button type="button"
               onClick={handleClose}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-white shadow-lg transition-colors hover:bg-gray-700"
               aria-label="Close ad"

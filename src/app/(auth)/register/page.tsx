@@ -3,16 +3,29 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mail, Lock, User, UserPlus, Eye, EyeOff, ShieldOff } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  User,
+  UserPlus,
+  Eye,
+  EyeOff,
+  ShieldOff,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/FormFields";
 import { toast } from "@/components/ui/Toast";
-import { PasswordStrengthIndicator, isPasswordValid } from "@/components/ui/PasswordStrengthIndicator";
+import {
+  PasswordStrengthIndicator,
+  isPasswordValid,
+} from "@/components/ui/PasswordStrengthIndicator";
 import Captcha from "@/features/captcha/ui/Captcha";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
+  const [registrationEnabled, setRegistrationEnabled] = useState<
+    boolean | null
+  >(null);
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -112,9 +125,12 @@ export default function RegisterPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
             <ShieldOff className="h-7 w-7 text-gray-400" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Registration is closed</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Registration is closed
+          </h1>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            New account creation is currently disabled by the site administrator.
+            New account creation is currently disabled by the site
+            administrator.
           </p>
           <Link
             href="/login"
@@ -134,7 +150,9 @@ export default function RegisterPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-xl font-bold text-white">
             B
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create an account</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Create an account
+          </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Join the community and start interacting
           </p>
@@ -185,7 +203,11 @@ export default function RegisterPage() {
                   className="text-gray-400 hover:text-gray-600"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               }
               autoComplete="new-password"
@@ -217,11 +239,21 @@ export default function RegisterPage() {
               />
               <span>
                 I agree to the{" "}
-                <Link href="/privacy-policy" target="_blank" className="font-medium text-primary underline hover:text-primary/80">
+                <Link
+                  href="/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-primary underline hover:text-primary/80"
+                >
                   Privacy Policy
                 </Link>{" "}
                 and{" "}
-                <Link href="/terms-of-service" target="_blank" className="font-medium text-primary underline hover:text-primary/80">
+                <Link
+                  href="/terms-of-service"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-primary underline hover:text-primary/80"
+                >
                   Terms of Service
                 </Link>
               </span>

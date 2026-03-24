@@ -421,6 +421,9 @@ export default function AdminUsersPage() {
         <div className="flex-1 min-w-50 relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
+            id="search-users"
+            name="search-users"
+            autoComplete="off"
             defaultValue={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search users..."
@@ -428,6 +431,8 @@ export default function AdminUsersPage() {
           />
         </div>
         <select
+          id="filter-role"
+          name="filter-role"
           value={roleFilter}
           onChange={(e) => handleRoleFilterChange(e.target.value)}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -461,6 +466,7 @@ export default function AdminUsersPage() {
                     compact
                   />
                   <button
+                    type="button"
                     onClick={() =>
                       setBulkConfirm({
                         action: "changeRole",
@@ -474,6 +480,7 @@ export default function AdminUsersPage() {
                 </div>
                 <hr className="my-1 border-gray-200 dark:border-gray-700" />
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "delete", label: "delete" })
                   }
@@ -495,6 +502,7 @@ export default function AdminUsersPage() {
               <tr className="border-b border-gray-200 bg-gray-50 text-left dark:border-gray-700 dark:bg-gray-800/80">
                 <th className="px-3 py-3 w-10">
                   <button
+                    type="button"
                     onClick={toggleSelectAll}
                     className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                   >
@@ -546,6 +554,7 @@ export default function AdminUsersPage() {
                     >
                       <td className="px-3 py-3">
                         <button
+                          type="button"
                           onClick={() => toggleSelect(user.id)}
                           className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                         >
@@ -558,6 +567,7 @@ export default function AdminUsersPage() {
                       </td>
                       <td className="px-4 py-3">
                         <button
+                          type="button"
                           onClick={() => openEditUser(user)}
                           className="flex items-center gap-3 text-left hover:opacity-80"
                         >
@@ -606,6 +616,7 @@ export default function AdminUsersPage() {
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
                           <button
+                            type="button"
                             onClick={() => openEditUser(user)}
                             className="rounded p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
                             title="Edit user"
@@ -613,6 +624,7 @@ export default function AdminUsersPage() {
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => setDeleteId(user.id)}
                             className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                             title="Delete user"
@@ -1090,6 +1102,7 @@ export default function AdminUsersPage() {
         {/* Footer actions */}
         <div className="mt-4 flex justify-between border-t border-gray-200 pt-4 dark:border-gray-700">
           <button
+            type="button"
             onClick={() => {
               if (editUser) {
                 setDeleteId(editUser.id);

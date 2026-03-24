@@ -12,7 +12,13 @@ import Captcha from "@/features/captcha/ui/Captcha";
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[calc(100vh-8rem)] items-center justify-center"><div className="animate-pulse text-gray-400">Loading...</div></div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
+          <div className="animate-pulse text-gray-400">Loading...</div>
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );
@@ -58,7 +64,10 @@ function LoginForm() {
         setError("Invalid email or password");
       } else {
         // Validate callbackUrl is a relative path to prevent open redirect
-        const safeUrl = callbackUrl.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : "/";
+        const safeUrl =
+          callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+            ? callbackUrl
+            : "/";
         router.push(safeUrl);
         router.refresh();
       }
@@ -78,7 +87,9 @@ function LoginForm() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-xl font-bold text-white">
             B
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Welcome back
+          </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Sign in to your account to continue
           </p>
@@ -121,7 +132,11 @@ function LoginForm() {
                   className="text-gray-400 hover:text-gray-600"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               }
               autoComplete="current-password"
@@ -143,7 +158,12 @@ function LoginForm() {
 
           <div className="mt-4 flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-              <input type="checkbox" className="rounded border-gray-300" />
+              <input
+                type="checkbox"
+                id="remember-me"
+                name="remember-me"
+                className="rounded border-gray-300"
+              />
               Remember me
             </label>
             <Link

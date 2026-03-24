@@ -251,6 +251,14 @@ export default async function RootLayout({
         <Providers
           darkModeEnabled={darkModeEnabled}
           darkModeDefault={darkModeDefault}
+          nonce={nonce}
+          theme={{
+            primaryColor,
+            secondaryColor,
+            accentColor,
+            fontFamily,
+            headingFontFamily: effectiveHeadingFont,
+          }}
         >
           <AdminBar />
           {children}

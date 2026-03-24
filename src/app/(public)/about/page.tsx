@@ -1,17 +1,26 @@
+import { headers } from "next/headers";
 import { prisma } from "@/server/db/prisma";
 import { Users, BookOpen, MessageSquare, Globe } from "lucide-react";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
-import { buildWebPageJsonLd, serializeJsonLd } from "@/features/seo/server/json-ld.util";
+import {
+  buildWebPageJsonLd,
+  serializeJsonLd,
+} from "@/features/seo/server/json-ld.util";
 import type { Metadata } from "next";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://example.com").replace(/\/$/, "");
+const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
+).replace(/\/$/, "");
 
 export const revalidate = 86400; // ISR: rebuild at most once per day
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.siteSettings.findFirst({ select: { siteName: true, siteDescription: true } });
+  const settings = await prisma.siteSettings.findFirst({
+    select: { siteName: true, siteDescription: true },
+  });
   const siteName = settings?.siteName || "MyBlog";
-  const description = settings?.siteDescription || `Learn more about ${siteName}`;
+  const description =
+    settings?.siteDescription || `Learn more about ${siteName}`;
 
   return {
     title: "About",
@@ -34,6 +43,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AboutPage() {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   const [postCount, commentCount, tagCount, settings] = await Promise.all([
     prisma.post.count({ where: { status: "PUBLISHED", deletedAt: null } }),
     prisma.comment.count({ where: { status: "APPROVED", deletedAt: null } }),
@@ -42,7 +53,8 @@ export default async function AboutPage() {
   ]);
 
   const siteName = settings?.siteName || "MyBlog";
-  const aboutDescription = settings?.siteDescription || `Learn more about ${siteName}`;
+  const aboutDescription =
+    settings?.siteDescription || `Learn more about ${siteName}`;
   const aboutJsonLd = buildWebPageJsonLd({
     name: `About ${siteName}`,
     url: `${SITE_URL}/about`,
@@ -52,14 +64,20 @@ export default async function AboutPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(aboutJsonLd) }} />
+      <script
+        nonce={nonce}
+        suppressHydrationWarning
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(aboutJsonLd) }}
+      />
       {/* Hero */}
       <div className="mb-12 text-center">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
           About {siteName}
         </h1>
         <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-          {settings?.siteDescription || "A modern blog platform built with passion for sharing knowledge and ideas."}
+          {settings?.siteDescription ||
+            "A modern blog platform built with passion for sharing knowledge and ideas."}
         </p>
       </div>
 
@@ -76,8 +94,12 @@ export default async function AboutPage() {
             className="rounded-xl border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800"
           >
             <stat.icon className="mx-auto mb-2 h-8 w-8 text-primary" />
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {stat.value}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {stat.label}
+            </p>
           </div>
         ))}
       </div>
@@ -91,33 +113,39 @@ export default async function AboutPage() {
       <div className="prose prose-lg dark:prose-invert mx-auto max-w-none">
         <h2>Our Mission</h2>
         <p>
-          We believe in the power of sharing knowledge. Our platform is designed to make it easy
-          for writers to publish their thoughts and for readers to discover great content.
+          We believe in the power of sharing knowledge. Our platform is designed
+          to make it easy for writers to publish their thoughts and for readers
+          to discover great content.
         </p>
 
         <h2>What We Offer</h2>
         <ul>
           <li>
-            <strong>Quality Content:</strong> Carefully crafted articles covering a wide range of topics.
+            <strong>Quality Content:</strong> Carefully crafted articles
+            covering a wide range of topics.
           </li>
           <li>
-            <strong>Community:</strong> An engaged community where readers can share their thoughts through comments.
+            <strong>Community:</strong> An engaged community where readers can
+            share their thoughts through comments.
           </li>
           <li>
-            <strong>Open Platform:</strong> A space for both experienced and aspiring writers to share their expertise.
+            <strong>Open Platform:</strong> A space for both experienced and
+            aspiring writers to share their expertise.
           </li>
         </ul>
 
         <h2>Technology</h2>
         <p>
-          Built with modern web technologies including Next.js, React, and PostgreSQL,
-          our platform delivers a fast, accessible, and beautiful reading experience.
+          Built with modern web technologies including Next.js, React, and
+          PostgreSQL, our platform delivers a fast, accessible, and beautiful
+          reading experience.
         </p>
 
         <h2>Get Involved</h2>
         <p>
-          Whether you want to contribute articles, participate in discussions, or simply enjoy
-          reading, we welcome you. Feel free to create an account and join the conversation!
+          Whether you want to contribute articles, participate in discussions,
+          or simply enjoy reading, we welcome you. Feel free to create an
+          account and join the conversation!
         </p>
       </div>
 

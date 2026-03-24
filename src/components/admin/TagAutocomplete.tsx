@@ -89,7 +89,10 @@ export default function TagAutocomplete({
   // This ensures we ALWAYS get the tag if it exists in the DB.
   async function findOrCreateTag(name: string): Promise<TagItem | null> {
     const lower = name.toLowerCase();
-    const slugified = lower.replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    const slugified = lower
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
 
     // Step 1: Search by name
     try {
@@ -99,8 +102,7 @@ export default function TagAutocomplete({
       const data = await res.json();
       if (data.success && data.results) {
         const match = (data.results as AutocompleteResult[]).find(
-          (r) =>
-            r.name.toLowerCase() === lower || r.slug === slugified,
+          (r) => r.name.toLowerCase() === lower || r.slug === slugified,
         );
         if (match) {
           return { id: match.id, name: match.name, slug: match.slug };
@@ -135,8 +137,7 @@ export default function TagAutocomplete({
         const retryData = await retryRes.json();
         if (retryData.success && retryData.results) {
           const match = (retryData.results as AutocompleteResult[]).find(
-            (r) =>
-              r.name.toLowerCase() === lower || r.slug === slugified,
+            (r) => r.name.toLowerCase() === lower || r.slug === slugified,
           );
           if (match) {
             return { id: match.id, name: match.name, slug: match.slug };
@@ -211,7 +212,9 @@ export default function TagAutocomplete({
     if (highlightIdx >= 0 && listRef.current) {
       const items = listRef.current.children;
       if (items[highlightIdx]) {
-        (items[highlightIdx] as HTMLElement).scrollIntoView({ block: "nearest" });
+        (items[highlightIdx] as HTMLElement).scrollIntoView({
+          block: "nearest",
+        });
       }
     }
   }, [highlightIdx]);
@@ -304,9 +307,7 @@ export default function TagAutocomplete({
 
           // Skip if already selected (case-insensitive)
           if (
-            currentTags.some(
-              (t) => t.name.toLowerCase() === name.toLowerCase(),
-            )
+            currentTags.some((t) => t.name.toLowerCase() === name.toLowerCase())
           )
             continue;
 
@@ -357,14 +358,10 @@ export default function TagAutocomplete({
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setHighlightIdx((prev) =>
-        prev < totalItems - 1 ? prev + 1 : 0,
-      );
+      setHighlightIdx((prev) => (prev < totalItems - 1 ? prev + 1 : 0));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setHighlightIdx((prev) =>
-        prev > 0 ? prev - 1 : totalItems - 1,
-      );
+      setHighlightIdx((prev) => (prev > 0 ? prev - 1 : totalItems - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (highlightIdx >= 0 && highlightIdx < results.length) {
@@ -424,6 +421,9 @@ export default function TagAutocomplete({
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
+          id="tag-autocomplete"
+          name="tag-autocomplete"
+          autoComplete="off"
           ref={inputRef}
           type="text"
           value={query}
@@ -451,7 +451,6 @@ export default function TagAutocomplete({
           placeholder={atLimit ? `Max ${maxTags} tags reached` : placeholder}
           disabled={atLimit}
           className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:border-primary"
-          autoComplete="off"
         />
         {(loading || creating) && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -557,11 +556,15 @@ export default function TagAutocomplete({
       )}
 
       {/* Empty state — only when no results AND no create option */}
-      {open && !loading && debouncedQuery && results.length === 0 && !showCreateOption && (
-        <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white p-3 text-center text-sm text-gray-500 shadow-lg dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
-          No tags found for &ldquo;{debouncedQuery}&rdquo;
-        </div>
-      )}
+      {open &&
+        !loading &&
+        debouncedQuery &&
+        results.length === 0 &&
+        !showCreateOption && (
+          <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white p-3 text-center text-sm text-gray-500 shadow-lg dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
+            No tags found for &ldquo;{debouncedQuery}&rdquo;
+          </div>
+        )}
 
       {/* Max-tags hint (only when scrollable box isn't visible) */}
       {tags.length === 0 && maxTags > 0 && (

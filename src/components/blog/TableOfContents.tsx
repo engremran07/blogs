@@ -67,7 +67,7 @@ export function TableOfContents({ content }: { content: string }) {
 
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-800/50">
-      <button
+      <button type="button"
         onClick={() => setCollapsed(!collapsed)}
         className="flex w-full items-center justify-between gap-2 text-sm font-semibold text-gray-900 dark:text-white"
       >

@@ -202,6 +202,9 @@ export default function AdminPagesPage() {
         <div className="flex-1 min-w-50 relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
+            id="search-pages"
+            name="search-pages"
+            autoComplete="off"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search pages..."
@@ -209,6 +212,8 @@ export default function AdminPagesPage() {
           />
         </div>
         <select
+          id="filter-status"
+          name="filter-status"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -232,6 +237,7 @@ export default function AdminPagesPage() {
             {bulkMenuOpen && (
               <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "publish", label: "publish" })
                   }
@@ -240,6 +246,7 @@ export default function AdminPagesPage() {
                   <Send className="h-4 w-4 text-green-500" /> Publish
                 </button>
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "draft", label: "move to draft" })
                   }
@@ -248,6 +255,7 @@ export default function AdminPagesPage() {
                   <FileText className="h-4 w-4 text-gray-500" /> Move to Draft
                 </button>
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "archive", label: "archive" })
                   }
@@ -257,6 +265,7 @@ export default function AdminPagesPage() {
                 </button>
                 <hr className="my-1 border-gray-200 dark:border-gray-700" />
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "delete", label: "delete" })
                   }
@@ -278,6 +287,7 @@ export default function AdminPagesPage() {
               <tr className="border-b border-gray-200 bg-gray-50 text-left dark:border-gray-700 dark:bg-gray-800/80">
                 <th className="px-3 py-3 w-10">
                   <button
+                    type="button"
                     onClick={toggleSelectAll}
                     className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                   >
@@ -326,6 +336,7 @@ export default function AdminPagesPage() {
                     >
                       <td className="px-3 py-3">
                         <button
+                          type="button"
                           onClick={() => toggleSelect(pg.id)}
                           className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                         >
@@ -365,6 +376,7 @@ export default function AdminPagesPage() {
                           <Link
                             href={`/${pg.slug}`}
                             target="_blank"
+                            rel="noopener noreferrer"
                             className="rounded p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
                             title="View"
                           >
@@ -378,6 +390,7 @@ export default function AdminPagesPage() {
                             <Edit2 className="h-4 w-4" />
                           </Link>
                           <button
+                            type="button"
                             onClick={() => setDeleteId(pg.slug)}
                             className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                             title="Delete"

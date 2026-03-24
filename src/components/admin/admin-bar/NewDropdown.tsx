@@ -24,7 +24,7 @@ export function NewDropdown() {
 
   return (
     <div className="relative" data-admin-bar-dropdown>
-      <button
+      <button type="button"
         onClick={() => toggleDropdown(DROPDOWN_ID)}
         className="flex items-center gap-1 rounded px-2 py-1 text-sm text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
         aria-label="Create new content"

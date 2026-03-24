@@ -49,7 +49,10 @@ export function DataTable<T>({
           </thead>
           <tbody>
             {Array.from({ length: 5 }).map((_, i) => (
-              <tr key={i} className="border-t border-gray-100 dark:border-gray-700/50">
+              <tr
+                key={i}
+                className="border-t border-gray-100 dark:border-gray-700/50"
+              >
                 {columns.map((col) => (
                   <td key={col.key} className="px-4 py-3">
                     <div className="h-4 w-3/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
@@ -102,11 +105,15 @@ export function DataTable<T>({
                 onClick={() => onRowClick?.(row)}
                 className={clsx(
                   "transition-colors",
-                  onRowClick && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50",
+                  onRowClick &&
+                    "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50",
                 )}
               >
                 {columns.map((col) => (
-                  <td key={col.key} className={clsx("px-4 py-3 text-sm", col.className)}>
+                  <td
+                    key={col.key}
+                    className={clsx("px-4 py-3 text-sm", col.className)}
+                  >
                     {col.render(row, idx)}
                   </td>
                 ))}
@@ -127,7 +134,11 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
-export function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
+export function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+}: PaginationProps) {
   if (totalPages <= 1) return null;
 
   const pages: (number | "...")[] = [];
@@ -142,8 +153,10 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
   return (
     <nav className="flex items-center justify-center gap-1 pt-4">
       <button
+        type="button"
         onClick={() => onPageChange(page - 1)}
         disabled={page <= 1}
+        aria-label="Previous page"
         className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-40 dark:text-gray-400 dark:hover:bg-gray-800"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -155,6 +168,7 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
           </span>
         ) : (
           <button
+            type="button"
             key={p}
             onClick={() => onPageChange(p)}
             className={clsx(
@@ -169,8 +183,10 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
         ),
       )}
       <button
+        type="button"
         onClick={() => onPageChange(page + 1)}
         disabled={page >= totalPages}
+        aria-label="Next page"
         className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-40 dark:text-gray-400 dark:hover:bg-gray-800"
       >
         <ChevronRight className="h-4 w-4" />

@@ -39,7 +39,7 @@ export function SiteSeoDropdown() {
 
   return (
     <div className="relative" data-admin-bar-dropdown>
-      <button
+      <button type="button"
         onClick={handleToggle}
         className={clsx(
           "flex items-center gap-1 rounded px-2 py-1 text-sm transition-colors hover:bg-white/10",
@@ -69,7 +69,7 @@ export function SiteSeoDropdown() {
             <span className="text-xs font-semibold text-gray-300">
               Site SEO Overview
             </span>
-            <button
+            <button type="button"
               onClick={closeDropdown}
               className="text-gray-500 hover:text-gray-300"
               aria-label="Close Site SEO panel"
@@ -127,7 +127,7 @@ export function SiteSeoDropdown() {
               </div>
 
               <div className="mt-3">
-                <button
+                <button type="button"
                   onClick={() => seo.refresh()}
                   className="w-full rounded bg-white/5 px-2 py-1.5 text-xs text-gray-300 transition-colors hover:bg-white/10"
                 >

@@ -7,14 +7,60 @@
 /* ========================================================================== */
 
 const SAFE_TAGS = new Set([
-  'p', 'br', 'b', 'i', 'u', 'em', 'strong', 'a', 'img',
-  'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
-  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'table', 'thead', 'tbody', 'tr', 'th', 'td',
-  'figure', 'figcaption', 'picture', 'source', 'video', 'audio',
-  'div', 'span', 'section', 'article', 'header', 'footer', 'nav',
-  'hr', 'sup', 'sub', 'mark', 'del', 'ins', 'abbr', 'time',
-  'details', 'summary', 'dl', 'dt', 'dd', 'caption',
+  "p",
+  "br",
+  "b",
+  "i",
+  "u",
+  "em",
+  "strong",
+  "a",
+  "img",
+  "ul",
+  "ol",
+  "li",
+  "blockquote",
+  "pre",
+  "code",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "table",
+  "thead",
+  "tbody",
+  "tr",
+  "th",
+  "td",
+  "figure",
+  "figcaption",
+  "picture",
+  "source",
+  "video",
+  "audio",
+  "div",
+  "span",
+  "section",
+  "article",
+  "header",
+  "footer",
+  "nav",
+  "hr",
+  "sup",
+  "sub",
+  "mark",
+  "del",
+  "ins",
+  "abbr",
+  "time",
+  "details",
+  "summary",
+  "dl",
+  "dt",
+  "dd",
+  "caption",
 ]);
 
 void SAFE_TAGS; // used conceptually — full HTML sanitization is regex-based below
@@ -24,13 +70,13 @@ export function sanitizeHtml(html: string): string {
   let result = html;
   result = result.replace(
     /<(script|style|iframe|object|embed|form|input|textarea|select|button)\b[^>]*>[\s\S]*?<\/\1>/gi,
-    '',
+    "",
   );
   result = result.replace(
     /<(script|style|iframe|object|embed|form|input|textarea|select|button)\b[^>]*\/?>/gi,
-    '',
+    "",
   );
-  result = result.replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  result = result.replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
   result = result.replace(
     /(href|src)\s*=\s*["']?\s*(javascript|vbscript|data):[^"'\s>]*/gi,
     '$1=""',
@@ -45,33 +91,33 @@ export function sanitizeHtml(html: string): string {
 /** Sanitize plain text: strip HTML tags, trim, collapse whitespace, remove control chars. */
 export function sanitizeText(text: string): string {
   return text
-    .replace(/<[^>]*>/g, '')                                // strip HTML tags
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    .replace(/\s+/g, ' ')
+    .replace(/<[^>]*>/g, "") // strip HTML tags
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
 /** Sanitize a slug: lowercase, alphanumeric + hyphens only. */
 export function sanitizeSlug(slug: string): string {
   return slug
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
     .trim();
 }
 
 /** Escape HTML special characters. */
 export function escapeHtml(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /** Sanitize and validate a URL. Returns null if invalid. */
@@ -81,10 +127,10 @@ export function sanitizeUrl(url: string): string | null {
   if (/^(javascript|vbscript|data):/i.test(trimmed)) return null;
   try {
     const parsed = new URL(trimmed);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+    if (!["http:", "https:"].includes(parsed.protocol)) return null;
     return parsed.href;
   } catch {
-    if (trimmed.startsWith('/')) return trimmed;
+    if (trimmed.startsWith("/")) return trimmed;
     return null;
   }
 }
@@ -98,16 +144,23 @@ export function sanitizeContent(content: string): string {
 /*  CSS / HEAD HTML                                                           */
 /* ========================================================================== */
 
-/** Sanitize custom CSS: strip dangerous expressions and imports. */
+/** Sanitize custom CSS: strip dangerous expressions, allow safe @import. */
 export function sanitizeCss(css: string): string {
   let result = css;
-  // Remove @import statements
-  result = result.replace(/@import\b[^;]*;/gi, '');
+  // Allow @import url("https://...") but strip non-HTTPS imports
+  result = result.replace(/@import\b[^;]*;/gi, (match) => {
+    // Keep @import if it references an HTTPS URL
+    if (/url\s*\(\s*["']?https:\/\//i.test(match)) return match;
+    // Keep @import "https://..."
+    if (/@import\s+["']https:\/\//i.test(match)) return match;
+    // Strip everything else (data:, javascript:, relative, etc.)
+    return "";
+  });
   // Remove expression(), url(javascript:) patterns
-  result = result.replace(/expression\s*\([^)]*\)/gi, '');
+  result = result.replace(/expression\s*\([^)]*\)/gi, "");
   result = result.replace(/url\s*\(\s*["']?\s*javascript:[^)]*\)/gi, 'url("")');
   // Remove behavior property (IE-specific)
-  result = result.replace(/behavior\s*:\s*[^;]*/gi, '');
+  result = result.replace(/behavior\s*:\s*[^;]*/gi, "");
   return result.trim();
 }
 
@@ -115,12 +168,12 @@ export function sanitizeCss(css: string): string {
 export function sanitizeHeadHtml(html: string): string {
   let result = html;
   // Remove script tags
-  result = result.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
-  result = result.replace(/<script\b[^>]*\/?>/gi, '');
+  result = result.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+  result = result.replace(/<script\b[^>]*\/?>/gi, "");
   // Remove iframe/object/embed
-  result = result.replace(/<(iframe|object|embed)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
-  result = result.replace(/<(iframe|object|embed)\b[^>]*\/?>/gi, '');
+  result = result.replace(/<(iframe|object|embed)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+  result = result.replace(/<(iframe|object|embed)\b[^>]*\/?>/gi, "");
   // Remove event handlers
-  result = result.replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  result = result.replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
   return result.trim();
 }

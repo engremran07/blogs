@@ -113,6 +113,7 @@ export function RightZone({
             <Link
               href="/"
               target="_blank"
+              rel="noopener noreferrer"
               onClick={closeDropdown}
               className="flex items-center gap-1 rounded px-2 py-1 text-sm text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
             >
@@ -135,6 +136,7 @@ export function RightZone({
       {/* Preview as Visitor — editor pages only */}
       {settings.adminBarShowPreviewButton && route.isEditor && (
         <button
+          type="button"
           onClick={enterPreview}
           className="flex items-center gap-1 rounded px-2 py-1 text-sm text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
           title="Preview as Visitor"
@@ -147,6 +149,7 @@ export function RightZone({
       {/* Save button — editor pages only */}
       {canSave && (
         <button
+          type="button"
           onClick={handleSave}
           className="flex items-center gap-1 rounded px-3 py-1 text-sm font-medium text-white transition-colors hover:opacity-90"
           style={{ backgroundColor: settings.adminBarAccentColor }}
@@ -163,6 +166,7 @@ export function RightZone({
       {/* Publish button — editor pages, draft only */}
       {canPublish && (
         <button
+          type="button"
           onClick={handlePublish}
           className="flex items-center gap-1 rounded bg-green-600 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-green-500"
           title="Publish (Ctrl+Shift+P)"

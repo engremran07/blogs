@@ -15,7 +15,13 @@ interface SidebarSettings {
   sidebarRecentPostsCount: number;
 }
 
-export async function BlogSidebar({ settings, pageType = "blog-index" }: { settings: SidebarSettings; pageType?: string }) {
+export async function BlogSidebar({
+  settings,
+  pageType = "blog-index",
+}: {
+  settings: SidebarSettings;
+  pageType?: string;
+}) {
   if (!settings.sidebarEnabled) return null;
 
   // Fetch sidebar data in parallel
@@ -25,7 +31,13 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
           where: { status: "PUBLISHED", deletedAt: null },
           orderBy: { publishedAt: "desc" },
           take: settings.sidebarRecentPostsCount || 5,
-          select: { id: true, title: true, slug: true, publishedAt: true, featuredImage: true },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            publishedAt: true,
+            featuredImage: true,
+          },
         })
       : Promise.resolve([]),
     settings.sidebarShowTags
@@ -50,7 +62,13 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
       ? prisma.category.findMany({
           where: { postCount: { gt: 0 } },
           orderBy: { sortOrder: "asc" },
-          select: { id: true, name: true, slug: true, color: true, postCount: true },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+            postCount: true,
+          },
         })
       : Promise.resolve([]),
   ]);
@@ -67,7 +85,9 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
+                id="sidebar-search"
                 name="q"
+                autoComplete="off"
                 placeholder="Search articles..."
                 className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
               />
@@ -91,7 +111,14 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
               >
                 {post.featuredImage && (
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700">
-                    <Image src={post.featuredImage} alt="" className="h-full w-full object-cover" width={48} height={48} unoptimized />
+                    <Image
+                      src={post.featuredImage}
+                      alt={post.title}
+                      className="h-full w-full object-cover"
+                      width={48}
+                      height={48}
+                      unoptimized
+                    />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
@@ -127,7 +154,9 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
                 className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2.5 py-1 text-xs text-gray-600 transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-gray-600 dark:text-gray-400"
               >
                 {tag.name}
-                <span className="text-gray-400 dark:text-gray-500">{tag.usageCount}</span>
+                <span className="text-gray-400 dark:text-gray-500">
+                  {tag.usageCount}
+                </span>
               </Link>
             ))}
           </div>
@@ -156,7 +185,9 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
                     )}
                     {cat.name}
                   </span>
-                  <span className="text-gray-400 dark:text-gray-500">{cat.postCount}</span>
+                  <span className="text-gray-400 dark:text-gray-500">
+                    {cat.postCount}
+                  </span>
                 </Link>
               </li>
             ))}
@@ -173,7 +204,10 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
           <ul className="space-y-1.5">
             {archives.map((a) => {
               const [year, month] = a.month.split("-");
-              const label = new Date(Number(year), Number(month) - 1).toLocaleDateString("en-US", {
+              const label = new Date(
+                Number(year),
+                Number(month) - 1,
+              ).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "long",
               });
@@ -184,7 +218,9 @@ export async function BlogSidebar({ settings, pageType = "blog-index" }: { setti
                     className="flex items-center justify-between rounded-lg px-2 py-1 text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700"
                   >
                     <span>{label}</span>
-                    <span className="text-xs text-gray-400">{Number(a.count)}</span>
+                    <span className="text-xs text-gray-400">
+                      {Number(a.count)}
+                    </span>
                   </Link>
                 </li>
               );

@@ -59,7 +59,7 @@ export function Navbar({ logo, className, renderActions, renderMobileMenu }: Nav
         </div>
 
         {/* Mobile Toggle */}
-        <button
+        <button type="button"
           className="menu-navbar__mobile-toggle"
           onClick={toggleMobile}
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
@@ -311,7 +311,7 @@ function MobileMenuItem({ item, close }: { item: MenuItem; close: () => void }) 
           )}
         </a>
         {children.length > 0 && (
-          <button
+          <button type="button"
             className="menu-navbar__mobile-expand"
             onClick={() => setExpanded(!expanded)}
             aria-label={expanded ? 'Collapse' : 'Expand'}

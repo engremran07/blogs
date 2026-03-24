@@ -142,7 +142,7 @@ export function VideoAd({
 
       {/* Play overlay */}
       {!playing && (
-        <button
+        <button type="button"
           onClick={handlePlay}
           className="absolute inset-0 flex items-center justify-center bg-black/40"
           aria-label="Play ad"
@@ -156,7 +156,7 @@ export function VideoAd({
       {/* Controls overlay */}
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-linear-to-t from-black/60 to-transparent px-4 py-3">
         {/* Mute toggle */}
-        <button onClick={toggleMute} className="text-white/80 hover:text-white" aria-label={muted ? "Unmute" : "Mute"}>
+        <button type="button" onClick={toggleMute} className="text-white/80 hover:text-white" aria-label={muted ? "Unmute" : "Mute"}>
           {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
         </button>
 
@@ -166,7 +166,7 @@ export function VideoAd({
         {/* Skip / Close */}
         {closeable && (
           canSkip ? (
-            <button
+            <button type="button"
               onClick={handleSkip}
               className="flex items-center gap-1 rounded bg-white/20 px-3 py-1 text-xs font-medium text-white hover:bg-white/30"
             >

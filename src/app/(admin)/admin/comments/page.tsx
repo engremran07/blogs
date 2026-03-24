@@ -319,6 +319,7 @@ export default function AdminCommentsPage() {
       <div className="mb-4 flex gap-1 overflow-x-auto rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
         {tabs.map((tab) => (
           <button
+            type="button"
             key={tab.key}
             onClick={() => {
               setStatusFilter(tab.key);
@@ -337,6 +338,9 @@ export default function AdminCommentsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
+              id="search-comments"
+              name="search-comments"
+              autoComplete="off"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search comments..."
@@ -357,6 +361,7 @@ export default function AdminCommentsPage() {
             {bulkMenuOpen && (
               <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "approve", label: "approve" })
                   }
@@ -365,6 +370,7 @@ export default function AdminCommentsPage() {
                   <ShieldCheck className="h-4 w-4 text-green-500" /> Approve
                 </button>
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "reject", label: "reject" })
                   }
@@ -373,6 +379,7 @@ export default function AdminCommentsPage() {
                   <ShieldX className="h-4 w-4 text-gray-500" /> Reject
                 </button>
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "spam", label: "mark as spam" })
                   }
@@ -383,6 +390,7 @@ export default function AdminCommentsPage() {
                 </button>
                 <hr className="my-1 border-gray-200 dark:border-gray-700" />
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "delete", label: "delete" })
                   }
@@ -400,6 +408,7 @@ export default function AdminCommentsPage() {
       {comments.length > 0 && (
         <div className="mb-3 flex items-center gap-3">
           <button
+            type="button"
             onClick={toggleSelectAll}
             className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
           >
@@ -430,6 +439,7 @@ export default function AdminCommentsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3 flex-1">
                     <button
+                      type="button"
                       onClick={() => toggleSelect(comment.id)}
                       className="mt-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                     >
@@ -475,6 +485,7 @@ export default function AdminCommentsPage() {
                           <a
                             href={`/blog/${comment.post.slug}`}
                             target="_blank"
+                            rel="noopener noreferrer"
                             className="flex items-center gap-1 text-primary hover:underline"
                           >
                             <ExternalLink className="h-3 w-3" />{" "}
@@ -488,6 +499,7 @@ export default function AdminCommentsPage() {
                   <div className="ml-4 flex items-center gap-1">
                     {comment.status !== "APPROVED" && (
                       <button
+                        type="button"
                         onClick={() => updateStatus(comment.id, "APPROVED")}
                         className="rounded p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
                         title="Approve"
@@ -497,6 +509,7 @@ export default function AdminCommentsPage() {
                     )}
                     {comment.status !== "REJECTED" && (
                       <button
+                        type="button"
                         onClick={() => updateStatus(comment.id, "REJECTED")}
                         className="rounded p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
                         title="Reject"
@@ -506,6 +519,7 @@ export default function AdminCommentsPage() {
                     )}
                     {comment.status !== "SPAM" && (
                       <button
+                        type="button"
                         onClick={() => updateStatus(comment.id, "SPAM")}
                         className="rounded p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20"
                         title="Mark as Spam"
@@ -514,6 +528,7 @@ export default function AdminCommentsPage() {
                       </button>
                     )}
                     <button
+                      type="button"
                       onClick={() => setDeleteId(comment.id)}
                       className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                       title="Delete"

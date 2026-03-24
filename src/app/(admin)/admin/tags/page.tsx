@@ -471,6 +471,9 @@ export default function AdminTagsPage() {
         <div className="flex-1 min-w-50 relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
+            id="search-tags"
+            name="search-tags"
+            autoComplete="off"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tags..."
@@ -490,6 +493,7 @@ export default function AdminTagsPage() {
             {bulkMenuOpen && (
               <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "feature", label: "feature" })
                   }
@@ -498,6 +502,7 @@ export default function AdminTagsPage() {
                   <Star className="h-4 w-4 text-yellow-500" /> Feature
                 </button>
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "unfeature", label: "unfeature" })
                   }
@@ -506,6 +511,7 @@ export default function AdminTagsPage() {
                   <Star className="h-4 w-4 text-gray-400" /> Unfeature
                 </button>
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "lock", label: "lock" })
                   }
@@ -514,6 +520,7 @@ export default function AdminTagsPage() {
                   <Lock className="h-4 w-4 text-red-500" /> Lock
                 </button>
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "unlock", label: "unlock" })
                   }
@@ -523,6 +530,7 @@ export default function AdminTagsPage() {
                 </button>
                 <hr className="my-1 border-gray-200 dark:border-gray-700" />
                 <button
+                  type="button"
                   onClick={() =>
                     setBulkConfirm({ action: "delete", label: "delete" })
                   }
@@ -544,6 +552,7 @@ export default function AdminTagsPage() {
               <tr className="border-b border-gray-200 bg-gray-50 text-left dark:border-gray-700 dark:bg-gray-800/80">
                 <th className="px-3 py-3 w-10">
                   <button
+                    type="button"
                     onClick={toggleSelectAll}
                     className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                   >
@@ -592,6 +601,7 @@ export default function AdminTagsPage() {
                     >
                       <td className="px-3 py-3">
                         <button
+                          type="button"
                           onClick={() => toggleSelect(tag.id)}
                           className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                         >
@@ -633,6 +643,7 @@ export default function AdminTagsPage() {
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
                           <button
+                            type="button"
                             onClick={() => toggleFlag(tag, "featured")}
                             className={`rounded p-1 ${tag.featured ? "text-yellow-500" : "text-gray-300 dark:text-gray-600"} hover:bg-gray-100 dark:hover:bg-gray-700`}
                             title="Featured"
@@ -640,6 +651,7 @@ export default function AdminTagsPage() {
                             <Star className="h-4 w-4" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => toggleFlag(tag, "trending")}
                             className={`rounded p-1 ${tag.trending ? "text-green-500" : "text-gray-300 dark:text-gray-600"} hover:bg-gray-100 dark:hover:bg-gray-700`}
                             title="Trending"
@@ -647,6 +659,7 @@ export default function AdminTagsPage() {
                             <TrendingUp className="h-4 w-4" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => toggleFlag(tag, "locked")}
                             className={`rounded p-1 ${tag.locked ? "text-red-500" : "text-gray-300 dark:text-gray-600"} hover:bg-gray-100 dark:hover:bg-gray-700`}
                             title="Locked"
@@ -654,6 +667,7 @@ export default function AdminTagsPage() {
                             <Lock className="h-4 w-4" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => toggleFlag(tag, "protected")}
                             className={`rounded p-1 ${tag.protected ? "text-blue-500" : "text-gray-300 dark:text-gray-600"} hover:bg-gray-100 dark:hover:bg-gray-700`}
                             title="Protected"
@@ -665,6 +679,7 @@ export default function AdminTagsPage() {
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
                           <button
+                            type="button"
                             onClick={() => openEdit(tag)}
                             className="rounded p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
                             title="Edit"
@@ -672,6 +687,7 @@ export default function AdminTagsPage() {
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => setDeleteId(tag.id)}
                             className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                             title="Delete"
@@ -741,11 +757,16 @@ export default function AdminTagsPage() {
             />
             <div className="space-y-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="tag-color"
+                  className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Color
                 </label>
                 <div className="flex items-center gap-3">
                   <input
+                    id="tag-color"
+                    name="tag-color"
                     type="color"
                     value={form.color}
                     onChange={(e) =>
@@ -777,10 +798,15 @@ export default function AdminTagsPage() {
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="tag-parent"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Parent Tag
               </label>
               <select
+                id="tag-parent"
+                name="tag-parent"
                 value={form.parentId}
                 onChange={(e) => setForm({ ...form, parentId: e.target.value })}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -886,7 +912,10 @@ export default function AdminTagsPage() {
         <div className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+              <label
+                htmlFor="tag-similarity"
+                className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
+              >
                 Similarity Threshold
               </label>
               <div className="flex items-center gap-2">
@@ -957,6 +986,7 @@ export default function AdminTagsPage() {
                   </div>
                   <div className="flex gap-1">
                     <button
+                      type="button"
                       onClick={() =>
                         setExcludedGroups((prev) => {
                           const n = new Set(prev);
@@ -971,6 +1001,7 @@ export default function AdminTagsPage() {
                     </button>
                     {!excludedGroups.has(gi) && (
                       <button
+                        type="button"
                         onClick={() => mergeGroup(group)}
                         disabled={merging}
                         className="inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-50"

@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { prisma } from "@/server/db/prisma";
 import { notFound } from "next/navigation";
 import {
@@ -123,6 +124,7 @@ export default async function CmsPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const { slug } = await params;
 
   // Guard against reserved routes (shouldn't reach here, but safety net)
@@ -161,13 +163,33 @@ export default async function CmsPage({
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <script
+        nonce={nonce}
+        suppressHydrationWarning
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
-      {page.customCss && (
-        <style dangerouslySetInnerHTML={{ __html: page.customCss }} />
-      )}
+      {page.customCss && (() => {
+        // Render @import url("https://...") as <link> tags for reliability,
+        // keep the rest as inline CSS
+        const importPattern = /@import\s+url\(["']?(https:\/\/[^"')]+)["']?\)\s*;?/gi;
+        const urls: string[] = [];
+        let match: RegExpExecArray | null;
+        while ((match = importPattern.exec(page.customCss)) !== null) {
+          urls.push(match[1]);
+        }
+        const inlineCss = page.customCss.replace(importPattern, "").trim();
+        return (
+          <>
+            {urls.map((url) => (
+              <link key={url} rel="stylesheet" href={url} />
+            ))}
+            {inlineCss && (
+              <style dangerouslySetInnerHTML={{ __html: inlineCss }} />
+            )}
+          </>
+        );
+      })()}
 
       {/* Page Header */}
       <header className="mb-10 text-center">

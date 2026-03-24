@@ -10,6 +10,7 @@ import {
   type CookieConsentSettings,
 } from "./CookieConsentBanner";
 import { AnalyticsScripts } from "./AnalyticsScripts";
+import { applyThemeVarsToDOM } from "./Providers";
 
 const ADMIN_BAR_ROLES = new Set(["EDITOR", "ADMINISTRATOR", "SUPER_ADMIN"]);
 
@@ -91,6 +92,18 @@ export function PublicShell({
       .then((data) => {
         if (data.success && data.data) {
           setSettings(data.data);
+          // Apply theme CSS vars from API so public UI stays in sync
+          const d = data.data;
+          if (d.primaryColor || d.fontFamily) {
+            applyThemeVarsToDOM({
+              primaryColor: d.primaryColor || "#3b82f6",
+              secondaryColor: d.secondaryColor || "#64748b",
+              accentColor: d.accentColor || "#f59e0b",
+              fontFamily: d.fontFamily || "system-ui, sans-serif",
+              headingFontFamily:
+                d.headingFontFamily || d.fontFamily || "system-ui, sans-serif",
+            });
+          }
         }
       })
       .catch(() => {});
@@ -139,17 +152,13 @@ export function PublicShell({
 
   return (
     <div className={`flex min-h-screen flex-col${hasAdminBar ? " pt-11" : ""}`}>
-      {settings && !hasAdminBar && (
-        <TopBar settings={settings} socialLinks={socialLinks} />
-      )}
-      {!hasAdminBar && (
-        <Header
-          siteName={siteName}
-          logoUrl={logoUrl}
-          showDarkModeToggle={showDarkModeToggle}
-          menuItems={headerMenuItems}
-        />
-      )}
+      {settings && <TopBar settings={settings} socialLinks={socialLinks} />}
+      <Header
+        siteName={siteName}
+        logoUrl={logoUrl}
+        showDarkModeToggle={showDarkModeToggle}
+        menuItems={headerMenuItems}
+      />
       {headerAdSlot}
       <main className="flex-1">{children}</main>
       {footerAdSlot}
