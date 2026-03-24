@@ -21,8 +21,6 @@ import { EditorStatusProvider } from "@/components/admin/EditorContext";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import type { MediaItem } from "@/features/media/types";
-import { convertJsxToHtml } from "@/shared/jsx-to-html.util";
-import { extractHtmlStyles } from "@/shared/html-style-extractor.util";
 
 const SITE_URL = (
   typeof window !== "undefined"
@@ -64,7 +62,6 @@ interface PageForm {
   title: string;
   slug: string;
   content: string;
-  customCss: string;
   status: string;
   template: string;
   visibility: string;
@@ -96,7 +93,6 @@ const defaultForm: PageForm = {
   title: "",
   slug: "",
   content: "",
-  customCss: "",
   status: "DRAFT",
   template: "DEFAULT",
   visibility: "PUBLIC",
@@ -121,15 +117,9 @@ const defaultForm: PageForm = {
 export default function PageEditor({
   pageId,
   isNew,
-  initialContent,
-  initialTitle,
-  initialCss,
 }: {
   pageId?: string;
   isNew: boolean;
-  initialContent?: string;
-  initialTitle?: string;
-  initialCss?: string;
 }) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -141,15 +131,6 @@ export default function PageEditor({
   const [showPreview, setShowPreview] = useState(false);
 
   const [form, setForm] = useState<PageForm>(() => {
-    if (initialContent || initialTitle) {
-      return {
-        ...defaultForm,
-        title: initialTitle || "",
-        slug: initialTitle ? slugify(initialTitle) : "",
-        content: initialContent || "",
-        customCss: initialCss || "",
-      };
-    }
     return { ...defaultForm };
   });
 
@@ -171,7 +152,6 @@ export default function PageEditor({
               title: pg.title || "",
               slug: pg.slug || "",
               content: pg.content || "",
-              customCss: pg.customCss || "",
               status: pg.status || "DRAFT",
               template: pg.template || "DEFAULT",
               visibility: pg.visibility || "PUBLIC",
@@ -213,8 +193,8 @@ export default function PageEditor({
   const handleFileUpload = useCallback(
     async (file: File) => {
       const ext = file.name.split(".").pop()?.toLowerCase();
-      if (!ext || !["html", "htm", "jsx", "tsx"].includes(ext)) {
-        toast("Only .html, .htm, .jsx, and .tsx files are supported.", "error");
+      if (!ext || !["html", "htm"].includes(ext)) {
+        toast("Only .html and .htm files are supported.", "error");
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
@@ -223,26 +203,17 @@ export default function PageEditor({
       }
       try {
         const text = await file.text();
-        let content: string;
-        let css = "";
-
-        if (ext === "html" || ext === "htm") {
-          // Extract styles and cleaned body content (replaces previous entirely)
-          const extracted = extractHtmlStyles(text);
-          content = extracted.content;
-          css = extracted.css;
-        } else {
-          // JSX / TSX — convert to HTML
-          content = convertJsxToHtml(text);
-        }
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+        const body = doc.querySelector("body");
+        const content = body ? body.innerHTML.trim() : text.trim();
 
         if (!content) {
           toast("The uploaded file appears to be empty.", "error");
           return;
         }
 
-        // Replace both content and customCss (no stacking with previous upload)
-        setForm((prev) => ({ ...prev, content, customCss: css }));
+        update("content", content);
         toast("Content replaced from file.", "success");
       } catch {
         toast("Failed to read the uploaded file.", "error");
@@ -265,7 +236,6 @@ export default function PageEditor({
       const body: Record<string, unknown> = {
         title: f.title,
         content: f.content,
-        customCss: f.customCss || null,
         status: status || f.status,
         template: f.template,
         visibility: f.visibility,
@@ -427,7 +397,7 @@ export default function PageEditor({
                   <input
                     ref={uploadInputRef}
                     type="file"
-                    accept=".html,.htm,.jsx,.tsx"
+                    accept=".html,.htm"
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];

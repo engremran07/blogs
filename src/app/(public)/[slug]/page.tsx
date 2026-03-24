@@ -169,27 +169,9 @@ export default async function CmsPage({
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
-      {page.customCss && (() => {
-        // Render @import url("https://...") as <link> tags for reliability,
-        // keep the rest as inline CSS
-        const importPattern = /@import\s+url\(["']?(https:\/\/[^"')]+)["']?\)\s*;?/gi;
-        const urls: string[] = [];
-        let match: RegExpExecArray | null;
-        while ((match = importPattern.exec(page.customCss)) !== null) {
-          urls.push(match[1]);
-        }
-        const inlineCss = page.customCss.replace(importPattern, "").trim();
-        return (
-          <>
-            {urls.map((url) => (
-              <link key={url} rel="stylesheet" href={url} />
-            ))}
-            {inlineCss && (
-              <style dangerouslySetInnerHTML={{ __html: inlineCss }} />
-            )}
-          </>
-        );
-      })()}
+      {page.customCss && (
+        <style dangerouslySetInnerHTML={{ __html: page.customCss }} />
+      )}
 
       {/* Page Header */}
       <header className="mb-10 text-center">

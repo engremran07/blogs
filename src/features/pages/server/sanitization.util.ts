@@ -144,18 +144,11 @@ export function sanitizeContent(content: string): string {
 /*  CSS / HEAD HTML                                                           */
 /* ========================================================================== */
 
-/** Sanitize custom CSS: strip dangerous expressions, allow safe @import. */
+/** Sanitize custom CSS: strip dangerous expressions and imports. */
 export function sanitizeCss(css: string): string {
   let result = css;
-  // Allow @import url("https://...") but strip non-HTTPS imports
-  result = result.replace(/@import\b[^;]*;/gi, (match) => {
-    // Keep @import if it references an HTTPS URL
-    if (/url\s*\(\s*["']?https:\/\//i.test(match)) return match;
-    // Keep @import "https://..."
-    if (/@import\s+["']https:\/\//i.test(match)) return match;
-    // Strip everything else (data:, javascript:, relative, etc.)
-    return "";
-  });
+  // Remove @import statements
+  result = result.replace(/@import\b[^;]*;/gi, "");
   // Remove expression(), url(javascript:) patterns
   result = result.replace(/expression\s*\([^)]*\)/gi, "");
   result = result.replace(/url\s*\(\s*["']?\s*javascript:[^)]*\)/gi, 'url("")');

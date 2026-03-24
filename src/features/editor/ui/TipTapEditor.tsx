@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Underline } from "@tiptap/extension-underline";
@@ -24,8 +24,7 @@ import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { Typography } from "@tiptap/extension-typography";
-import { Code, Eye } from "lucide-react";
-import dynamic from "next/dynamic";
+
 
 import { common, createLowlight } from "lowlight";
 
@@ -42,20 +41,9 @@ import { EditorToolbar } from "./Toolbar";
 import type { RichTextEditorProps } from "../types";
 import "./editor.css";
 
-const SourceEditor = dynamic(() => import("./SourceEditor"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-64 items-center justify-center text-sm text-gray-500">
-      Loading source editor...
-    </div>
-  ),
-});
-
 const lowlight = createLowlight(common);
 
 const READING_WPM = 200;
-
-type EditorMode = "visual" | "source";
 
 export default function RichTextEditor({
   content = "",
@@ -67,23 +55,6 @@ export default function RichTextEditor({
   className = "",
   readOnly = false,
 }: RichTextEditorProps) {
-  const [mode, setMode] = useState<EditorMode>("visual");
-  const darkMode =
-    typeof document !== "undefined" &&
-    document.documentElement.classList.contains("dark");
-
-  const handleSourceChange = useCallback(
-    (html: string) => {
-      if (!onChange) return;
-      const tmp = document.createElement("div");
-      tmp.innerHTML = html;
-      const text = tmp.textContent || "";
-      const words = text.split(/\s+/).filter((w) => w.length > 0).length;
-      onChange(html, text, words);
-    },
-    [onChange],
-  );
-
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -217,15 +188,6 @@ export default function RichTextEditor({
     );
   }
 
-  // When switching from source → visual, sync the latest HTML into Tiptap
-  const handleToggleMode = () => {
-    if (mode === "source" && editor) {
-      // content prop already has the latest HTML from source onChange
-      editor.commands.setContent(content || "", { emitUpdate: false });
-    }
-    setMode((m) => (m === "visual" ? "source" : "visual"));
-  };
-
   const wordCount = editor
     .getText()
     .split(/\s+/)
@@ -238,51 +200,11 @@ export default function RichTextEditor({
       className={`tiptap-editor rte-wrapper flex flex-col rounded-lg border border-gray-200 dark:border-gray-700 ${className}`}
     >
       {!readOnly && (
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
-          {mode === "visual" ? (
-            <EditorToolbar editor={editor} onImageUpload={onImageUpload} />
-          ) : (
-            <div className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-              HTML Source
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={handleToggleMode}
-            className="mr-2 flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-            title={
-              mode === "visual"
-                ? "Switch to HTML source"
-                : "Switch to visual editor"
-            }
-          >
-            {mode === "visual" ? (
-              <>
-                <Code className="h-3.5 w-3.5" />
-                Source
-              </>
-            ) : (
-              <>
-                <Eye className="h-3.5 w-3.5" />
-                Visual
-              </>
-            )}
-          </button>
-        </div>
+        <EditorToolbar editor={editor} onImageUpload={onImageUpload} />
       )}
 
       <div className="flex-1 overflow-hidden">
-        {mode === "visual" ? (
-          <EditorContent editor={editor} />
-        ) : (
-          <SourceEditor
-            value={content}
-            onChange={handleSourceChange}
-            minHeight={minHeight}
-            maxHeight={maxHeight}
-            darkMode={darkMode}
-          />
-        )}
+        <EditorContent editor={editor} />
       </div>
 
       {!readOnly && (
