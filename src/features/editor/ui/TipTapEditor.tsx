@@ -25,7 +25,6 @@ import { Placeholder } from "@tiptap/extension-placeholder";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { Typography } from "@tiptap/extension-typography";
 
-
 import { common, createLowlight } from "lowlight";
 
 import {
