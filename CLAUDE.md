@@ -96,11 +96,10 @@ src/
 - On public pages, TopBar + Header always render below the admin bar (never hidden for logged-in admins)
 - Navigation lives in Header, NOT in the admin bar LeftZone — no breadcrumbs or public nav merging
 
-### Cron
+### Scheduled Publishing
 
-- Single endpoint: `GET /api/cron` with `Authorization: Bearer CRON_SECRET`
-- 25+ tasks with distributed lock, 30s timeout, kill-switch gating
-- `CRON_SECRET` is required in production (min 16 chars)
+- No cron jobs (Vercel free tier). Scheduled posts/pages are published on-demand via `POST /api/publish-scheduled` (admin auth required)
+- Can be triggered from admin panel or a free external scheduler (cron-job.org, UptimeRobot, GitHub Actions)
 
 ## Common Pitfalls (Do NOT)
 
@@ -111,7 +110,6 @@ src/
 5. Do NOT create a second header bar in AdminShell (AdminBar handles everything)
 6. Do NOT use `as any` or `as unknown as T` casts — fix types properly
 7. Do NOT skip `deletedAt: null` filters in Prisma queries
-8. Do NOT make CRON_SECRET optional in production
 
 ## Running
 
@@ -129,4 +127,3 @@ Copy `.env.example` to `.env` and fill in values. Required in production:
 
 - `DATABASE_URL`
 - `AUTH_SECRET` (min 32 chars)
-- `CRON_SECRET` (min 16 chars)

@@ -3,9 +3,8 @@
  *
  * Responsibilities:
  *  1. CSP nonce generation (injected into response headers)
- *  2. CRON secret verification on /api/cron
- *  3. CSRF validation on mutation API routes
- *  4. Rate limiting on mutation API routes (via @upstash/ratelimit)
+ *  2. CSRF validation on mutation API routes
+ *  3. Rate limiting on mutation API routes (via @upstash/ratelimit)
  *
  * Auth is handled by NextAuth's `authorized` callback in auth.ts.
  * This proxy handles everything ELSE that should happen before
@@ -16,7 +15,6 @@ import { NextRequest, NextResponse } from "next/server";
 /** Public mutation endpoints that skip CSRF (they have own protections). */
 const CSRF_SKIP_PREFIXES = [
   "/api/auth",
-  "/api/cron",
   "/api/contact",
   "/api/newsletter",
   "/api/captcha",
@@ -34,20 +32,7 @@ function shouldSkipCsrf(pathname: string): boolean {
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ── 1. CRON secret gate ──────────────────────────────────────────────────
-  if (pathname.startsWith("/api/cron")) {
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
-      const provided =
-        req.headers.get("x-cron-secret") ||
-        req.headers.get("authorization")?.replace("Bearer ", "");
-      if (provided !== cronSecret) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      }
-    }
-  }
-
-  // ── 2. CSRF validation on mutation API routes ────────────────────────────
+  // ── 1. CSRF validation on mutation API routes ────────────────────────────
   const isMutation =
     req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS";
 

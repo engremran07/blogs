@@ -34,11 +34,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
 
   OPENAI_API_KEY: z.string().min(1).optional(),
-  CRON_SECRET: isProduction
-    ? z
-        .string()
-        .min(16, "CRON_SECRET must be at least 16 characters in production")
-    : z.string().min(1).optional(),
+  // CRON_SECRET removed — cron jobs disabled for Vercel free tier
   CLOUDFLARE_TURNSTILE_SECRET: z.string().min(1).optional(),
 
   // Captcha secret keys (server-side verification)

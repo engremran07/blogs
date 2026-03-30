@@ -23,7 +23,6 @@ import {
   FolderTree,
   Megaphone,
   Share2,
-  Clock,
   Home,
   ChevronRight,
 } from "lucide-react";
@@ -74,7 +73,6 @@ const sidebarLinks: SidebarLink[] = [
     icon: Share2,
     moduleKey: "distribution",
   },
-  { href: "/admin/cron", label: "Cron Tasks", icon: Clock },
   {
     href: "/admin/settings",
     label: "Settings",
