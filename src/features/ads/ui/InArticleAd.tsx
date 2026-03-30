@@ -7,6 +7,7 @@
  * Server component — fetches settings from DB, parses HTML, injects ad slots.
  */
 import { prisma } from "@/server/db/prisma";
+import { sanitizeRenderHtml } from "@/shared/sanitize.util";
 import { AdContainer } from "./AdContainer";
 
 /** Typed ad-settings Prisma table not on the default client type */
@@ -35,7 +36,7 @@ interface InArticleAdProps {
  * Split HTML content at paragraph boundaries and inject ad containers.
  *
  * Algorithm:
- * 1. Split content at </p> boundaries  
+ * 1. Split content at </p> boundaries
  * 2. Skip first N paragraphs (minParagraphs)
  * 3. Insert an ad every `paragraphGap` paragraphs after that
  * 4. Don't insert inside code blocks, blockquotes, or lists
@@ -104,7 +105,11 @@ function splitContentWithAds(
   return { segments: paragraphs, adPositions };
 }
 
-export async function InArticleAd({ content, pageType, className = "" }: InArticleAdProps) {
+export async function InArticleAd({
+  content,
+  pageType,
+  className = "",
+}: InArticleAdProps) {
   if (!content) return null;
 
   // Check if ads are enabled
@@ -115,13 +120,15 @@ export async function InArticleAd({ content, pageType, className = "" }: InArtic
     return (
       <div
         className={className}
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: sanitizeRenderHtml(content) }}
       />
     );
   }
 
   // Fetch ad settings
-  const adSettings = await (prisma as unknown as AdSettingsPrismaExt).adSettings.findFirst({
+  const adSettings = await (
+    prisma as unknown as AdSettingsPrismaExt
+  ).adSettings.findFirst({
     select: {
       enableAutoPlacement: true,
       defaultMinParagraphs: true,
@@ -142,13 +149,17 @@ export async function InArticleAd({ content, pageType, className = "" }: InArtic
     return (
       <div
         className={className}
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: sanitizeRenderHtml(content) }}
       />
     );
   }
 
   const { segments, adPositions } = splitContentWithAds(
-    content, minParagraphs, paragraphGap, maxAds, skipCodeBlocks,
+    content,
+    minParagraphs,
+    paragraphGap,
+    maxAds,
+    skipCodeBlocks,
   );
 
   // Build the interleaved content
@@ -156,7 +167,9 @@ export async function InArticleAd({ content, pageType, className = "" }: InArtic
     <div className={className}>
       {segments.map((segment, i) => (
         <div key={i}>
-          <div dangerouslySetInnerHTML={{ __html: segment }} />
+          <div
+            dangerouslySetInnerHTML={{ __html: sanitizeRenderHtml(segment) }}
+          />
           {adPositions.includes(i) && (
             <div className="my-6 not-prose">
               <AdContainer

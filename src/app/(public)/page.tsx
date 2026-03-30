@@ -11,6 +11,8 @@ import {
   buildWebPageJsonLd,
   serializeJsonLd,
 } from "@/features/seo/server/json-ld.util";
+import { sanitizeRenderHtml } from "@/shared/sanitize.util";
+import { sanitizeCss } from "@/features/pages/server/sanitization.util";
 import type { Metadata } from "next";
 import type { PostListItem } from "@/types/prisma-helpers";
 
@@ -20,32 +22,78 @@ const SITE_URL = (
 
 export const revalidate = 900; // ISR: rebuild at most every 15 minutes
 
-/** Returns the page marked as isHomePage, if any. */
+/** Returns the page marked as isHomePage, if any. Resilient — returns null on failure. */
 async function getCustomHomePage() {
-  return prisma.page.findFirst({
-    where: { isHomePage: true, status: "PUBLISHED", deletedAt: null },
-    select: {
-      id: true,
-      title: true,
-      content: true,
-      excerpt: true,
-      metaTitle: true,
-      metaDescription: true,
-      ogTitle: true,
-      ogDescription: true,
-      ogImage: true,
-      canonicalUrl: true,
-      noIndex: true,
-      noFollow: true,
-      featuredImage: true,
-      featuredImageAlt: true,
-      customCss: true,
-      customHead: true,
-      updatedAt: true,
-      slug: true,
-      author: { select: { displayName: true, username: true } },
-    },
-  });
+  try {
+    const page = await prisma.page.findFirst({
+      where: { isHomePage: true, status: "PUBLISHED", deletedAt: null },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        excerpt: true,
+        metaTitle: true,
+        metaDescription: true,
+        ogTitle: true,
+        ogDescription: true,
+        ogImage: true,
+        canonicalUrl: true,
+        noIndex: true,
+        noFollow: true,
+        featuredImage: true,
+        featuredImageAlt: true,
+        customCss: true,
+        customHead: true,
+        updatedAt: true,
+        slug: true,
+        author: { select: { displayName: true, username: true } },
+      },
+    });
+
+    // Validate that the page has renderable content before returning
+    if (page && (!page.content || page.content.trim().length === 0)) {
+      return null;
+    }
+
+    // Reject content that looks like an external website dump.
+    // TipTap editor never generates these patterns — presence of 2+ signals
+    // means this was pasted/uploaded HTML from an external site.
+    if (page?.content) {
+      const SITE_DUMP_SIGNALS = [
+        /<html[\s>]/i,
+        /<!DOCTYPE/i,
+        /<head[\s>]/i,
+        /<body[\s>]/i,
+        /<nav[\s>]/i,
+        /<footer[\s>]/i,
+        /<header[\s>]/i,
+        /<meta[\s/]/i,
+        /<link\s+rel=/i,
+        /class=["']?[^"']*\b(navbar|topbar|sidebar|hero-section|site-header|site-footer|wrapper|main-nav)\b/i,
+      ];
+      const signalCount = SITE_DUMP_SIGNALS.filter((r) =>
+        r.test(page.content),
+      ).length;
+      if (signalCount >= 2) {
+        return null;
+      }
+
+      // Layer 2: TipTap does not add class attributes to elements.
+      // Many class-attributed divs/sections indicate a pasted external website
+      // that survived TipTap processing (TipTap strips html/head/body but keeps divs).
+      const classedEls = (
+        page.content.match(/<(?:div|section|aside|main)\b[^>]*\bclass=/gi) || []
+      ).length;
+      if (classedEls > 8) {
+        return null;
+      }
+    }
+
+    return page;
+  } catch {
+    // If the custom home page query fails, fall back to default blog layout
+    return null;
+  }
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -99,9 +147,7 @@ export async function generateMetadata(): Promise<Metadata> {
   // Default blog home metadata
   const description =
     settings?.siteDescription || "A modern blog platform built with Next.js";
-  const ogImage = (settings as Record<string, unknown>)?.seoDefaultImage as
-    | string
-    | null;
+  const ogImage = settings?.seoDefaultImage ?? null;
 
   return {
     title: { absolute: siteName },
@@ -182,7 +228,11 @@ export default async function HomePage() {
         />
 
         {customPage.customCss && (
-          <style dangerouslySetInnerHTML={{ __html: customPage.customCss }} />
+          <style
+            dangerouslySetInnerHTML={{
+              __html: sanitizeCss(customPage.customCss),
+            }}
+          />
         )}
 
         {/* Page Header */}
@@ -199,7 +249,11 @@ export default async function HomePage() {
 
         {/* Page Content */}
         <article className="prose prose-lg mx-auto max-w-none dark:prose-invert prose-headings:text-gray-900 prose-p:text-gray-600 prose-a:text-primary dark:prose-headings:text-white dark:prose-p:text-gray-400">
-          <div dangerouslySetInnerHTML={{ __html: customPage.content }} />
+          <div
+            dangerouslySetInnerHTML={{
+              __html: sanitizeRenderHtml(customPage.content),
+            }}
+          />
         </article>
 
         {/* Home Page Ad */}
@@ -221,22 +275,21 @@ export default async function HomePage() {
   const siteDescription =
     settings?.siteDescription ||
     "Exploring ideas, sharing knowledge, and building things. Dive into articles on technology, development, and more.";
-  const s = settings as Record<string, unknown> | null;
   const socialLinks = [
-    s?.socialFacebook,
-    s?.socialTwitter,
-    s?.socialInstagram,
-    s?.socialLinkedin,
-    s?.socialYoutube,
-    s?.socialGithub,
+    settings?.socialFacebook,
+    settings?.socialTwitter,
+    settings?.socialInstagram,
+    settings?.socialLinkedin,
+    settings?.socialYoutube,
+    settings?.socialGithub,
   ].filter(Boolean) as string[];
   const organizationJsonLd = buildOrganizationJsonLd({
     name: siteName,
     url: SITE_URL,
-    logoUrl: (s?.logoUrl as string) || undefined,
+    logoUrl: settings?.logoUrl || undefined,
     description: siteDescription,
-    email: (s?.contactEmail as string) || undefined,
-    phone: (s?.contactPhone as string) || undefined,
+    email: settings?.contactEmail || undefined,
+    phone: settings?.contactPhone || undefined,
     socialLinks: socialLinks.length > 0 ? socialLinks : undefined,
   });
 

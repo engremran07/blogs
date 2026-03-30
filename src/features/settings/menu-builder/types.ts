@@ -20,27 +20,63 @@
 // ─── Enums / Union Types ────────────────────────────────────────────────────
 
 /** Physical location where a menu is rendered. */
-export const MENU_SLOTS = ['header', 'footer', 'topbar', 'sidebar', 'mobile-drawer'] as const;
+export const MENU_SLOTS = [
+  "header",
+  "footer",
+  "topbar",
+  "sidebar",
+  "mobile-drawer",
+] as const;
 export type MenuSlot = (typeof MENU_SLOTS)[number];
 
 /** The source / content type of a menu item. */
-export const MENU_ITEM_TYPES = ['page', 'post', 'category', 'tag', 'route', 'custom', 'separator', 'heading'] as const;
+export const MENU_ITEM_TYPES = [
+  "page",
+  "post",
+  "category",
+  "tag",
+  "route",
+  "custom",
+  "separator",
+  "heading",
+] as const;
 export type MenuItemType = (typeof MENU_ITEM_TYPES)[number];
 
 /** Visual appearance style of a menu item. */
-export const MENU_ITEM_APPEARANCES = ['link', 'primary', 'outline', 'ghost', 'danger', 'accent'] as const;
+export const MENU_ITEM_APPEARANCES = [
+  "link",
+  "primary",
+  "outline",
+  "ghost",
+  "danger",
+  "accent",
+] as const;
 export type MenuItemAppearance = (typeof MENU_ITEM_APPEARANCES)[number];
 
 /** Content template for a menu item. */
-export const MENU_ITEM_TEMPLATES = ['link', 'cta', 'card', 'featured', 'icon-only', 'image-card'] as const;
+export const MENU_ITEM_TEMPLATES = [
+  "link",
+  "cta",
+  "card",
+  "featured",
+  "icon-only",
+  "image-card",
+] as const;
 export type MenuItemTemplate = (typeof MENU_ITEM_TEMPLATES)[number];
 
 /** Badge colour variants. */
-export const MENU_ITEM_BADGE_VARIANTS = ['primary', 'success', 'warning', 'info', 'danger', 'neutral'] as const;
+export const MENU_ITEM_BADGE_VARIANTS = [
+  "primary",
+  "success",
+  "warning",
+  "info",
+  "danger",
+  "neutral",
+] as const;
 export type MenuItemBadgeVariant = (typeof MENU_ITEM_BADGE_VARIANTS)[number];
 
 /** Target behaviour for menu links. */
-export const MENU_LINK_TARGETS = ['_self', '_blank'] as const;
+export const MENU_LINK_TARGETS = ["_self", "_blank"] as const;
 export type MenuLinkTarget = (typeof MENU_LINK_TARGETS)[number];
 
 // ─── Menu Item Sub-types ────────────────────────────────────────────────────
@@ -69,7 +105,7 @@ export interface MenuItemLayoutBlock {
 
 /** Layout configuration for mega menus. */
 export interface MenuItemLayout {
-  type?: 'standard' | 'mega';
+  type?: "standard" | "mega";
   columns?: number;
   contentBlocks?: MenuItemLayoutBlock[];
   /** Show column dividers (on-request — default: false). */
@@ -84,7 +120,7 @@ export interface MenuVisibility {
   locales?: string[];
   requireAuth?: boolean;
   guestOnly?: boolean;
-  devices?: Array<'desktop' | 'mobile' | 'tablet'>;
+  devices?: Array<"desktop" | "mobile" | "tablet">;
   timeWindow?: {
     start?: string;
     end?: string;
@@ -224,7 +260,7 @@ export interface MenuStructure {
 /** An item from the content registry that can be linked in menus. */
 export interface MenuRegistryItem {
   id: string;
-  type: 'page' | 'post' | 'category' | 'tag' | 'route';
+  type: "page" | "post" | "category" | "tag" | "route";
   label?: string;
   url?: string;
   slug?: string | null;
@@ -241,7 +277,7 @@ export interface MenuVisibilityContext {
   role?: string | null;
   locale?: string | null;
   isAuthenticated: boolean;
-  device?: 'mobile' | 'desktop' | 'tablet';
+  device?: "mobile" | "desktop" | "tablet";
   now?: Date;
   pathname?: string;
 }
@@ -262,8 +298,16 @@ export interface MenuPreset {
 }
 
 export const MENU_PRESET_CATEGORIES = [
-  'business', 'portfolio', 'ecommerce', 'blog', 'saas',
-  'corporate', 'community', 'education', 'media', 'minimal',
+  "business",
+  "portfolio",
+  "ecommerce",
+  "blog",
+  "saas",
+  "corporate",
+  "community",
+  "education",
+  "media",
+  "minimal",
 ] as const;
 export type MenuPresetCategory = (typeof MENU_PRESET_CATEGORIES)[number];
 
@@ -296,16 +340,26 @@ export interface MenuHistoryEntry {
 
 // ─── Prisma Interface ───────────────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface MenuBuilderPrismaClient {
   siteSettings: {
-    findFirst(args?: any): Promise<any>;
-    update(args: any): Promise<any>;
+    findFirst(
+      args?: Record<string, unknown>,
+    ): Promise<Record<string, unknown> | null>;
+    update(args: Record<string, unknown>): Promise<Record<string, unknown>>;
   };
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ── API Response ────────────────────────────────────────────────────────────
-interface ApiSuccess<T> { success: true; data: T; message?: string; timestamp?: string }
-interface ApiError { success: false; error: string | { code: string; message: string; statusCode: number }; code?: string; timestamp?: string }
+interface ApiSuccess<T> {
+  success: true;
+  data: T;
+  message?: string;
+  timestamp?: string;
+}
+interface ApiError {
+  success: false;
+  error: string | { code: string; message: string; statusCode: number };
+  code?: string;
+  timestamp?: string;
+}
 export type ApiResponse<T> = ApiSuccess<T> | ApiError;

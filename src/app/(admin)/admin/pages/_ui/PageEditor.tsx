@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { sanitizeHtml } from "@/shared/sanitize.util";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -326,11 +327,7 @@ export default function PageEditor({
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              {isNew
-                ? initialContent
-                  ? "Upload Page"
-                  : "New Page"
-                : "Edit Page"}
+              {isNew ? "New Page" : "Edit Page"}
             </h1>
             {!isNew && (
               <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
@@ -783,7 +780,9 @@ export default function PageEditor({
           <div className="mx-auto max-w-3xl p-8">
             <article className="prose prose-lg prose-blue dark:prose-invert max-w-none">
               <h1>{form.title}</h1>
-              <div dangerouslySetInnerHTML={{ __html: form.content }} />
+              <div
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(form.content) }}
+              />
             </article>
           </div>
         </Modal>

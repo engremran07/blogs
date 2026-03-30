@@ -799,18 +799,25 @@ export class PageService implements PagesConfigConsumer {
         400,
       );
     }
+    if (p.status !== "PUBLISHED") {
+      throw new PageError(
+        "Only published pages can be set as the home page",
+        "PAGE_NOT_PUBLISHED",
+        400,
+      );
+    }
 
-    // Clear current home page (if any)
-    await this.prisma.page.updateMany({
-      where: { isHomePage: true },
-      data: { isHomePage: false },
-    });
-
-    // Designate the new home page
-    const updated = await this.prisma.page.update({
-      where: { id: pageId },
-      data: { isHomePage: true },
-    });
+    // Atomic transaction: clear old home page → set new one
+    const [, updated] = await this.prisma.$transaction([
+      this.prisma.page.updateMany({
+        where: { isHomePage: true },
+        data: { isHomePage: false },
+      }),
+      this.prisma.page.update({
+        where: { id: pageId },
+        data: { isHomePage: true },
+      }),
+    ]);
 
     this.logger?.log(`Home page set to: ${pageId} — "${p.title}”`);
     await this.invalidateCache();

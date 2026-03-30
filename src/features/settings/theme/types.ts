@@ -30,7 +30,7 @@ export interface ColorShades {
   200: string;
   300: string;
   400: string;
-  500: string;  // "base" shade
+  500: string; // "base" shade
   600: string;
   700: string;
   800: string;
@@ -54,7 +54,7 @@ export interface ColorPalette {
 export interface GradientDefinition {
   id: string;
   name: string;
-  type: 'linear' | 'radial' | 'conic';
+  type: "linear" | "radial" | "conic";
   /** CSS gradient angle / position, e.g. '135deg', 'circle at center'. */
   direction: string;
   stops: Array<{ color: string; position: string }>;
@@ -86,7 +86,7 @@ export interface ShadowScale {
   md: string;
   lg: string;
   xl: string;
-  '2xl': string;
+  "2xl": string;
   inner: string;
 }
 
@@ -98,7 +98,7 @@ export interface BorderRadiusScale {
   md: string;
   lg: string;
   xl: string;
-  '2xl': string;
+  "2xl": string;
   full: string;
 }
 
@@ -151,7 +151,7 @@ export interface FontEntry {
   /** Google Fonts URL or null for system / custom fonts. */
   importUrl?: string;
   weights?: number[];
-  category?: 'sans-serif' | 'serif' | 'monospace' | 'display' | 'handwriting';
+  category?: "sans-serif" | "serif" | "monospace" | "display" | "handwriting";
 }
 
 /** Typography scale (maps semantic names to sizes + line heights). */
@@ -161,11 +161,11 @@ export interface TypographyScale {
   base: TypographySizeEntry;
   lg: TypographySizeEntry;
   xl: TypographySizeEntry;
-  '2xl': TypographySizeEntry;
-  '3xl': TypographySizeEntry;
-  '4xl': TypographySizeEntry;
-  '5xl': TypographySizeEntry;
-  '6xl': TypographySizeEntry;
+  "2xl": TypographySizeEntry;
+  "3xl": TypographySizeEntry;
+  "4xl": TypographySizeEntry;
+  "5xl": TypographySizeEntry;
+  "6xl": TypographySizeEntry;
 }
 
 export interface TypographySizeEntry {
@@ -245,7 +245,7 @@ export interface ThemeConfig {
     md: string;
     lg: string;
     xl: string;
-    '2xl': string;
+    "2xl": string;
   };
 
   // ── Misc ───────────────────────────────────────────────────────
@@ -255,7 +255,7 @@ export interface ThemeConfig {
   autoColorScheme: boolean;
 }
 
-export const COLOR_MODES = ['light', 'dark', 'system'] as const;
+export const COLOR_MODES = ["light", "dark", "system"] as const;
 export type ColorMode = (typeof COLOR_MODES)[number];
 
 // ─── Theme Preset ───────────────────────────────────────────────────────────
@@ -268,25 +268,32 @@ export interface ThemePreset {
   category: ThemePresetCategory;
   thumbnail?: string;
   tags?: string[];
-  config: Omit<ThemeConfig, 'activePresetId' | 'customOverrides'>;
+  config: Omit<ThemeConfig, "activePresetId" | "customOverrides">;
 }
 
 export const THEME_PRESET_CATEGORIES = [
-  'light', 'dark', 'high-contrast', 'colorful', 'pastel',
-  'professional', 'playful', 'editorial', 'minimal',
+  "light",
+  "dark",
+  "high-contrast",
+  "colorful",
+  "pastel",
+  "professional",
+  "playful",
+  "editorial",
+  "minimal",
 ] as const;
 export type ThemePresetCategory = (typeof THEME_PRESET_CATEGORIES)[number];
 
 // ─── Prisma Interface ───────────────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface ThemePrismaClient {
   siteSettings: {
-    findFirst(args?: any): Promise<any>;
-    update(args: any): Promise<any>;
+    findFirst(
+      args?: Record<string, unknown>,
+    ): Promise<Record<string, unknown> | null>;
+    update(args: Record<string, unknown>): Promise<Record<string, unknown>>;
   };
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ─── API Response Envelope ──────────────────────────────────────────────────
 

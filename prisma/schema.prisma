@@ -307,6 +307,7 @@ model Post {
   @@index([status, noIndex])
   @@index([authorId])
   @@index([seriesId])
+  @@index([seriesId, seriesOrder])
   @@index([isFeatured, status])
   @@index([isPinned, status])
   @@index([publishedAt])
@@ -1440,6 +1441,7 @@ model Media {
   @@index([uploadedById])
   @@index([createdAt])
   @@index([folder, status, createdAt])
+  @@index([status, deletedAt])
 
   @@map("media")
 }
@@ -1840,6 +1842,7 @@ model ConsentLog {
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([userId, consentType])
   @@index([consentType, createdAt])
   @@index([email])
   @@map("consent_logs")

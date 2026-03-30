@@ -9,6 +9,7 @@ import { PostCardShareOverlay } from "@/components/blog/PostCardShareOverlay";
 import { PostImageFallback } from "@/components/blog/PostImageFallback";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import { InFeedAdCard } from "@/features/ads/ui/InFeedAdCard";
+import { Prisma } from "@prisma/client";
 import type { Metadata } from "next";
 
 const SITE_URL = (
@@ -87,17 +88,16 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
     sidebarRecentPostsCount: settings?.sidebarRecentPostsCount || 5,
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {
+  const where: Prisma.PostWhereInput = {
     status: "PUBLISHED",
     deletedAt: null,
     ...(params.tag && { tags: { some: { slug: params.tag } } }),
     ...(params.category && { categories: { some: { slug: params.category } } }),
     ...(params.q && {
       OR: [
-        { title: { contains: params.q, mode: "insensitive" } },
-        { excerpt: { contains: params.q, mode: "insensitive" } },
-        { content: { contains: params.q, mode: "insensitive" } },
+        { title: { contains: params.q, mode: "insensitive" as const } },
+        { excerpt: { contains: params.q, mode: "insensitive" as const } },
+        { content: { contains: params.q, mode: "insensitive" as const } },
       ],
     }),
   };

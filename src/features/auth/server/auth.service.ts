@@ -621,15 +621,13 @@ export class AuthService implements UserConfigConsumer {
     return { token, code };
   }
 
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  private stripSensitiveFields(user: any): SafeUser {
-    const safe = { ...user };
+  private stripSensitiveFields(user: object): SafeUser {
+    const safe = { ...user } as Record<string, unknown> & SafeUser;
     for (const field of USER_SENSITIVE_FIELDS) {
       delete safe[field];
     }
-    return safe as SafeUser;
+    return safe;
   }
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   private errorMsg(err: unknown): string {
     return err instanceof Error ? err.message : String(err);

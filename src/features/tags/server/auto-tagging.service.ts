@@ -39,27 +39,76 @@ export class AutoTaggingService {
   // KEYWORD-BASED AUTO-TAGGING
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /** Extract keywords from content + title, resolve to existing or new tags */
+  /** Extract keywords from content + title using TF-IDF weighting and bi-grams, resolve to existing or new tags */
   async extractKeywordTags(content: string, title: string): Promise<string[]> {
     const plain = content.replace(/<[^>]*>/g, " ").toLowerCase();
     const titleWords = title.toLowerCase().split(/\s+/);
 
     const words = plain.match(/\b[a-z]{3,}\b/g) || [];
+    const filteredWords = words.filter((w) => !STOP_WORDS.has(w));
 
-    // Count frequency
-    const freq: Record<string, number> = {};
-    for (const w of words) {
-      if (!STOP_WORDS.has(w)) freq[w] = (freq[w] || 0) + 1;
+    // --- TF-IDF weighting ---
+    const totalWords = filteredWords.length || 1;
+    const tf: Record<string, number> = {};
+    for (const w of filteredWords) {
+      tf[w] = (tf[w] || 0) + 1;
+    }
+    // Normalize TF by total document words
+    for (const key of Object.keys(tf)) {
+      tf[key] = tf[key] / totalWords;
+    }
+
+    // IDF approximation: penalize very common words (appear in >50% of "sentences")
+    const sentences = plain
+      .split(/[.!?\n]+/)
+      .filter((s) => s.trim().length > 10);
+    const docCount = Math.max(sentences.length, 1);
+    const idf: Record<string, number> = {};
+    for (const key of Object.keys(tf)) {
+      const docsContaining = sentences.filter((s) => s.includes(key)).length;
+      idf[key] = Math.log((docCount + 1) / (docsContaining + 1)) + 1;
+    }
+
+    // TF-IDF score
+    const tfidf: Record<string, number> = {};
+    for (const key of Object.keys(tf)) {
+      tfidf[key] = tf[key] * (idf[key] || 1);
     }
 
     // Boost title words 3x
     for (const w of titleWords) {
-      if (freq[w]) freq[w] *= 3;
+      if (tfidf[w]) tfidf[w] *= 3;
     }
 
-    // Top keywords
-    const topKeywords = Object.entries(freq)
-      .sort(([, a], [, b]) => b - a)
+    // --- Bi-gram extraction ---
+    const bigramFreq: Record<string, number> = {};
+    for (let i = 0; i < filteredWords.length - 1; i++) {
+      const bigram = `${filteredWords[i]} ${filteredWords[i + 1]}`;
+      bigramFreq[bigram] = (bigramFreq[bigram] || 0) + 1;
+    }
+
+    // Only keep bi-grams that appear 2+ times
+    const bigramScores: Record<string, number> = {};
+    for (const [bigram, count] of Object.entries(bigramFreq)) {
+      if (count >= 2) {
+        bigramScores[bigram] = (count / totalWords) * 1.5; // bi-grams get 1.5x weight
+      }
+    }
+    // Boost bi-grams containing title words
+    for (const w of titleWords) {
+      for (const bigram of Object.keys(bigramScores)) {
+        if (bigram.includes(w)) bigramScores[bigram] *= 2;
+      }
+    }
+
+    // --- Combine unigrams and bi-grams, pick top N ---
+    const allScores: Array<[string, number]> = [
+      ...Object.entries(tfidf),
+      ...Object.entries(bigramScores),
+    ];
+    allScores.sort(([, a], [, b]) => b - a);
+
+    const topKeywords = allScores
       .slice(0, this.cfg.autoTagMaxTags)
       .map(([w]) => w);
 
@@ -398,6 +447,17 @@ INSTRUCTIONS:
 4. Tags should be 1-3 words, lowercase, specific but not too narrow
 5. Include a mix of topic tags, technology tags, and category-level tags
 6. Rate your confidence for each tag from 0.0 to 1.0
+
+FEW-SHOT EXAMPLES:
+
+Example 1 — Article about "Building REST APIs with Node.js and Express":
+{"tags": ["nodejs", "express", "rest api", "backend", "javascript"], "confidence": [0.95, 0.95, 0.9, 0.85, 0.8]}
+
+Example 2 — Article about "10 CSS Grid Layout Tips for Modern Web Design":
+{"tags": ["css grid", "web design", "css", "frontend", "responsive design"], "confidence": [0.95, 0.9, 0.85, 0.8, 0.75]}
+
+Example 3 — Article about "Machine Learning Basics: A Beginner's Guide":
+{"tags": ["machine learning", "artificial intelligence", "beginner guide", "data science", "python"], "confidence": [0.95, 0.85, 0.8, 0.75, 0.7]}
 
 Respond in STRICT JSON format only:
 {"tags": ["tag1", "tag2", ...], "confidence": [0.9, 0.8, ...]}`;

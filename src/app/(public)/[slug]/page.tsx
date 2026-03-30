@@ -5,6 +5,8 @@ import {
   buildWebPageJsonLd,
   serializeJsonLd,
 } from "@/features/seo/server/json-ld.util";
+import { sanitizeRenderHtml } from "@/shared/sanitize.util";
+import { sanitizeCss } from "@/features/pages/server/sanitization.util";
 import { AdContainer } from "@/features/ads/ui/AdContainer";
 import type { Metadata } from "next";
 
@@ -170,7 +172,9 @@ export default async function CmsPage({
       />
 
       {page.customCss && (
-        <style dangerouslySetInnerHTML={{ __html: page.customCss }} />
+        <style
+          dangerouslySetInnerHTML={{ __html: sanitizeCss(page.customCss) }}
+        />
       )}
 
       {/* Page Header */}
@@ -197,7 +201,9 @@ export default async function CmsPage({
 
       {/* Page Content */}
       <article className="prose prose-lg mx-auto max-w-none dark:prose-invert prose-headings:text-gray-900 prose-p:text-gray-600 prose-a:text-primary dark:prose-headings:text-white dark:prose-p:text-gray-400">
-        <div dangerouslySetInnerHTML={{ __html: page.content }} />
+        <div
+          dangerouslySetInnerHTML={{ __html: sanitizeRenderHtml(page.content) }}
+        />
       </article>
 
       {/* In-Content Ad */}

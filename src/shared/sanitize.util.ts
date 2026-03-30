@@ -13,23 +13,31 @@
 
 /** Tags whose content (not just tag) must be removed. */
 const DANGEROUS_TAGS = [
-  'script', 'style', 'iframe', 'object', 'embed',
-  'form', 'input', 'textarea', 'select', 'button',
+  "script",
+  "style",
+  "iframe",
+  "object",
+  "embed",
+  "form",
+  "input",
+  "textarea",
+  "select",
+  "button",
 ] as const;
 
-const DANGEROUS_TAG_PATTERN = DANGEROUS_TAGS.join('|');
+const DANGEROUS_TAG_PATTERN = DANGEROUS_TAGS.join("|");
 
 /** Protocols that are XSS vectors. */
 const DANGEROUS_PROTOCOL_RE = /^(javascript|vbscript|data):/i;
 
 /** Entity decode map. */
 const HTML_ENTITIES: Record<string, string> = {
-  '&amp;': '&',
-  '&lt;': '<',
-  '&gt;': '>',
-  '&quot;': '"',
-  '&#39;': "'",
-  '&nbsp;': ' ',
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#39;": "'",
+  "&nbsp;": " ",
 };
 
 /* ========================================================================== */
@@ -48,31 +56,31 @@ export function sanitizeHtml(html: string): string {
 
   // Pass 1: Remove dangerous tags WITH their content
   result = result.replace(
-    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[^>]*>[\\s\\S]*?<\\/\\1>`, 'gi'),
-    '',
+    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[^>]*>[\\s\\S]*?<\\/\\1>`, "gi"),
+    "",
   );
 
   // Pass 2a: Remove self-closing dangerous tags (e.g. <script />, <input />)
   result = result.replace(
-    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[^>]*/\\s*>`, 'gi'),
-    '',
+    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[^>]*/\\s*>`, "gi"),
+    "",
   );
 
   // Pass 2b: Remove unclosed dangerous tags AND any trailing content
   // (browsers treat everything after an unclosed <script> as script content)
   result = result.replace(
-    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[^>]*>[\\s\\S]*`, 'gi'),
-    '',
+    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[^>]*>[\\s\\S]*`, "gi"),
+    "",
   );
 
   // Pass 3: Remove orphaned closing tags
   result = result.replace(
-    new RegExp(`<\\/(${DANGEROUS_TAG_PATTERN})\\s*>`, 'gi'),
-    '',
+    new RegExp(`<\\/(${DANGEROUS_TAG_PATTERN})\\s*>`, "gi"),
+    "",
   );
 
   // Remove event handler attributes (on*)
-  result = result.replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+  result = result.replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
 
   // Remove dangerous protocols from href and src
   result = result.replace(
@@ -81,6 +89,86 @@ export function sanitizeHtml(html: string): string {
   );
 
   return result;
+}
+
+/**
+ * Sanitize HTML for safe rendering via dangerouslySetInnerHTML.
+ *
+ * Handles the case where full-page HTML (with <html>, <head>, <body>, <nav>,
+ * <script>, etc.) was pasted or uploaded as page content. Extracts only the
+ * body content and strips all dangerous/structural chrome tags.
+ *
+ * Use this at RENDER time for page/post content, not at write time.
+ */
+export function sanitizeRenderHtml(html: string): string {
+  if (!html) return "";
+  let result = html;
+
+  // Step 1: If full HTML document, extract only <body> content
+  const bodyMatch = result.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  if (bodyMatch) {
+    result = bodyMatch[1];
+  }
+
+  // Step 2: Remove <head> block entirely (with all its content)
+  result = result.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, "");
+
+  // Step 3: Strip document-level wrapper tags (html, body, doctype)
+  result = result.replace(/<!DOCTYPE[^>]*>/gi, "");
+  result = result.replace(/<\/?(html|body)\b[^>]*>/gi, "");
+
+  // Step 4: Remove dangerous tags WITH their content
+  result = result.replace(
+    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[^>]*>[\\s\\S]*?<\\/\\1>`, "gi"),
+    "",
+  );
+  result = result.replace(
+    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[^>]*/\\s*>`, "gi"),
+    "",
+  );
+  result = result.replace(
+    new RegExp(`<\\/(${DANGEROUS_TAG_PATTERN})\\s*>`, "gi"),
+    "",
+  );
+
+  // Step 5: Remove site-chrome elements (nav, header, footer) WITH content
+  // These are site navigation, not article content
+  result = result.replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi, "");
+  result = result.replace(/<header\b[^>]*>[\s\S]*?<\/header>/gi, "");
+  result = result.replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi, "");
+
+  // Step 6: Strip class and id attributes from structural wrapper elements.
+  // TipTap does not add class/id to divs — these originate from pasted
+  // external website content. Stripping them neutralises foreign CSS
+  // without breaking nested HTML (regex cannot reliably match nested divs).
+  result = result.replace(
+    /<(div|section|aside|main)\b([^>]*)>/gi,
+    (_match, tag: string, attrs: string) => {
+      const cleaned = attrs.replace(
+        /\s+(class|id)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,
+        "",
+      );
+      return `<${tag}${cleaned}>`;
+    },
+  );
+
+  // Step 7: Remove <meta>, <link>, <title>, <base>, <noscript> tags
+  result = result.replace(/<(meta|link|base)\b[^>]*\/?>/gi, "");
+  result = result.replace(/<(title|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+
+  // Step 8: Remove event handler attributes (on*)
+  result = result.replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+
+  // Step 9: Remove dangerous protocols from href and src
+  result = result.replace(
+    /(href|src)\s*=\s*["']?\s*(javascript|vbscript|data):[^"'\s>]*/gi,
+    '$1=""',
+  );
+
+  // Step 10: Clean up excessive whitespace left by removed blocks
+  result = result.replace(/\n\s*\n\s*\n/g, "\n\n");
+
+  return result.trim();
 }
 
 /* ========================================================================== */
@@ -92,23 +180,23 @@ export function sanitizeHtml(html: string): string {
  * collapse whitespace. Safe for titles, names, excerpts, etc.
  */
 export function sanitizeText(text: string): string {
-  if (!text) return '';
+  if (!text) return "";
   // Remove dangerous tags WITH content first
   let sanitized = text.replace(
-    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[\\s\\S]*?<\\/\\1>`, 'gi'),
-    '',
+    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[\\s\\S]*?<\\/\\1>`, "gi"),
+    "",
   );
   sanitized = sanitized.replace(
-    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[^>]*\\/?>`, 'gi'),
-    '',
+    new RegExp(`<(${DANGEROUS_TAG_PATTERN})\\b[^>]*\\/?>`, "gi"),
+    "",
   );
   // Strip remaining tags
-  sanitized = sanitized.replace(/<[^>]*>/g, '');
+  sanitized = sanitized.replace(/<[^>]*>/g, "");
   // Remove control characters (keep \n \r \t)
-  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   // Decode entities
   sanitized = decodeEntities(sanitized);
-  return sanitized.trim().replace(/\s+/g, ' ');
+  return sanitized.trim().replace(/\s+/g, " ");
 }
 
 /* ========================================================================== */
@@ -120,16 +208,16 @@ export function sanitizeText(text: string): string {
  * Strips diacriticals via NFD, lowercases, limits to maxLength.
  */
 export function sanitizeSlug(text: string, maxLength = 200): string {
-  if (!text) return '';
+  if (!text) return "";
   return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // strip diacritical marks
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip diacritical marks
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s-]/g, '')   // only alphanumeric, spaces, hyphens
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(/[^a-z0-9\s-]/g, "") // only alphanumeric, spaces, hyphens
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
     .substring(0, maxLength);
 }
 
@@ -178,7 +266,7 @@ export function sanitizeUrl(url: string, allowRelative = false): string | null {
   }
 
   // Allow relative URLs if requested
-  if (allowRelative && trimmed.startsWith('/')) return trimmed;
+  if (allowRelative && trimmed.startsWith("/")) return trimmed;
 
   return null;
 }
@@ -192,11 +280,11 @@ export function sanitizeUrl(url: string, allowRelative = false): string | null {
  */
 export function escapeHtml(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /* ========================================================================== */

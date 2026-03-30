@@ -6,6 +6,7 @@ import { Providers } from "@/components/layout/Providers";
 import { AdminBar } from "@/components/admin/admin-bar";
 import { siteSettingsService } from "@/server/wiring";
 import { serializeJsonLd } from "@/features/seo/server/json-ld.util";
+import { sanitizeCss } from "@/features/pages/server/sanitization.util";
 
 const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
@@ -237,11 +238,19 @@ export default async function RootLayout({
           </>
         )}
         {/* Admin custom CSS */}
-        {customCss && <style dangerouslySetInnerHTML={{ __html: customCss }} />}
+        {customCss && (
+          <style dangerouslySetInnerHTML={{ __html: sanitizeCss(customCss) }} />
+        )}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-9999 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg dark:focus:bg-gray-900"
+        >
+          Skip to main content
+        </a>
         <script
           nonce={nonce}
           suppressHydrationWarning
@@ -261,7 +270,7 @@ export default async function RootLayout({
           }}
         >
           <AdminBar />
-          {children}
+          <div id="main-content">{children}</div>
         </Providers>
       </body>
     </html>

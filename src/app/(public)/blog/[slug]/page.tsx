@@ -148,12 +148,11 @@ export async function generateMetadata({
       description: post.twitterDescription || post.ogDescription || description,
       images: [post.twitterImage || ogImageUrl],
     },
-    ...((post as Record<string, unknown>).noIndex ||
-    (post as Record<string, unknown>).noFollow
+    ...(post.noIndex || post.noFollow
       ? {
           robots: {
-            index: !(post as Record<string, unknown>).noIndex,
-            follow: !(post as Record<string, unknown>).noFollow,
+            index: !post.noIndex,
+            follow: !post.noFollow,
           },
         }
       : {}),
@@ -260,9 +259,7 @@ export default async function PostPage({
     imageUrl: post.featuredImage || undefined,
     authorName: post.author?.displayName || post.author?.username || "Unknown",
     publisherName: siteName,
-    publisherLogoUrl: (settings as Record<string, unknown>)?.logoUrl as
-      | string
-      | undefined,
+    publisherLogoUrl: settings?.logoUrl || undefined,
     publishedAt: post.publishedAt
       ? new Date(post.publishedAt).toISOString()
       : new Date().toISOString(),
